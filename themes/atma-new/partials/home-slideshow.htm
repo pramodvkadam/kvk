@@ -1,0 +1,47 @@
+description = "Home page slide show"
+
+[viewBag]
+snippetCode = "slideshow"
+
+[slider]
+slide_show_id = 1
+==
+{% if slider.slides.slideShows != 'no_slider' %}
+<header>
+      <div id="carouselIndicators{{slider.slides.slideShows.id}}" class="carousel slide" data-ride="carousel">
+        <ol class="carousel-indicators">
+        {% set count = 0 %}
+                  	{% for slide in slider.slides.slideShows.slide_show_content %}
+
+          <li data-target="#carouselIndicators{{slider.slides.slideShows.id}}" data-slide-to="{{count}}"></li>
+                            	{% set count = count + 1 %}
+
+                    {% endfor %}
+
+        </ol>
+        
+        <div class="carousel-inner" role="listbox">
+          <!-- Slides -->
+                  {% set count = 0 %}
+
+          	{% for slide in slider.slides.slideShows.slide_show_content %}
+          <div class="carousel-item {{count==0?'active':''}}">
+            <div class="">
+              <img src="{{slide.slide_image|media}}">
+            </div>
+          </div>
+                            	{% set count = count + 1 %}
+
+          {% endfor %}
+        </div>
+        <a class="carousel-control-prev" href="#carouselIndicators{{slider.slides.slideShows.id}}" role="button" data-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="sr-only">Previous</span>
+        </a>
+        <a class="carousel-control-next" href="#carouselIndicators{{slider.slides.slideShows.id}}" role="button" data-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="sr-only">Next</span>
+        </a>
+      </div>
+</header>
+{% endif %}
