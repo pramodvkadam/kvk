@@ -151,30 +151,6 @@ class Less_Tree_Mixin_Call extends Less_Tree{
 	}
 
 	/**
-	 * Format the args for use in exception messages
-	 *
-	 */
-	private function Format($args){
-		$message = array();
-		if( $args ){
-			foreach($args as $a){
-				$argValue = '';
-				if( $a['name'] ){
-					$argValue .= $a['name'] . ':';
-				}
-				if( is_object($a['value']) ){
-					$argValue .= $a['value']->toCSS();
-				}else{
-					$argValue .= '???';
-				}
-				$message[] = $argValue;
-			}
-		}
-		return implode(', ',$message);
-	}
-
-
-	/**
 	 * Are we in a recursive mixin call?
 	 *
 	 * @return bool
@@ -195,6 +171,29 @@ class Less_Tree_Mixin_Call extends Less_Tree{
 		}
 
 		return false;
+	}
+
+	/**
+	 * Format the args for use in exception messages
+	 *
+	 */
+	private function Format($args){
+		$message = array();
+		if( $args ){
+			foreach($args as $a){
+				$argValue = '';
+				if( $a['name'] ){
+					$argValue .= $a['name'] . ':';
+				}
+				if( is_object($a['value']) ){
+					$argValue .= $a['value']->toCSS();
+				}else{
+					$argValue .= '???';
+				}
+				$message[] = $argValue;
+			}
+		}
+		return implode(', ',$message);
 	}
 
 }

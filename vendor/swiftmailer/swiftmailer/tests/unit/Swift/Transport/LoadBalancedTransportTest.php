@@ -68,6 +68,14 @@ class Swift_Transport_LoadBalancedTransportTest extends \SwiftMailerTestCase
         $this->assertEquals(1, $transport->send($message2));
     }
 
+    private function getTransport(array $transports)
+    {
+        $transport = new Swift_Transport_LoadBalancedTransport();
+        $transport->setTransports($transports);
+
+        return $transport;
+    }
+
     public function testTransportsAreReusedInRotatingFashion()
     {
         $message1 = $this->getMockery('Swift_Mime_SimpleMessage');
@@ -695,6 +703,27 @@ class Swift_Transport_LoadBalancedTransportTest extends \SwiftMailerTestCase
         $transport->send($message, $failures);
     }
 
+    /**
+     * Adapted from Yay_Matchers_ReferenceMatcher.
+     */
+    public function varsAreReferences(&$ref1, &$ref2)
+    {
+        if (is_object($ref2)) {
+            return $ref1 === $ref2;
+        }
+        if ($ref1 !== $ref2) {
+            return false;
+        }
+
+        $copy = $ref2;
+        $randomString = uniqid('yay', true);
+        $ref2 = $randomString;
+        $isRef = ($ref1 === $ref2);
+        $ref2 = $copy;
+
+        return $isRef;
+    }
+
     public function testRegisterPluginDelegatesToLoadedTransports()
     {
         $plugin = $this->createPlugin();
@@ -711,6 +740,11 @@ class Swift_Transport_LoadBalancedTransportTest extends \SwiftMailerTestCase
 
         $transport = $this->getTransport(array($t1, $t2));
         $transport->registerPlugin($plugin);
+    }
+
+    private function createPlugin()
+    {
+        return $this->getMockery('Swift_Events_EventListener');
     }
 
     public function testEachDelegateIsPinged()
@@ -800,39 +834,5 @@ class Swift_Transport_LoadBalancedTransportTest extends \SwiftMailerTestCase
         $this->assertFalse($transport->ping());
         $this->assertFalse($transport->isStarted());
         $this->assertFalse($transport->ping());
-    }
-
-    /**
-     * Adapted from Yay_Matchers_ReferenceMatcher.
-     */
-    public function varsAreReferences(&$ref1, &$ref2)
-    {
-        if (is_object($ref2)) {
-            return $ref1 === $ref2;
-        }
-        if ($ref1 !== $ref2) {
-            return false;
-        }
-
-        $copy = $ref2;
-        $randomString = uniqid('yay', true);
-        $ref2 = $randomString;
-        $isRef = ($ref1 === $ref2);
-        $ref2 = $copy;
-
-        return $isRef;
-    }
-
-    private function getTransport(array $transports)
-    {
-        $transport = new Swift_Transport_LoadBalancedTransport();
-        $transport->setTransports($transports);
-
-        return $transport;
-    }
-
-    private function createPlugin()
-    {
-        return $this->getMockery('Swift_Events_EventListener');
     }
 }

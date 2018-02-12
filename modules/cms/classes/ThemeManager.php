@@ -20,15 +20,6 @@ class ThemeManager
     //
 
     /**
-     * Returns a collection of themes installed via the update gateway
-     * @return array
-     */
-    public function getInstalled()
-    {
-        return Parameter::get('system::theme.history', []);
-    }
-
-    /**
      * Checks if a theme has ever been installed before.
      * @param  string  $name Theme code
      * @return boolean
@@ -53,40 +44,6 @@ class ThemeManager
         $history[$code] = $dirName;
         Parameter::set('system::theme.history', $history);
     }
-
-    /**
-     * Flags a theme as being uninstalled.
-     * @param string $code Theme code
-     */
-    public function setUninstalled($code)
-    {
-        $history = Parameter::get('system::theme.history', []);
-        if (array_key_exists($code, $history)) {
-            unset($history[$code]);
-        }
-
-        Parameter::set('system::theme.history', $history);
-    }
-
-    /**
-     * Returns an installed theme's code from it's dirname.
-     * @return string
-     */
-    public function findByDirName($dirName)
-    {
-        $installed = $this->getInstalled();
-        foreach ($installed as $code => $name) {
-            if ($dirName == $name) {
-                return $code;
-            }
-        }
-
-        return null;
-    }
-
-    //
-    // Management
-    //
 
     /**
      * Completely delete a theme from the system.
@@ -121,5 +78,48 @@ class ThemeManager
         if ($themeCode = $this->findByDirName($theme->getDirName())) {
             $this->setUninstalled($themeCode);
         }
+    }
+
+    /**
+     * Returns an installed theme's code from it's dirname.
+     * @return string
+     */
+    public function findByDirName($dirName)
+    {
+        $installed = $this->getInstalled();
+        foreach ($installed as $code => $name) {
+            if ($dirName == $name) {
+                return $code;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns a collection of themes installed via the update gateway
+     * @return array
+     */
+    public function getInstalled()
+    {
+        return Parameter::get('system::theme.history', []);
+    }
+
+    //
+    // Management
+    //
+
+    /**
+     * Flags a theme as being uninstalled.
+     * @param string $code Theme code
+     */
+    public function setUninstalled($code)
+    {
+        $history = Parameter::get('system::theme.history', []);
+        if (array_key_exists($code, $history)) {
+            unset($history[$code]);
+        }
+
+        Parameter::set('system::theme.history', $history);
     }
 }

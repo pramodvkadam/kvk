@@ -29,36 +29,6 @@ use Doctrine\Common\Proxy\Exception\InvalidArgumentException;
 class Autoloader
 {
     /**
-     * Resolves proxy class name to a filename based on the following pattern.
-     *
-     * 1. Remove Proxy namespace from class name.
-     * 2. Remove namespace separators from remaining class name.
-     * 3. Return PHP filename from proxy-dir with the result from 2.
-     *
-     * @param string $proxyDir
-     * @param string $proxyNamespace
-     * @param string $className
-     *
-     * @return string
-     *
-     * @throws InvalidArgumentException
-     */
-    public static function resolveFile($proxyDir, $proxyNamespace, $className)
-    {
-        if (0 !== strpos($className, $proxyNamespace)) {
-            throw InvalidArgumentException::notProxyClass($className, $proxyNamespace);
-        }
-
-        // remove proxy namespace from class name
-        $classNameRelativeToProxyNamespace = substr($className, strlen($proxyNamespace));
-
-        // remove namespace separators from remaining class name
-        $fileName = str_replace('\\', '', $classNameRelativeToProxyNamespace);
-
-        return $proxyDir . DIRECTORY_SEPARATOR . $fileName . '.php';
-    }
-
-    /**
      * Registers and returns autoloader callback for the given proxy dir and namespace.
      *
      * @param string        $proxyDir
@@ -92,5 +62,35 @@ class Autoloader
         spl_autoload_register($autoloader);
 
         return $autoloader;
+    }
+
+    /**
+     * Resolves proxy class name to a filename based on the following pattern.
+     *
+     * 1. Remove Proxy namespace from class name.
+     * 2. Remove namespace separators from remaining class name.
+     * 3. Return PHP filename from proxy-dir with the result from 2.
+     *
+     * @param string $proxyDir
+     * @param string $proxyNamespace
+     * @param string $className
+     *
+     * @return string
+     *
+     * @throws InvalidArgumentException
+     */
+    public static function resolveFile($proxyDir, $proxyNamespace, $className)
+    {
+        if (0 !== strpos($className, $proxyNamespace)) {
+            throw InvalidArgumentException::notProxyClass($className, $proxyNamespace);
+        }
+
+        // remove proxy namespace from class name
+        $classNameRelativeToProxyNamespace = substr($className, strlen($proxyNamespace));
+
+        // remove namespace separators from remaining class name
+        $fileName = str_replace('\\', '', $classNameRelativeToProxyNamespace);
+
+        return $proxyDir . DIRECTORY_SEPARATOR . $fileName . '.php';
     }
 }

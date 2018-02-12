@@ -14,14 +14,12 @@ use October\Rain\Auth\Models\Preferences as PreferencesBase;
  */
 class UserPreference extends PreferencesBase
 {
+    protected static $cache = [];
+    public $timestamps = false;
     /**
      * @var string The database table used by the model.
      */
     protected $table = 'backend_user_preferences';
-
-    public $timestamps = false;
-
-    protected static $cache = [];
 
     /**
      * Checks for a supplied user or uses the default logged in. You should override this method.

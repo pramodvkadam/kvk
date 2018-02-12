@@ -81,37 +81,6 @@ trait Sluggable
     }
 
     /**
-     * Ensures a unique attribute value, if the value is already used a counter suffix is added.
-     * @param string $name The database column name.
-     * @param value $value The desired column value.
-     * @return string A safe value that is unique.
-     */
-    protected function getSluggableUniqueAttributeValue($name, $value)
-    {
-        $counter = 1;
-        $separator = $this->getSluggableSeparator();
-        $_value = $value;
-
-        while ($this->newSluggableQuery()->where($name, $_value)->count() > 0) {
-            $counter++;
-            $_value = $value . $separator . $counter;
-        }
-
-        return $_value;
-    }
-
-    /**
-     * Returns a query that excludes the current record if it exists
-     * @return Builder
-     */
-    protected function newSluggableQuery()
-    {
-        return $this->exists
-            ? $this->newQuery()->where($this->getKeyName(), '<>', $this->getKey())
-            : $this->newQuery();
-    }
-
-    /**
      * Get an attribute relation value using dotted notation.
      * Eg: author.name
      * @return mixed
@@ -142,6 +111,37 @@ trait Sluggable
     public function getSluggableSeparator()
     {
         return defined('static::SLUG_SEPARATOR') ? static::SLUG_SEPARATOR : '-';
+    }
+
+    /**
+     * Ensures a unique attribute value, if the value is already used a counter suffix is added.
+     * @param string $name The database column name.
+     * @param value $value The desired column value.
+     * @return string A safe value that is unique.
+     */
+    protected function getSluggableUniqueAttributeValue($name, $value)
+    {
+        $counter = 1;
+        $separator = $this->getSluggableSeparator();
+        $_value = $value;
+
+        while ($this->newSluggableQuery()->where($name, $_value)->count() > 0) {
+            $counter++;
+            $_value = $value . $separator . $counter;
+        }
+
+        return $_value;
+    }
+
+    /**
+     * Returns a query that excludes the current record if it exists
+     * @return Builder
+     */
+    protected function newSluggableQuery()
+    {
+        return $this->exists
+            ? $this->newQuery()->where($this->getKeyName(), '<>', $this->getKey())
+            : $this->newQuery();
     }
 
 }

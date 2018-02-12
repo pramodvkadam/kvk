@@ -76,11 +76,6 @@ trait QueryFilter
     }
 
     /**
-     * @inheritdoc
-     */
-    abstract public function getInputBOM();
-
-    /**
      * Set LimitIterator Offset
      *
      * @param $offset
@@ -144,7 +139,7 @@ trait QueryFilter
     /**
      * @inheritdoc
      */
-    abstract public function getEnclosure();
+    abstract public function getIterator();
 
     /**
      * Returns the CSV Iterator
@@ -165,11 +160,6 @@ trait QueryFilter
 
         return $iterator;
     }
-
-    /**
-     * @inheritdoc
-     */
-    abstract public function getIterator();
 
     /**
      * Remove the BOM sequence from the CSV
@@ -206,6 +196,11 @@ trait QueryFilter
     }
 
     /**
+     * @inheritdoc
+     */
+    abstract public function getInputBOM();
+
+    /**
      * Return the Iterator without the BOM sequence
      *
      * @param Iterator $iterator
@@ -231,6 +226,11 @@ trait QueryFilter
 
         return new MapIterator($iterator, $strip_bom);
     }
+
+    /**
+     * @inheritdoc
+     */
+    abstract public function getEnclosure();
 
     /**
     * Filter the Iterator

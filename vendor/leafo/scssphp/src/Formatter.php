@@ -68,16 +68,6 @@ abstract class Formatter
     abstract public function __construct();
 
     /**
-     * Return indentation (whitespace)
-     *
-     * @return string
-     */
-    protected function indentStr()
-    {
-        return '';
-    }
-
-    /**
      * Return property assignment
      *
      * @api
@@ -113,35 +103,23 @@ abstract class Formatter
     }
 
     /**
-     * Output lines inside a block
+     * Entry point to formatting a block
      *
-     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block
-     */
-    protected function blockLines(OutputBlock $block)
-    {
-        $inner = $this->indentStr();
-
-        $glue = $this->break . $inner;
-
-        echo $inner . implode($glue, $block->lines);
-
-        if (! empty($block->children)) {
-            echo $this->break;
-        }
-    }
-
-    /**
-     * Output block selectors
+     * @api
      *
-     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block
+     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block An abstract syntax tree
+     *
+     * @return string
      */
-    protected function blockSelectors(OutputBlock $block)
+    public function format(OutputBlock $block)
     {
-        $inner = $this->indentStr();
+        ob_start();
 
-        echo $inner
-            . implode($this->tagSeparator, $block->selectors)
-            . $this->open . $this->break;
+        $this->block($block);
+
+        $out = ob_get_clean();
+
+        return $out;
     }
 
     /**
@@ -195,22 +173,44 @@ abstract class Formatter
     }
 
     /**
-     * Entry point to formatting a block
+     * Output block selectors
      *
-     * @api
+     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block
+     */
+    protected function blockSelectors(OutputBlock $block)
+    {
+        $inner = $this->indentStr();
+
+        echo $inner
+            . implode($this->tagSeparator, $block->selectors)
+            . $this->open . $this->break;
+    }
+
+    /**
+     * Output lines inside a block
      *
-     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block An abstract syntax tree
+     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block
+     */
+    protected function blockLines(OutputBlock $block)
+    {
+        $inner = $this->indentStr();
+
+        $glue = $this->break . $inner;
+
+        echo $inner . implode($glue, $block->lines);
+
+        if (! empty($block->children)) {
+            echo $this->break;
+        }
+    }
+
+    /**
+     * Return indentation (whitespace)
      *
      * @return string
      */
-    public function format(OutputBlock $block)
+    protected function indentStr()
     {
-        ob_start();
-
-        $this->block($block);
-
-        $out = ob_get_clean();
-
-        return $out;
+        return '';
     }
 }

@@ -66,12 +66,6 @@ class VersionManager
      */
     protected $pluginManager;
 
-    protected function init()
-    {
-        $this->updater = new Updater;
-        $this->pluginManager = PluginManager::instance();
-    }
-
     /**
      * Updates a single plugin by its code or object with it's latest changes.
      * If the $stopOnVersion parameter is specified, the process stops after
@@ -107,18 +101,116 @@ class VersionManager
     }
 
     /**
-     * Returns a list of unapplied plugin versions.
+     * Checks if a plugin has a version file.
      */
-    public function listNewVersions($plugin)
+    protected function hasVersionFile($code)
     {
-        $code = (is_string($plugin)) ? $plugin : $this->pluginManager->getIdentifier($plugin);
+        $versionFile = $this->getVersionFile($code);
+        return File::isFile($versionFile);
+    }
 
-        if (!$this->hasVersionFile($code)) {
-            return [];
+    /**
+     * Returns the absolute path to a version file for a plugin.
+     */
+    protected function getVersionFile($code)
+    {
+        $versionFile = $this->pluginManager->getPluginPath($code) . '/updates/version.yaml';
+        return $versionFile;
+    }
+
+    /**
+     * Returns the latest version of a plugin from its version file.
+     */
+    protected function getLatestFileVersion($code)
+    {
+        $versionInfo = $this->getFileVersions($code);
+        if (!$versionInfo) {
+            return self::NO_VERSION_VALUE;
         }
 
-        $databaseVersion = $this->getDatabaseVersion($code);
-        return $this->getNewFileVersions($code, $databaseVersion);
+        $latest = trim(key(array_slice($versionInfo, -1, 1)));
+        return $latest;
+    }
+
+    /**
+     * Returns all versions of a plugin from its version file.
+     */
+    protected function getFileVersions($code)
+    {
+        if ($this->fileVersions !== null && array_key_exists($code, $this->fileVersions)) {
+            return $this->fileVersions[$code];
+        }
+
+        $versionFile = $this->getVersionFile($code);
+        $versionInfo = Yaml::parseFile($versionFile);
+
+        if (!is_array($versionInfo)) {
+            $versionInfo = [];
+        }
+
+        if ($versionInfo) {
+            uksort($versionInfo, function ($a, $b) {
+                return version_compare($a, $b);
+            });
+        }
+
+        return $this->fileVersions[$code] = $versionInfo;
+    }
+
+    /**
+     * Returns the latest version of a plugin from the database.
+     */
+    protected function getDatabaseVersion($code)
+    {
+        if ($this->databaseVersions === null) {
+            $this->databaseVersions = Db::table('system_plugin_versions')->lists('version', 'code');
+        }
+
+        if (!isset($this->databaseVersions[$code])) {
+            $this->databaseVersions[$code] = Db::table('system_plugin_versions')
+                ->where('code', $code)
+                ->value('version')
+            ;
+        }
+
+        return (isset($this->databaseVersions[$code]))
+            ? $this->databaseVersions[$code]
+            : self::NO_VERSION_VALUE;
+    }
+
+    //
+    // File representation
+    //
+
+    /**
+     * Raise a note event for the migrator.
+     * @param  string  $message
+     * @return void
+     */
+    protected function note($message)
+    {
+        if ($this->notesOutput !== null) {
+            $this->notesOutput->writeln($message);
+        }
+        else {
+            $this->notes[] = $message;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Returns any new versions from a supplied version, ie. unapplied versions.
+     */
+    protected function getNewFileVersions($code, $version = null)
+    {
+        if ($version === null) {
+            $version = self::NO_VERSION_VALUE;
+        }
+
+        $versions = $this->getFileVersions($code);
+        $position = array_search($version, array_keys($versions));
+        return array_slice($versions, ++$position);
     }
 
     /**
@@ -156,6 +248,131 @@ class VersionManager
         $this->setDatabaseVersion($code, $version);
 
         $this->note(sprintf('- <info>v%s: </info> %s', $version, $comment));
+    }
+
+    /**
+     * Checks if a plugin has an applied update version.
+     */
+    protected function hasDatabaseHistory($code, $version, $script = null)
+    {
+        $historyInfo = $this->getDatabaseHistory($code);
+        if (!$historyInfo) {
+            return false;
+        }
+
+        foreach ($historyInfo as $history) {
+            if ($history->version != $version) {
+                continue;
+            }
+
+            if ($history->type == self::HISTORY_TYPE_COMMENT && !$script) {
+                return true;
+            }
+
+            if ($history->type == self::HISTORY_TYPE_SCRIPT && $history->detail == $script) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns all the update history for a plugin.
+     */
+    protected function getDatabaseHistory($code)
+    {
+        if ($this->databaseHistory !== null && array_key_exists($code, $this->databaseHistory)) {
+            return $this->databaseHistory[$code];
+        }
+
+        $historyInfo = Db::table('system_plugin_history')
+            ->where('code', $code)
+            ->orderBy('id')
+            ->get()
+            ->all();
+
+        return $this->databaseHistory[$code] = $historyInfo;
+    }
+
+    //
+    // Database representation
+    //
+
+    /**
+     * Registers a database update script in the history table.
+     */
+    protected function applyDatabaseScript($code, $version, $script)
+    {
+        /*
+         * Execute the database PHP script
+         */
+        $updateFile = $this->pluginManager->getPluginPath($code) . '/updates/' . $script;
+        $this->updater->setUp($updateFile);
+
+        Db::table('system_plugin_history')->insert([
+            'code' => $code,
+            'type' => self::HISTORY_TYPE_SCRIPT,
+            'version' => $version,
+            'detail' => $script,
+            'created_at' => new Carbon
+        ]);
+    }
+
+    /**
+     * Registers a database update comment in the history table.
+     */
+    protected function applyDatabaseComment($code, $version, $comment)
+    {
+        Db::table('system_plugin_history')->insert([
+            'code' => $code,
+            'type' => self::HISTORY_TYPE_COMMENT,
+            'version' => $version,
+            'detail' => $comment,
+            'created_at' => new Carbon
+        ]);
+    }
+
+    /**
+     * Updates a plugin version in the database.
+     */
+    protected function setDatabaseVersion($code, $version = null)
+    {
+        $currentVersion = $this->getDatabaseVersion($code);
+
+        if ($version && !$currentVersion) {
+            Db::table('system_plugin_versions')->insert([
+                'code' => $code,
+                'version' => $version,
+                'created_at' => new Carbon
+            ]);
+        }
+        elseif ($version && $currentVersion) {
+            Db::table('system_plugin_versions')->where('code', $code)->update([
+                'version' => $version,
+                'created_at' => new Carbon
+            ]);
+        }
+        elseif ($currentVersion) {
+            Db::table('system_plugin_versions')->where('code', $code)->delete();
+        }
+
+        $this->databaseVersions[$code] = $version;
+    }
+
+    /**
+     * Returns a list of unapplied plugin versions.
+     */
+    public function listNewVersions($plugin)
+    {
+        $code = (is_string($plugin)) ? $plugin : $this->pluginManager->getIdentifier($plugin);
+
+        if (!$this->hasVersionFile($code)) {
+            return [];
+        }
+
+        $databaseVersion = $this->getDatabaseVersion($code);
+        return $this->getNewFileVersions($code, $databaseVersion);
     }
 
     /**
@@ -213,167 +430,6 @@ class VersionManager
     }
 
     /**
-     * Deletes all records from the version and history tables for a plugin.
-     * @param  string $pluginCode Plugin code
-     * @return void
-     */
-    public function purgePlugin($pluginCode)
-    {
-        $versions = Db::table('system_plugin_versions')->where('code', $pluginCode);
-        if ($countVersions = $versions->count()) {
-            $versions->delete();
-        }
-
-        $history = Db::table('system_plugin_history')->where('code', $pluginCode);
-        if ($countHistory = $history->count()) {
-            $history->delete();
-        }
-
-        return (($countHistory + $countVersions) > 0) ? true : false;
-    }
-
-    //
-    // File representation
-    //
-
-    /**
-     * Returns the latest version of a plugin from its version file.
-     */
-    protected function getLatestFileVersion($code)
-    {
-        $versionInfo = $this->getFileVersions($code);
-        if (!$versionInfo) {
-            return self::NO_VERSION_VALUE;
-        }
-
-        $latest = trim(key(array_slice($versionInfo, -1, 1)));
-        return $latest;
-    }
-
-    /**
-     * Returns any new versions from a supplied version, ie. unapplied versions.
-     */
-    protected function getNewFileVersions($code, $version = null)
-    {
-        if ($version === null) {
-            $version = self::NO_VERSION_VALUE;
-        }
-
-        $versions = $this->getFileVersions($code);
-        $position = array_search($version, array_keys($versions));
-        return array_slice($versions, ++$position);
-    }
-
-    /**
-     * Returns all versions of a plugin from its version file.
-     */
-    protected function getFileVersions($code)
-    {
-        if ($this->fileVersions !== null && array_key_exists($code, $this->fileVersions)) {
-            return $this->fileVersions[$code];
-        }
-
-        $versionFile = $this->getVersionFile($code);
-        $versionInfo = Yaml::parseFile($versionFile);
-
-        if (!is_array($versionInfo)) {
-            $versionInfo = [];
-        }
-
-        if ($versionInfo) {
-            uksort($versionInfo, function ($a, $b) {
-                return version_compare($a, $b);
-            });
-        }
-
-        return $this->fileVersions[$code] = $versionInfo;
-    }
-
-    /**
-     * Returns the absolute path to a version file for a plugin.
-     */
-    protected function getVersionFile($code)
-    {
-        $versionFile = $this->pluginManager->getPluginPath($code) . '/updates/version.yaml';
-        return $versionFile;
-    }
-
-    /**
-     * Checks if a plugin has a version file.
-     */
-    protected function hasVersionFile($code)
-    {
-        $versionFile = $this->getVersionFile($code);
-        return File::isFile($versionFile);
-    }
-
-    //
-    // Database representation
-    //
-
-    /**
-     * Returns the latest version of a plugin from the database.
-     */
-    protected function getDatabaseVersion($code)
-    {
-        if ($this->databaseVersions === null) {
-            $this->databaseVersions = Db::table('system_plugin_versions')->lists('version', 'code');
-        }
-
-        if (!isset($this->databaseVersions[$code])) {
-            $this->databaseVersions[$code] = Db::table('system_plugin_versions')
-                ->where('code', $code)
-                ->value('version')
-            ;
-        }
-
-        return (isset($this->databaseVersions[$code]))
-            ? $this->databaseVersions[$code]
-            : self::NO_VERSION_VALUE;
-    }
-
-    /**
-     * Updates a plugin version in the database.
-     */
-    protected function setDatabaseVersion($code, $version = null)
-    {
-        $currentVersion = $this->getDatabaseVersion($code);
-
-        if ($version && !$currentVersion) {
-            Db::table('system_plugin_versions')->insert([
-                'code' => $code,
-                'version' => $version,
-                'created_at' => new Carbon
-            ]);
-        }
-        elseif ($version && $currentVersion) {
-            Db::table('system_plugin_versions')->where('code', $code)->update([
-                'version' => $version,
-                'created_at' => new Carbon
-            ]);
-        }
-        elseif ($currentVersion) {
-            Db::table('system_plugin_versions')->where('code', $code)->delete();
-        }
-
-        $this->databaseVersions[$code] = $version;
-    }
-
-    /**
-     * Registers a database update comment in the history table.
-     */
-    protected function applyDatabaseComment($code, $version, $comment)
-    {
-        Db::table('system_plugin_history')->insert([
-            'code' => $code,
-            'type' => self::HISTORY_TYPE_COMMENT,
-            'version' => $version,
-            'detail' => $comment,
-            'created_at' => new Carbon
-        ]);
-    }
-
-    /**
      * Removes a database update comment in the history table.
      */
     protected function removeDatabaseComment($code, $version)
@@ -383,26 +439,6 @@ class VersionManager
             ->where('type', self::HISTORY_TYPE_COMMENT)
             ->where('version', $version)
             ->delete();
-    }
-
-    /**
-     * Registers a database update script in the history table.
-     */
-    protected function applyDatabaseScript($code, $version, $script)
-    {
-        /*
-         * Execute the database PHP script
-         */
-        $updateFile = $this->pluginManager->getPluginPath($code) . '/updates/' . $script;
-        $this->updater->setUp($updateFile);
-
-        Db::table('system_plugin_history')->insert([
-            'code' => $code,
-            'type' => self::HISTORY_TYPE_SCRIPT,
-            'version' => $version,
-            'detail' => $script,
-            'created_at' => new Carbon
-        ]);
     }
 
     /**
@@ -425,70 +461,28 @@ class VersionManager
     }
 
     /**
-     * Returns all the update history for a plugin.
+     * Deletes all records from the version and history tables for a plugin.
+     * @param  string $pluginCode Plugin code
+     * @return void
      */
-    protected function getDatabaseHistory($code)
+    public function purgePlugin($pluginCode)
     {
-        if ($this->databaseHistory !== null && array_key_exists($code, $this->databaseHistory)) {
-            return $this->databaseHistory[$code];
+        $versions = Db::table('system_plugin_versions')->where('code', $pluginCode);
+        if ($countVersions = $versions->count()) {
+            $versions->delete();
         }
 
-        $historyInfo = Db::table('system_plugin_history')
-            ->where('code', $code)
-            ->orderBy('id')
-            ->get()
-            ->all();
-
-        return $this->databaseHistory[$code] = $historyInfo;
-    }
-
-    /**
-     * Checks if a plugin has an applied update version.
-     */
-    protected function hasDatabaseHistory($code, $version, $script = null)
-    {
-        $historyInfo = $this->getDatabaseHistory($code);
-        if (!$historyInfo) {
-            return false;
+        $history = Db::table('system_plugin_history')->where('code', $pluginCode);
+        if ($countHistory = $history->count()) {
+            $history->delete();
         }
 
-        foreach ($historyInfo as $history) {
-            if ($history->version != $version) {
-                continue;
-            }
-
-            if ($history->type == self::HISTORY_TYPE_COMMENT && !$script) {
-                return true;
-            }
-
-            if ($history->type == self::HISTORY_TYPE_SCRIPT && $history->detail == $script) {
-                return true;
-            }
-        }
-
-        return false;
+        return (($countHistory + $countVersions) > 0) ? true : false;
     }
 
     //
     // Notes
     //
-
-    /**
-     * Raise a note event for the migrator.
-     * @param  string  $message
-     * @return void
-     */
-    protected function note($message)
-    {
-        if ($this->notesOutput !== null) {
-            $this->notesOutput->writeln($message);
-        }
-        else {
-            $this->notes[] = $message;
-        }
-
-        return $this;
-    }
 
     /**
      * Get the notes for the last operation.
@@ -522,5 +516,11 @@ class VersionManager
         $this->notesOutput = $output;
 
         return $this;
+    }
+
+    protected function init()
+    {
+        $this->updater = new Updater;
+        $this->pluginManager = PluginManager::instance();
     }
 }

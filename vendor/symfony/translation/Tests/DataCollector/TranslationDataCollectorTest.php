@@ -17,13 +17,6 @@ use Symfony\Component\Translation\DataCollector\TranslationDataCollector;
 
 class TranslationDataCollectorTest extends TestCase
 {
-    protected function setUp()
-    {
-        if (!class_exists('Symfony\Component\HttpKernel\DataCollector\DataCollector')) {
-            $this->markTestSkipped('The "DataCollector" is not available');
-        }
-    }
-
     public function testCollectEmptyMessages()
     {
         $translator = $this->getTranslator();
@@ -36,6 +29,17 @@ class TranslationDataCollectorTest extends TestCase
         $this->assertEquals(0, $dataCollector->getCountFallbacks());
         $this->assertEquals(0, $dataCollector->getCountDefines());
         $this->assertEquals(array(), $dataCollector->getMessages()->getValue());
+    }
+
+    private function getTranslator()
+    {
+        $translator = $this
+            ->getMockBuilder('Symfony\Component\Translation\DataCollectorTranslator')
+            ->disableOriginalConstructor()
+            ->getMock()
+        ;
+
+        return $translator;
     }
 
     public function testCollect()
@@ -137,14 +141,10 @@ class TranslationDataCollectorTest extends TestCase
         $this->assertEquals($expectedMessages, array_values($dataCollector->getMessages()->getValue(true)));
     }
 
-    private function getTranslator()
+    protected function setUp()
     {
-        $translator = $this
-            ->getMockBuilder('Symfony\Component\Translation\DataCollectorTranslator')
-            ->disableOriginalConstructor()
-            ->getMock()
-        ;
-
-        return $translator;
+        if (!class_exists('Symfony\Component\HttpKernel\DataCollector\DataCollector')) {
+            $this->markTestSkipped('The "DataCollector" is not available');
+        }
     }
 }

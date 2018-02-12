@@ -54,18 +54,6 @@ class Twig_Loader_Filesystem implements Twig_LoaderInterface, Twig_ExistsLoaderI
     }
 
     /**
-     * Returns the path namespaces.
-     *
-     * The main namespace is always defined.
-     *
-     * @return array The array of defined namespaces
-     */
-    public function getNamespaces()
-    {
-        return array_keys($this->paths);
-    }
-
-    /**
      * Sets the paths where templates are stored.
      *
      * @param string|array $paths     A path or an array of paths where to look for templates
@@ -81,6 +69,18 @@ class Twig_Loader_Filesystem implements Twig_LoaderInterface, Twig_ExistsLoaderI
         foreach ($paths as $path) {
             $this->addPath($path, $namespace);
         }
+    }
+
+    /**
+     * Returns the path namespaces.
+     *
+     * The main namespace is always defined.
+     *
+     * @return array The array of defined namespaces
+     */
+    public function getNamespaces()
+    {
+        return array_keys($this->paths);
     }
 
     /**
@@ -131,38 +131,22 @@ class Twig_Loader_Filesystem implements Twig_LoaderInterface, Twig_ExistsLoaderI
         }
     }
 
+    private function isAbsolutePath($file)
+    {
+        return strspn($file, '/\\', 0, 1)
+            || (strlen($file) > 3 && ctype_alpha($file[0])
+                && ':' === $file[1]
+                && strspn($file, '/\\', 2, 1)
+            )
+            || null !== parse_url($file, PHP_URL_SCHEME)
+        ;
+    }
+
     public function getSourceContext($name)
     {
         $path = $this->findTemplate($name);
 
         return new Twig_Source(file_get_contents($path), $name, $path);
-    }
-
-    public function getCacheKey($name)
-    {
-        $path = $this->findTemplate($name);
-        $len = strlen($this->rootPath);
-        if (0 === strncmp($this->rootPath, $path, $len)) {
-            return substr($path, $len);
-        }
-
-        return $path;
-    }
-
-    public function exists($name)
-    {
-        $name = $this->normalizeName($name);
-
-        if (isset($this->cache[$name])) {
-            return true;
-        }
-
-        return false !== $this->findTemplate($name, false);
-    }
-
-    public function isFresh($name, $time)
-    {
-        return filemtime($this->findTemplate($name)) <= $time;
     }
 
     /**
@@ -231,22 +215,6 @@ class Twig_Loader_Filesystem implements Twig_LoaderInterface, Twig_ExistsLoaderI
         return preg_replace('#/{2,}#', '/', str_replace('\\', '/', $name));
     }
 
-    private function parseName($name, $default = self::MAIN_NAMESPACE)
-    {
-        if (isset($name[0]) && '@' == $name[0]) {
-            if (false === $pos = strpos($name, '/')) {
-                throw new Twig_Error_Loader(sprintf('Malformed namespaced template name "%s" (expecting "@namespace/template_name").', $name));
-            }
-
-            $namespace = substr($name, 1, $pos - 1);
-            $shortname = substr($name, $pos + 1);
-
-            return array($namespace, $shortname);
-        }
-
-        return array($default, $name);
-    }
-
     private function validateName($name)
     {
         if (false !== strpos($name, "\0")) {
@@ -269,15 +237,47 @@ class Twig_Loader_Filesystem implements Twig_LoaderInterface, Twig_ExistsLoaderI
         }
     }
 
-    private function isAbsolutePath($file)
+    private function parseName($name, $default = self::MAIN_NAMESPACE)
     {
-        return strspn($file, '/\\', 0, 1)
-            || (strlen($file) > 3 && ctype_alpha($file[0])
-                && ':' === $file[1]
-                && strspn($file, '/\\', 2, 1)
-            )
-            || null !== parse_url($file, PHP_URL_SCHEME)
-        ;
+        if (isset($name[0]) && '@' == $name[0]) {
+            if (false === $pos = strpos($name, '/')) {
+                throw new Twig_Error_Loader(sprintf('Malformed namespaced template name "%s" (expecting "@namespace/template_name").', $name));
+            }
+
+            $namespace = substr($name, 1, $pos - 1);
+            $shortname = substr($name, $pos + 1);
+
+            return array($namespace, $shortname);
+        }
+
+        return array($default, $name);
+    }
+
+    public function getCacheKey($name)
+    {
+        $path = $this->findTemplate($name);
+        $len = strlen($this->rootPath);
+        if (0 === strncmp($this->rootPath, $path, $len)) {
+            return substr($path, $len);
+        }
+
+        return $path;
+    }
+
+    public function exists($name)
+    {
+        $name = $this->normalizeName($name);
+
+        if (isset($this->cache[$name])) {
+            return true;
+        }
+
+        return false !== $this->findTemplate($name, false);
+    }
+
+    public function isFresh($name, $time)
+    {
+        return filemtime($this->findTemplate($name)) <= $time;
     }
 }
 

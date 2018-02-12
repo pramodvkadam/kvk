@@ -4,11 +4,6 @@ class Swift_CharacterReader_Utf8ReaderTest extends \PHPUnit\Framework\TestCase
 {
     private $reader;
 
-    protected function setUp()
-    {
-        $this->reader = new Swift_CharacterReader_Utf8Reader();
-    }
-
     public function testLeading7BitOctetCausesReturnZero()
     {
         for ($ordinal = 0x00; $ordinal <= 0x7F; ++$ordinal) {
@@ -61,5 +56,10 @@ class Swift_CharacterReader_Utf8ReaderTest extends \PHPUnit\Framework\TestCase
                 5, $this->reader->validateByteSequence(array($octet), 1)
                 );
         }
+    }
+
+    protected function setUp()
+    {
+        $this->reader = new Swift_CharacterReader_Utf8Reader();
     }
 }

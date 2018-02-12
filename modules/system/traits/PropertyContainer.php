@@ -18,6 +18,36 @@ trait PropertyContainer
     protected $properties = [];
 
     /**
+     * Sets a property value
+     * @param string $name
+     * @param mixed $value
+     * @return void
+     */
+    public function setProperty($name, $value)
+    {
+        $this->properties[$name] = $value;
+    }
+
+    /**
+     * Returns all properties.
+     * @return array
+     */
+    public function getProperties()
+    {
+        return $this->properties;
+    }
+
+    /**
+     * Sets multiple properties.
+     * @param array $properties
+     * @return void
+     */
+    public function setProperties($properties)
+    {
+        $this->properties = $this->validateProperties($properties);
+    }
+
+    /**
      * Validates the properties against the defined properties of the class.
      * This method also sets default properties.
      * @param array $properties The supplied property values.
@@ -50,36 +80,6 @@ trait PropertyContainer
     public function defineProperties()
     {
         return [];
-    }
-
-    /**
-     * Sets multiple properties.
-     * @param array $properties
-     * @return void
-     */
-    public function setProperties($properties)
-    {
-        $this->properties = $this->validateProperties($properties);
-    }
-
-    /**
-     * Sets a property value
-     * @param string $name
-     * @param mixed $value
-     * @return void
-     */
-    public function setProperty($name, $value)
-    {
-        $this->properties[$name] = $value;
-    }
-
-    /**
-     * Returns all properties.
-     * @return array
-     */
-    public function getProperties()
-    {
-        return $this->properties;
     }
 
     /**

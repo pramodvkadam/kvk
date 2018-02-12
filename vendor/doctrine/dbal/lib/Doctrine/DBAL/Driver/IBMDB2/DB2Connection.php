@@ -72,19 +72,6 @@ class DB2Connection implements Connection, ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function prepare($sql)
-    {
-        $stmt = @db2_prepare($this->_conn, $sql);
-        if ( ! $stmt) {
-            throw new DB2Exception(db2_stmt_errormsg());
-        }
-
-        return new DB2Statement($stmt);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function query()
     {
         $args = func_get_args();
@@ -93,6 +80,19 @@ class DB2Connection implements Connection, ServerInfoAwareConnection
         $stmt->execute();
 
         return $stmt;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function prepare($sql)
+    {
+        $stmt = @db2_prepare($this->_conn, $sql);
+        if ( ! $stmt) {
+            throw new DB2Exception(db2_stmt_errormsg());
+        }
+
+        return new DB2Statement($stmt);
     }
 
     /**
@@ -160,19 +160,19 @@ class DB2Connection implements Connection, ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function errorCode()
-    {
-        return db2_conn_error($this->_conn);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function errorInfo()
     {
         return array(
             0 => db2_conn_errormsg($this->_conn),
             1 => $this->errorCode(),
         );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function errorCode()
+    {
+        return db2_conn_error($this->_conn);
     }
 }

@@ -67,6 +67,14 @@ abstract class PersistentObject implements ObjectManagerAware
     private $cm = null;
 
     /**
+     * @return ObjectManager|null
+     */
+    static public function getObjectManager()
+    {
+        return self::$objectManager;
+    }
+
+    /**
      * Sets the object manager responsible for all persistent object base classes.
      *
      * @param ObjectManager|null $objectManager
@@ -76,14 +84,6 @@ abstract class PersistentObject implements ObjectManagerAware
     static public function setObjectManager(ObjectManager $objectManager = null)
     {
         self::$objectManager = $objectManager;
-    }
-
-    /**
-     * @return ObjectManager|null
-     */
-    static public function getObjectManager()
-    {
-        return self::$objectManager;
     }
 
     /**
@@ -104,6 +104,53 @@ abstract class PersistentObject implements ObjectManagerAware
         }
 
         $this->cm = $classMetadata;
+    }
+
+    /**
+     * Magic methods.
+     *
+     * @param string $method
+     * @param array  $args
+     *
+     * @return mixed
+     *
+     * @throws \BadMethodCallException
+     */
+    public function __call($method, $args)
+    {
+        $this->initializeDoctrine();
+
+        $command = substr($method, 0, 3);
+        $field = lcfirst(substr($method, 3));
+        if ($command == "set") {
+            $this->set($field, $args);
+        } else if ($command == "get") {
+            return $this->get($field);
+        } else if ($command == "add") {
+            $this->add($field, $args);
+        } else {
+            throw new \BadMethodCallException("There is no method ".$method." on ".$this->cm->getName());
+        }
+    }
+
+    /**
+     * Initializes Doctrine Metadata for this class.
+     *
+     * @return void
+     *
+     * @throws \RuntimeException
+     */
+    private function initializeDoctrine()
+    {
+        if ($this->cm !== null) {
+            return;
+        }
+
+        if (!self::$objectManager) {
+            throw new \RuntimeException("No runtime object manager set. Call PersistentObject#setObjectManager().");
+        }
+
+        $this->cm = self::$objectManager->getClassMetadata(get_class($this));
     }
 
     /**
@@ -134,24 +181,6 @@ abstract class PersistentObject implements ObjectManagerAware
     }
 
     /**
-     * Gets a persistent field value.
-     *
-     * @param string $field
-     *
-     * @return mixed
-     *
-     * @throws \BadMethodCallException When no persistent field exists by that name.
-     */
-    private function get($field)
-    {
-        if ( $this->cm->hasField($field) || $this->cm->hasAssociation($field) ) {
-            return $this->$field;
-        }
-
-        throw new \BadMethodCallException("no field with name '".$field."' exists on '".$this->cm->getName()."'");
-    }
-
-    /**
      * If this is an inverse side association, completes the owning side.
      *
      * @param string        $field
@@ -171,6 +200,24 @@ abstract class PersistentObject implements ObjectManagerAware
             $setter = ($targetMetadata->isCollectionValuedAssociation($mappedByField) ? "add" : "set").$mappedByField;
             $targetObject->$setter($this);
         }
+    }
+
+    /**
+     * Gets a persistent field value.
+     *
+     * @param string $field
+     *
+     * @return mixed
+     *
+     * @throws \BadMethodCallException When no persistent field exists by that name.
+     */
+    private function get($field)
+    {
+        if ( $this->cm->hasField($field) || $this->cm->hasAssociation($field) ) {
+            return $this->$field;
+        }
+
+        throw new \BadMethodCallException("no field with name '".$field."' exists on '".$this->cm->getName()."'");
     }
 
     /**
@@ -198,53 +245,6 @@ abstract class PersistentObject implements ObjectManagerAware
             $this->completeOwningSide($field, $targetClass, $args[0]);
         } else {
             throw new \BadMethodCallException("There is no method add".$field."() on ".$this->cm->getName());
-        }
-    }
-
-    /**
-     * Initializes Doctrine Metadata for this class.
-     *
-     * @return void
-     *
-     * @throws \RuntimeException
-     */
-    private function initializeDoctrine()
-    {
-        if ($this->cm !== null) {
-            return;
-        }
-
-        if (!self::$objectManager) {
-            throw new \RuntimeException("No runtime object manager set. Call PersistentObject#setObjectManager().");
-        }
-
-        $this->cm = self::$objectManager->getClassMetadata(get_class($this));
-    }
-
-    /**
-     * Magic methods.
-     *
-     * @param string $method
-     * @param array  $args
-     *
-     * @return mixed
-     *
-     * @throws \BadMethodCallException
-     */
-    public function __call($method, $args)
-    {
-        $this->initializeDoctrine();
-
-        $command = substr($method, 0, 3);
-        $field = lcfirst(substr($method, 3));
-        if ($command == "set") {
-            $this->set($field, $args);
-        } else if ($command == "get") {
-            return $this->get($field);
-        } else if ($command == "add") {
-            $this->add($field, $args);
-        } else {
-            throw new \BadMethodCallException("There is no method ".$method." on ".$this->cm->getName());
         }
     }
 }

@@ -42,6 +42,25 @@ class TaggedCache extends Repository
     }
 
     /**
+     * {@inheritdoc}
+     */
+    protected function itemKey($key)
+    {
+        return $this->taggedItemKey($key);
+    }
+
+    /**
+     * Get a fully qualified key for a tagged item.
+     *
+     * @param  string  $key
+     * @return string
+     */
+    public function taggedItemKey($key)
+    {
+        return sha1($this->tags->getNamespace()).':'.$key;
+    }
+
+    /**
      * Increment the value of an item in the cache.
      *
      * @param  string  $key
@@ -61,25 +80,6 @@ class TaggedCache extends Repository
     public function flush()
     {
         $this->tags->reset();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function itemKey($key)
-    {
-        return $this->taggedItemKey($key);
-    }
-
-    /**
-     * Get a fully qualified key for a tagged item.
-     *
-     * @param  string  $key
-     * @return string
-     */
-    public function taggedItemKey($key)
-    {
-        return sha1($this->tags->getNamespace()).':'.$key;
     }
 
     /**

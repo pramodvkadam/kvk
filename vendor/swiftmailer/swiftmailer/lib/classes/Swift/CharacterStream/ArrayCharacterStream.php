@@ -52,15 +52,15 @@ class Swift_CharacterStream_ArrayCharacterStream implements Swift_CharacterStrea
         $this->setCharacterSet($charset);
     }
 
-    /**
-     * Set the character set used in this CharacterStream.
-     *
-     * @param string $charset
-     */
-    public function setCharacterSet($charset)
+    private static function initializeMaps()
     {
-        $this->charset = $charset;
-        $this->charReader = null;
+        if (!isset(self::$charMap)) {
+            self::$charMap = array();
+            for ($byte = 0; $byte < 256; ++$byte) {
+                self::$charMap[$byte] = chr($byte);
+            }
+            self::$byteMap = array_flip(self::$charMap);
+        }
     }
 
     /**
@@ -71,6 +71,17 @@ class Swift_CharacterStream_ArrayCharacterStream implements Swift_CharacterStrea
     public function setCharacterReaderFactory(Swift_CharacterReaderFactory $factory)
     {
         $this->charReaderFactory = $factory;
+    }
+
+    /**
+     * Set the character set used in this CharacterStream.
+     *
+     * @param string $charset
+     */
+    public function setCharacterSet($charset)
+    {
+        $this->charset = $charset;
+        $this->charReader = null;
     }
 
     /**
@@ -118,61 +129,13 @@ class Swift_CharacterStream_ArrayCharacterStream implements Swift_CharacterStrea
     }
 
     /**
-     * Read $length characters from the stream and move the internal pointer
-     * $length further into the stream.
-     *
-     * @param int $length
-     *
-     * @return string
+     * Empty the stream and reset the internal pointer.
      */
-    public function read($length)
+    public function flushContents()
     {
-        if ($this->offset == $this->array_size) {
-            return false;
-        }
-
-        // Don't use array slice
-        $arrays = array();
-        $end = $length + $this->offset;
-        for ($i = $this->offset; $i < $end; ++$i) {
-            if (!isset($this->array[$i])) {
-                break;
-            }
-            $arrays[] = $this->array[$i];
-        }
-        $this->offset += $i - $this->offset; // Limit function calls
-        $chars = false;
-        foreach ($arrays as $array) {
-            $chars .= implode('', array_map('chr', $array));
-        }
-
-        return $chars;
-    }
-
-    /**
-     * Read $length characters from the stream and return a 1-dimensional array
-     * containing there octet values.
-     *
-     * @param int $length
-     *
-     * @return int[]
-     */
-    public function readBytes($length)
-    {
-        if ($this->offset == $this->array_size) {
-            return false;
-        }
-        $arrays = array();
-        $end = $length + $this->offset;
-        for ($i = $this->offset; $i < $end; ++$i) {
-            if (!isset($this->array[$i])) {
-                break;
-            }
-            $arrays[] = $this->array[$i];
-        }
-        $this->offset += ($i - $this->offset); // Limit function calls
-
-        return array_merge(...$arrays);
+        $this->offset = 0;
+        $this->array = array();
+        $this->array_size = 0;
     }
 
     /**
@@ -241,31 +204,6 @@ class Swift_CharacterStream_ArrayCharacterStream implements Swift_CharacterStrea
         fclose($fp);
     }
 
-    /**
-     * Move the internal pointer to $charOffset in the stream.
-     *
-     * @param int $charOffset
-     */
-    public function setPointer($charOffset)
-    {
-        if ($charOffset > $this->array_size) {
-            $charOffset = $this->array_size;
-        } elseif ($charOffset < 0) {
-            $charOffset = 0;
-        }
-        $this->offset = $charOffset;
-    }
-
-    /**
-     * Empty the stream and reset the internal pointer.
-     */
-    public function flushContents()
-    {
-        $this->offset = 0;
-        $this->array = array();
-        $this->array_size = 0;
-    }
-
     private function reloadBuffer($fp, $len)
     {
         if (!feof($fp) && ($bytes = fread($fp, $len)) !== false) {
@@ -280,14 +218,76 @@ class Swift_CharacterStream_ArrayCharacterStream implements Swift_CharacterStrea
         return false;
     }
 
-    private static function initializeMaps()
+    /**
+     * Read $length characters from the stream and move the internal pointer
+     * $length further into the stream.
+     *
+     * @param int $length
+     *
+     * @return string
+     */
+    public function read($length)
     {
-        if (!isset(self::$charMap)) {
-            self::$charMap = array();
-            for ($byte = 0; $byte < 256; ++$byte) {
-                self::$charMap[$byte] = chr($byte);
-            }
-            self::$byteMap = array_flip(self::$charMap);
+        if ($this->offset == $this->array_size) {
+            return false;
         }
+
+        // Don't use array slice
+        $arrays = array();
+        $end = $length + $this->offset;
+        for ($i = $this->offset; $i < $end; ++$i) {
+            if (!isset($this->array[$i])) {
+                break;
+            }
+            $arrays[] = $this->array[$i];
+        }
+        $this->offset += $i - $this->offset; // Limit function calls
+        $chars = false;
+        foreach ($arrays as $array) {
+            $chars .= implode('', array_map('chr', $array));
+        }
+
+        return $chars;
+    }
+
+    /**
+     * Read $length characters from the stream and return a 1-dimensional array
+     * containing there octet values.
+     *
+     * @param int $length
+     *
+     * @return int[]
+     */
+    public function readBytes($length)
+    {
+        if ($this->offset == $this->array_size) {
+            return false;
+        }
+        $arrays = array();
+        $end = $length + $this->offset;
+        for ($i = $this->offset; $i < $end; ++$i) {
+            if (!isset($this->array[$i])) {
+                break;
+            }
+            $arrays[] = $this->array[$i];
+        }
+        $this->offset += ($i - $this->offset); // Limit function calls
+
+        return array_merge(...$arrays);
+    }
+
+    /**
+     * Move the internal pointer to $charOffset in the stream.
+     *
+     * @param int $charOffset
+     */
+    public function setPointer($charOffset)
+    {
+        if ($charOffset > $this->array_size) {
+            $charOffset = $this->array_size;
+        } elseif ($charOffset < 0) {
+            $charOffset = 0;
+        }
+        $this->offset = $charOffset;
     }
 }

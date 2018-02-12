@@ -32,16 +32,6 @@ class DNSCheckValidation implements EmailValidation
         return $this->checkDNS($host);
     }
 
-    public function getError()
-    {
-        return $this->error;
-    }
-
-    public function getWarnings()
-    {
-        return $this->warnings;
-    }
-
     protected function checkDNS($host)
     {
         $host = rtrim($host, '.') . '.';
@@ -57,5 +47,15 @@ class DNSCheckValidation implements EmailValidation
             }
         }
         return $MXresult || $Aresult;
+    }
+
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    public function getWarnings()
+    {
+        return $this->warnings;
     }
 }

@@ -28,6 +28,23 @@ abstract class ModuleServiceProvider extends ServiceProviderBase
         }
     }
 
+    public function getModule($args)
+    {
+        $module = (isset($args[0]) and is_string($args[0])) ? $args[0] : null;
+        return $module;
+    }
+
+    /**
+     * Register a config file namespace.
+     * @param  string  $path
+     * @param  string  $namespace
+     * @return void
+     */
+    protected function loadConfigFrom($path, $namespace)
+    {
+        $this->app['config']->package($namespace, $path);
+    }
+
     /**
      * Register the service provider.
      * @return void
@@ -53,12 +70,6 @@ abstract class ModuleServiceProvider extends ServiceProviderBase
         return [];
     }
 
-    public function getModule($args)
-    {
-        $module = (isset($args[0]) and is_string($args[0])) ? $args[0] : null;
-        return $module;
-    }
-
     /**
      * Registers a new console (artisan) command
      * @param $key The command name
@@ -74,17 +85,6 @@ abstract class ModuleServiceProvider extends ServiceProviderBase
         });
 
         $this->commands($key);
-    }
-
-    /**
-     * Register a config file namespace.
-     * @param  string  $path
-     * @param  string  $namespace
-     * @return void
-     */
-    protected function loadConfigFrom($path, $namespace)
-    {
-        $this->app['config']->package($namespace, $path);
     }
 
 }

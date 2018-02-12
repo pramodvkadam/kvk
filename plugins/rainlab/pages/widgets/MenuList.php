@@ -20,16 +20,13 @@ class MenuList extends WidgetBase
     use \Backend\Traits\SearchableWidget;
     use \Backend\Traits\SelectableWidget;
 
-    protected $theme;
-
-    protected $dataIdPrefix;
-
     /**
      * @var string Message to display when the Delete button is clicked.
      */
     public $deleteConfirmation = 'rainlab.pages::lang.menu.delete_confirmation';
-
     public $noRecordsMessage = 'rainlab.pages::lang.menu.no_records';
+    protected $theme;
+    protected $dataIdPrefix;
 
     public function __construct($controller, $alias)
     {
@@ -56,25 +53,6 @@ class MenuList extends WidgetBase
     // Event handlers
     //
 
-    public function onUpdate()
-    {
-        $this->extendSelection();
-
-        return $this->updateList();
-    }
-
-    public function onSearch()
-    {
-        $this->setSearchTerm(Input::get('search'));
-        $this->extendSelection();
-
-        return $this->updateList();
-    }
-
-    //
-    // Methods for the internal use
-    //
-
     protected function getData()
     {
         $menus = Menu::listInTheme($this->theme, true);
@@ -97,15 +75,29 @@ class MenuList extends WidgetBase
         return $menus;
     }
 
+    public function onUpdate()
+    {
+        $this->extendSelection();
+
+        return $this->updateList();
+    }
+
+    //
+    // Methods for the internal use
+    //
+
     protected function updateList()
     {
         $vars = ['items' => $this->getData()];
         return ['#'.$this->getId('menu-list') => $this->makePartial('items', $vars)];
     }
 
-    protected function getThemeSessionKey($prefix)
+    public function onSearch()
     {
-        return $prefix . $this->theme->getDirName();
+        $this->setSearchTerm(Input::get('search'));
+        $this->extendSelection();
+
+        return $this->updateList();
     }
 
     protected function getSession($key = null, $default = null)
@@ -113,6 +105,11 @@ class MenuList extends WidgetBase
         $key = strlen($key) ? $this->getThemeSessionKey($key) : $key;
 
         return parent::getSession($key, $default);
+    }
+
+    protected function getThemeSessionKey($prefix)
+    {
+        return $prefix . $this->theme->getDirName();
     }
 
     protected function putSession($key, $value) 

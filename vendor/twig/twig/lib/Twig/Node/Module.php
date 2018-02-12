@@ -110,41 +110,6 @@ class Twig_Node_Module extends Twig_Node
         $this->compileClassFooter($compiler);
     }
 
-    protected function compileGetParent(Twig_Compiler $compiler)
-    {
-        if (!$this->hasNode('parent')) {
-            return;
-        }
-        $parent = $this->getNode('parent');
-
-        $compiler
-            ->write("protected function doGetParent(array \$context)\n", "{\n")
-            ->indent()
-            ->addDebugInfo($parent)
-            ->write('return ')
-        ;
-
-        if ($parent instanceof Twig_Node_Expression_Constant) {
-            $compiler->subcompile($parent);
-        } else {
-            $compiler
-                ->raw('$this->loadTemplate(')
-                ->subcompile($parent)
-                ->raw(', ')
-                ->repr($this->source->getName())
-                ->raw(', ')
-                ->repr($parent->getTemplateLine())
-                ->raw(')')
-            ;
-        }
-
-        $compiler
-            ->raw(";\n")
-            ->outdent()
-            ->write("}\n\n")
-        ;
-    }
-
     protected function compileClassHeader(Twig_Compiler $compiler)
     {
         $compiler
@@ -297,6 +262,41 @@ class Twig_Node_Module extends Twig_Node
         ;
     }
 
+    protected function compileGetParent(Twig_Compiler $compiler)
+    {
+        if (!$this->hasNode('parent')) {
+            return;
+        }
+        $parent = $this->getNode('parent');
+
+        $compiler
+            ->write("protected function doGetParent(array \$context)\n", "{\n")
+            ->indent()
+            ->addDebugInfo($parent)
+            ->write('return ')
+        ;
+
+        if ($parent instanceof Twig_Node_Expression_Constant) {
+            $compiler->subcompile($parent);
+        } else {
+            $compiler
+                ->raw('$this->loadTemplate(')
+                ->subcompile($parent)
+                ->raw(', ')
+                ->repr($this->source->getName())
+                ->raw(', ')
+                ->repr($parent->getTemplateLine())
+                ->raw(')')
+            ;
+        }
+
+        $compiler
+            ->raw(";\n")
+            ->outdent()
+            ->write("}\n\n")
+        ;
+    }
+
     protected function compileDisplay(Twig_Compiler $compiler)
     {
         $compiler
@@ -321,15 +321,6 @@ class Twig_Node_Module extends Twig_Node
             ->subcompile($this->getNode('display_end'))
             ->outdent()
             ->write("}\n\n")
-        ;
-    }
-
-    protected function compileClassFooter(Twig_Compiler $compiler)
-    {
-        $compiler
-            ->subcompile($this->getNode('class_end'))
-            ->outdent()
-            ->write("}\n")
         ;
     }
 
@@ -426,6 +417,15 @@ class Twig_Node_Module extends Twig_Node
             ->raw(', ')
             ->string($this->source->getPath())
             ->raw(");\n")
+            ->outdent()
+            ->write("}\n")
+        ;
+    }
+
+    protected function compileClassFooter(Twig_Compiler $compiler)
+    {
+        $compiler
+            ->subcompile($this->getNode('class_end'))
             ->outdent()
             ->write("}\n")
         ;

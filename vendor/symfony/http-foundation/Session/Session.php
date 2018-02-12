@@ -51,6 +51,14 @@ class Session implements SessionInterface, \IteratorAggregate, \Countable
     /**
      * {@inheritdoc}
      */
+    public function registerBag(SessionBagInterface $bag)
+    {
+        $this->storage->registerBag(new SessionBagProxy($bag, $this->data));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function start()
     {
         return $this->storage->start();
@@ -62,6 +70,18 @@ class Session implements SessionInterface, \IteratorAggregate, \Countable
     public function has($name)
     {
         return $this->getAttributeBag()->has($name);
+    }
+
+    /**
+     * Gets the attributebag interface.
+     *
+     * Note that this method was added to help with IDE autocompletion.
+     *
+     * @return AttributeBagInterface
+     */
+    private function getAttributeBag()
+    {
+        return $this->storage->getBag($this->attributeName)->getBag();
     }
 
     /**
@@ -223,22 +243,6 @@ class Session implements SessionInterface, \IteratorAggregate, \Countable
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function registerBag(SessionBagInterface $bag)
-    {
-        $this->storage->registerBag(new SessionBagProxy($bag, $this->data));
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getBag($name)
-    {
-        return $this->storage->getBag($name)->getBag();
-    }
-
-    /**
      * Gets the flashbag interface.
      *
      * @return FlashBagInterface
@@ -249,14 +253,10 @@ class Session implements SessionInterface, \IteratorAggregate, \Countable
     }
 
     /**
-     * Gets the attributebag interface.
-     *
-     * Note that this method was added to help with IDE autocompletion.
-     *
-     * @return AttributeBagInterface
+     * {@inheritdoc}
      */
-    private function getAttributeBag()
+    public function getBag($name)
     {
-        return $this->storage->getBag($this->attributeName)->getBag();
+        return $this->storage->getBag($name)->getBag();
     }
 }

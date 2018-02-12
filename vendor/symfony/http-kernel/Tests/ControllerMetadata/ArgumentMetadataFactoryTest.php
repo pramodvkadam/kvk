@@ -26,11 +26,6 @@ class ArgumentMetadataFactoryTest extends TestCase
      */
     private $factory;
 
-    protected function setUp()
-    {
-        $this->factory = new ArgumentMetadataFactory();
-    }
-
     public function testSignature1()
     {
         $arguments = $this->factory->createArgumentMetadata(array($this, 'signature1'));
@@ -124,6 +119,11 @@ class ArgumentMetadataFactoryTest extends TestCase
             new ArgumentMetadata('baz', 'string', false, true, 'value', true),
             new ArgumentMetadata('mandatory', null, false, false, null, true),
         ), $arguments);
+    }
+
+    protected function setUp()
+    {
+        $this->factory = new ArgumentMetadataFactory();
     }
 
     private function signature1(ArgumentMetadataFactoryTest $foo, array $bar, callable $baz)

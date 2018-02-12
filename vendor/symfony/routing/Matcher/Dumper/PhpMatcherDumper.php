@@ -79,11 +79,6 @@ class {$options['class']} extends {$options['base_class']}
 EOF;
     }
 
-    public function addExpressionLanguageProvider(ExpressionFunctionProviderInterface $provider)
-    {
-        $this->expressionLanguageProviders[] = $provider;
-    }
-
     /**
      * Generates the code for the match method implementing UrlMatcherInterface.
      *
@@ -162,6 +157,35 @@ EOF;
         }
 
         return $code;
+    }
+
+    /**
+     * Groups consecutive routes having the same host regex.
+     *
+     * The result is a collection of collections of routes having the same host regex.
+     *
+     * @param RouteCollection $routes A flat RouteCollection
+     *
+     * @return DumperCollection A collection with routes grouped by host regex in sub-collections
+     */
+    private function groupRoutesByHostRegex(RouteCollection $routes)
+    {
+        $groups = new DumperCollection();
+        $currentGroup = new DumperCollection();
+        $currentGroup->setAttribute('host_regex', null);
+        $groups->add($currentGroup);
+
+        foreach ($routes as $name => $route) {
+            $hostRegex = $route->compile()->getHostRegex();
+            if ($currentGroup->getAttribute('host_regex') !== $hostRegex) {
+                $currentGroup = new DumperCollection();
+                $currentGroup->setAttribute('host_regex', $hostRegex);
+                $groups->add($currentGroup);
+            }
+            $currentGroup->add(new DumperRoute($name, $route));
+        }
+
+        return $groups;
     }
 
     private function buildStaticPrefixCollection(DumperCollection $collection)
@@ -398,35 +422,6 @@ EOF;
         return $code;
     }
 
-    /**
-     * Groups consecutive routes having the same host regex.
-     *
-     * The result is a collection of collections of routes having the same host regex.
-     *
-     * @param RouteCollection $routes A flat RouteCollection
-     *
-     * @return DumperCollection A collection with routes grouped by host regex in sub-collections
-     */
-    private function groupRoutesByHostRegex(RouteCollection $routes)
-    {
-        $groups = new DumperCollection();
-        $currentGroup = new DumperCollection();
-        $currentGroup->setAttribute('host_regex', null);
-        $groups->add($currentGroup);
-
-        foreach ($routes as $name => $route) {
-            $hostRegex = $route->compile()->getHostRegex();
-            if ($currentGroup->getAttribute('host_regex') !== $hostRegex) {
-                $currentGroup = new DumperCollection();
-                $currentGroup->setAttribute('host_regex', $hostRegex);
-                $groups->add($currentGroup);
-            }
-            $currentGroup->add(new DumperRoute($name, $route));
-        }
-
-        return $groups;
-    }
-
     private function getExpressionLanguage()
     {
         if (null === $this->expressionLanguage) {
@@ -437,5 +432,10 @@ EOF;
         }
 
         return $this->expressionLanguage;
+    }
+
+    public function addExpressionLanguageProvider(ExpressionFunctionProviderInterface $provider)
+    {
+        $this->expressionLanguageProviders[] = $provider;
     }
 }

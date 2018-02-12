@@ -165,29 +165,6 @@ abstract class AnnotationDriver implements MappingDriver
     }
 
     /**
-     * Returns whether the class with the specified name is transient. Only non-transient
-     * classes, that is entities and mapped superclasses, should have their metadata loaded.
-     *
-     * A class is non-transient if it is annotated with an annotation
-     * from the {@see AnnotationDriver::entityAnnotationClasses}.
-     *
-     * @param string $className
-     *
-     * @return boolean
-     */
-    public function isTransient($className)
-    {
-        $classAnnotations = $this->reader->getClassAnnotations(new \ReflectionClass($className));
-
-        foreach ($classAnnotations as $annot) {
-            if (isset($this->entityAnnotationClasses[get_class($annot)])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
      * {@inheritDoc}
      */
     public function getAllClassNames()
@@ -252,5 +229,28 @@ abstract class AnnotationDriver implements MappingDriver
         $this->classNames = $classes;
 
         return $classes;
+    }
+
+    /**
+     * Returns whether the class with the specified name is transient. Only non-transient
+     * classes, that is entities and mapped superclasses, should have their metadata loaded.
+     *
+     * A class is non-transient if it is annotated with an annotation
+     * from the {@see AnnotationDriver::entityAnnotationClasses}.
+     *
+     * @param string $className
+     *
+     * @return boolean
+     */
+    public function isTransient($className)
+    {
+        $classAnnotations = $this->reader->getClassAnnotations(new \ReflectionClass($className));
+
+        foreach ($classAnnotations as $annot) {
+            if (isset($this->entityAnnotationClasses[get_class($annot)])) {
+                return false;
+            }
+        }
+        return true;
     }
 }

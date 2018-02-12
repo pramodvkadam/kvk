@@ -147,16 +147,6 @@ class OctoberUtil extends Command
         $this->utilCompileAssets('js');
     }
 
-    protected function utilCompileLess()
-    {
-        $this->utilCompileAssets('less');
-    }
-
-    protected function utilCompileScss()
-    {
-        $this->utilCompileAssets('scss');
-    }
-
     protected function utilCompileAssets($type = null)
     {
         $this->comment('Compiling registered asset bundles...');
@@ -244,6 +234,16 @@ class OctoberUtil extends Command
             $this->comment($locale.'/'.basename($srcPath));
             $this->comment(sprintf(' -> %s', $publicDest));
         }
+    }
+
+    protected function utilCompileLess()
+    {
+        $this->utilCompileAssets('less');
+    }
+
+    protected function utilCompileScss()
+    {
+        $this->utilCompileAssets('scss');
     }
 
     protected function utilPurgeThumbs()

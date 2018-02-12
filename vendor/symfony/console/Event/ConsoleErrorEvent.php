@@ -58,6 +58,16 @@ final class ConsoleErrorEvent extends ConsoleEvent
     }
 
     /**
+     * Gets the exit code.
+     *
+     * @return int The command exit code
+     */
+    public function getExitCode()
+    {
+        return null !== $this->exitCode ? $this->exitCode : ($this->error->getCode() ?: 1);
+    }
+
+    /**
      * Sets the exit code.
      *
      * @param int $exitCode The command exit code
@@ -69,15 +79,5 @@ final class ConsoleErrorEvent extends ConsoleEvent
         $r = new \ReflectionProperty($this->error, 'code');
         $r->setAccessible(true);
         $r->setValue($this->error, $this->exitCode);
-    }
-
-    /**
-     * Gets the exit code.
-     *
-     * @return int The command exit code
-     */
-    public function getExitCode()
-    {
-        return null !== $this->exitCode ? $this->exitCode : ($this->error->getCode() ?: 1);
     }
 }

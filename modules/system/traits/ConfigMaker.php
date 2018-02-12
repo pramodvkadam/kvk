@@ -24,6 +24,22 @@ trait ConfigMaker
     protected $configPath;
 
     /**
+     * Merges two configuration sources, either prepared or not, and returns
+     * them as a single configuration object.
+     * @param mixed $configA
+     * @param mixed $configB
+     * @return stdClass The config object
+     */
+    public function mergeConfig($configA, $configB)
+    {
+        $configA = $this->makeConfig($configA);
+
+        $configB = $this->makeConfig($configB);
+
+        return (object) array_merge((array) $configA, (array) $configB);
+    }
+
+    /**
      * Reads the contents of the supplied file and applies it to this object.
      * @param array $configFile
      * @param array $requiredConfig
@@ -182,21 +198,5 @@ trait ConfigMaker
         $classFile = realpath(dirname(File::fromClass($class)));
         $guessedPath = $classFile ? $classFile . '/' . $classFolder . $suffix : null;
         return $guessedPath;
-    }
-
-    /**
-     * Merges two configuration sources, either prepared or not, and returns
-     * them as a single configuration object.
-     * @param mixed $configA
-     * @param mixed $configB
-     * @return stdClass The config object
-     */
-    public function mergeConfig($configA, $configB)
-    {
-        $configA = $this->makeConfig($configA);
-
-        $configB = $this->makeConfig($configB);
-
-        return (object) array_merge((array) $configA, (array) $configB);
     }
 }

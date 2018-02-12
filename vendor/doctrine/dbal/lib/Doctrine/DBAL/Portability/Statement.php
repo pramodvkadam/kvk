@@ -142,23 +142,6 @@ class Statement implements \IteratorAggregate, \Doctrine\DBAL\Driver\Statement
     /**
      * {@inheritdoc}
      */
-    public function fetch($fetchMode = null)
-    {
-        $fetchMode = $fetchMode ?: $this->defaultFetchMode;
-
-        $row = $this->stmt->fetch($fetchMode);
-
-        $row = $this->fixRow($row,
-            $this->portability & (Connection::PORTABILITY_EMPTY_TO_NULL|Connection::PORTABILITY_RTRIM),
-            !is_null($this->case) && ($fetchMode == PDO::FETCH_ASSOC || $fetchMode == PDO::FETCH_BOTH) && ($this->portability & Connection::PORTABILITY_FIX_CASE)
-        );
-
-        return $row;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function fetchAll($fetchMode = null, $columnIndex = 0)
     {
         $fetchMode = $fetchMode ?: $this->defaultFetchMode;
@@ -220,6 +203,23 @@ class Statement implements \IteratorAggregate, \Doctrine\DBAL\Driver\Statement
                 }
             }
         }
+
+        return $row;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function fetch($fetchMode = null)
+    {
+        $fetchMode = $fetchMode ?: $this->defaultFetchMode;
+
+        $row = $this->stmt->fetch($fetchMode);
+
+        $row = $this->fixRow($row,
+            $this->portability & (Connection::PORTABILITY_EMPTY_TO_NULL|Connection::PORTABILITY_RTRIM),
+            !is_null($this->case) && ($fetchMode == PDO::FETCH_ASSOC || $fetchMode == PDO::FETCH_BOTH) && ($this->portability & Connection::PORTABILITY_FIX_CASE)
+        );
 
         return $row;
     }

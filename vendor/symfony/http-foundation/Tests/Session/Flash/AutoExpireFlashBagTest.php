@@ -21,26 +21,11 @@ use Symfony\Component\HttpFoundation\Session\Flash\AutoExpireFlashBag as FlashBa
  */
 class AutoExpireFlashBagTest extends TestCase
 {
+    protected $array = array();
     /**
      * @var \Symfony\Component\HttpFoundation\Session\Flash\AutoExpireFlashBag
      */
     private $bag;
-
-    protected $array = array();
-
-    protected function setUp()
-    {
-        parent::setUp();
-        $this->bag = new FlashBag();
-        $this->array = array('new' => array('notice' => array('A previous flash message')));
-        $this->bag->initialize($this->array);
-    }
-
-    protected function tearDown()
-    {
-        $this->bag = null;
-        parent::tearDown();
-    }
 
     public function testInitialize()
     {
@@ -157,5 +142,19 @@ class AutoExpireFlashBagTest extends TestCase
         $this->bag->all();
 
         $this->assertEquals(array('new' => array('success' => array('Something')), 'display' => array()), $this->array);
+    }
+
+    protected function setUp()
+    {
+        parent::setUp();
+        $this->bag = new FlashBag();
+        $this->array = array('new' => array('notice' => array('A previous flash message')));
+        $this->bag->initialize($this->array);
+    }
+
+    protected function tearDown()
+    {
+        $this->bag = null;
+        parent::tearDown();
     }
 }

@@ -58,6 +58,23 @@ class Less_Tree_Import extends Less_Tree{
 // ruleset.
 //
 
+	/**
+	 * @return string
+	 */
+    public function getPath(){
+		if ($this->path instanceof Less_Tree_Quoted) {
+			$path = $this->path->value;
+			$path = ( isset($this->css) || preg_match('/(\.[a-z]*$)|([\?;].*)$/',$path)) ? $path : $path . '.less';
+		} else if ($this->path instanceof Less_Tree_URL) {
+			$path = $this->path->value->value;
+		}else{
+			return null;
+		}
+
+		//remove query string and fragment
+		return preg_replace('/[\?#][^\?]*$/','',$path);
+	}
+
     public function accept($visitor){
 
 		if( $this->features ){
@@ -95,51 +112,6 @@ class Less_Tree_Import extends Less_Tree{
 		} else {
 			return "";
 		}
-	}
-
-	/**
-	 * @return string
-	 */
-    public function getPath(){
-		if ($this->path instanceof Less_Tree_Quoted) {
-			$path = $this->path->value;
-			$path = ( isset($this->css) || preg_match('/(\.[a-z]*$)|([\?;].*)$/',$path)) ? $path : $path . '.less';
-		} else if ($this->path instanceof Less_Tree_URL) {
-			$path = $this->path->value->value;
-		}else{
-			return null;
-		}
-
-		//remove query string and fragment
-		return preg_replace('/[\?#][^\?]*$/','',$path);
-	}
-
-    public function compileForImport( $env ){
-		return new Less_Tree_Import( $this->path->compile($env), $this->features, $this->options, $this->index, $this->currentFileInfo);
-	}
-
-    public function compilePath($env) {
-		$path = $this->path->compile($env);
-		$rootpath = '';
-		if( $this->currentFileInfo && $this->currentFileInfo['rootpath'] ){
-			$rootpath = $this->currentFileInfo['rootpath'];
-		}
-
-
-		if( !($path instanceof Less_Tree_URL) ){
-			if( $rootpath ){
-				$pathValue = $path->value;
-				// Add the base path if the import is relative
-				if( $pathValue && Less_Environment::isPathRelative($pathValue) ){
-					$path->value = $this->currentFileInfo['uri_root'].$pathValue;
-				}
-			}
-			$path->value = Less_Environment::normalizePath($path->value);
-		}
-
-
-
-		return $path;
 	}
 
     public function compile( $env ){
@@ -198,6 +170,9 @@ class Less_Tree_Import extends Less_Tree{
 		return $this->ParseImport( $full_path, $uri, $env );
 	}
 
+    public function compileForImport( $env ){
+		return new Less_Tree_Import( $this->path->compile($env), $this->features, $this->options, $this->index, $this->currentFileInfo);
+	}
 
 	/**
 	 * Using the import directories, get the full absolute path and uri of the import
@@ -254,6 +229,49 @@ class Less_Tree_Import extends Less_Tree{
 		}
 	}
 
+	/**
+	 * Should the import be skipped?
+	 *
+	 * @return boolean|null
+	 */
+	private function Skip($path, $env){
+
+		$path = Less_Parser::AbsPath($path, true);
+
+		if( $path && Less_Parser::FileParsed($path) ){
+
+			if( isset($this->currentFileInfo['reference']) ){
+				return true;
+			}
+
+			return !isset($this->options['multiple']) && !$env->importMultiple;
+		}
+
+	}
+
+    public function compilePath($env) {
+		$path = $this->path->compile($env);
+		$rootpath = '';
+		if( $this->currentFileInfo && $this->currentFileInfo['rootpath'] ){
+			$rootpath = $this->currentFileInfo['rootpath'];
+		}
+
+
+		if( !($path instanceof Less_Tree_URL) ){
+			if( $rootpath ){
+				$pathValue = $path->value;
+				// Add the base path if the import is relative
+				if( $pathValue && Less_Environment::isPathRelative($pathValue) ){
+					$path->value = $this->currentFileInfo['uri_root'].$pathValue;
+				}
+			}
+			$path->value = Less_Environment::normalizePath($path->value);
+		}
+
+
+
+		return $path;
+	}
 
 	/**
 	 * Parse the import url and return the rules
@@ -279,26 +297,5 @@ class Less_Tree_Import extends Less_Tree{
 		$ruleset->evalImports($import_env);
 
 		return $this->features ? new Less_Tree_Media($ruleset->rules, $this->features->value) : $ruleset->rules;
-	}
-
-
-	/**
-	 * Should the import be skipped?
-	 *
-	 * @return boolean|null
-	 */
-	private function Skip($path, $env){
-
-		$path = Less_Parser::AbsPath($path, true);
-
-		if( $path && Less_Parser::FileParsed($path) ){
-
-			if( isset($this->currentFileInfo['reference']) ){
-				return true;
-			}
-
-			return !isset($this->options['multiple']) && !$env->importMultiple;
-		}
-
 	}
 }

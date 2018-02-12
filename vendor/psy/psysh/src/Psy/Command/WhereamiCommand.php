@@ -67,28 +67,23 @@ HELP
     }
 
     /**
-     * Obtains the correct stack frame in the full backtrace.
-     *
-     * @return array
+     * {@inheritdoc}
      */
-    protected function trace()
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
-        foreach (array_reverse($this->backtrace) as $stackFrame) {
-            if ($this->isDebugCall($stackFrame)) {
-                return $stackFrame;
-            }
-        }
+        $info = $this->fileInfo();
+        $num = $input->getOption('num');
+        $factory = new ConsoleColorFactory($this->colorMode);
+        $colors = $factory->getConsoleColor();
+        $highlighter = new Highlighter($colors);
+        $contents = file_get_contents($info['file']);
 
-        return end($this->backtrace);
-    }
-
-    private static function isDebugCall(array $stackFrame)
-    {
-        $class    = isset($stackFrame['class']) ? $stackFrame['class'] : null;
-        $function = isset($stackFrame['function']) ? $stackFrame['function'] : null;
-
-        return ($class === null && $function === 'Psy\debug') ||
-            ($class === 'Psy\Shell' && in_array($function, array('__construct', 'debug')));
+        $output->startPaging();
+        $output->writeln('');
+        $output->writeln(sprintf('From <info>%s:%s</info>:', $this->replaceCwd($info['file']), $info['line']));
+        $output->writeln('');
+        $output->write($highlighter->getCodeSnippet($contents, $info['line'], $num, $num), ShellOutput::OUTPUT_RAW);
+        $output->stopPaging();
     }
 
     /**
@@ -112,23 +107,28 @@ HELP
     }
 
     /**
-     * {@inheritdoc}
+     * Obtains the correct stack frame in the full backtrace.
+     *
+     * @return array
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function trace()
     {
-        $info = $this->fileInfo();
-        $num = $input->getOption('num');
-        $factory = new ConsoleColorFactory($this->colorMode);
-        $colors = $factory->getConsoleColor();
-        $highlighter = new Highlighter($colors);
-        $contents = file_get_contents($info['file']);
+        foreach (array_reverse($this->backtrace) as $stackFrame) {
+            if ($this->isDebugCall($stackFrame)) {
+                return $stackFrame;
+            }
+        }
 
-        $output->startPaging();
-        $output->writeln('');
-        $output->writeln(sprintf('From <info>%s:%s</info>:', $this->replaceCwd($info['file']), $info['line']));
-        $output->writeln('');
-        $output->write($highlighter->getCodeSnippet($contents, $info['line'], $num, $num), ShellOutput::OUTPUT_RAW);
-        $output->stopPaging();
+        return end($this->backtrace);
+    }
+
+    private static function isDebugCall(array $stackFrame)
+    {
+        $class    = isset($stackFrame['class']) ? $stackFrame['class'] : null;
+        $function = isset($stackFrame['function']) ? $stackFrame['function'] : null;
+
+        return ($class === null && $function === 'Psy\debug') ||
+            ($class === 'Psy\Shell' && in_array($function, array('__construct', 'debug')));
     }
 
     /**

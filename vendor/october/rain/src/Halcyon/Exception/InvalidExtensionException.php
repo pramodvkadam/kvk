@@ -19,6 +19,16 @@ class InvalidExtensionException extends RuntimeException
     protected $allowedExtensions;
 
     /**
+     * Get the affected file extension.
+     *
+     * @return string
+     */
+    public function getInvalidExtension()
+    {
+        return $this->invalidExtension;
+    }
+
+    /**
      * Set the affected file extension.
      *
      * @param  string   $invalidExtension
@@ -34,13 +44,13 @@ class InvalidExtensionException extends RuntimeException
     }
 
     /**
-     * Get the affected file extension.
+     * Get the list of allowed extensions.
      *
      * @return string
      */
-    public function getInvalidExtension()
+    public function getAllowedExtensions()
     {
-        return $this->invalidExtension;
+        return $this->allowedExtensions;
     }
 
     /**
@@ -54,15 +64,5 @@ class InvalidExtensionException extends RuntimeException
         $this->allowedExtensions = $allowedExtensions;
 
         return $this;
-    }
-
-    /**
-     * Get the list of allowed extensions.
-     *
-     * @return string
-     */
-    public function getAllowedExtensions()
-    {
-        return $this->allowedExtensions;
     }
 }

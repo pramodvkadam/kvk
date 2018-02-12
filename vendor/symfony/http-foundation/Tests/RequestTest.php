@@ -19,12 +19,6 @@ use Symfony\Component\HttpFoundation\Request;
 
 class RequestTest extends TestCase
 {
-    protected function tearDown()
-    {
-        // reset
-        Request::setTrustedProxies(array(), -1);
-    }
-
     public function testInitialize()
     {
         $request = new Request();
@@ -328,6 +322,19 @@ class RequestTest extends TestCase
         );
     }
 
+    public function getFormatToMimeTypeMapProvider()
+    {
+        return array(
+            array('txt', array('text/plain')),
+            array('js', array('application/javascript', 'application/x-javascript', 'text/javascript')),
+            array('css', array('text/css')),
+            array('json', array('application/json', 'application/x-json')),
+            array('xml', array('text/xml', 'application/xml', 'application/x-xml')),
+            array('rdf', array('application/rdf+xml')),
+            array('atom', array('application/atom+xml')),
+        );
+    }
+
     public function testGetFormatFromMimeTypeWithParameters()
     {
         $request = new Request();
@@ -363,19 +370,6 @@ class RequestTest extends TestCase
         $request = new Request();
         $request->setFormat('custom', 'application/vnd.foo.api;myversion=2.3');
         $this->assertEquals('custom', $request->getFormat('application/vnd.foo.api;myversion=2.3'));
-    }
-
-    public function getFormatToMimeTypeMapProvider()
-    {
-        return array(
-            array('txt', array('text/plain')),
-            array('js', array('application/javascript', 'application/x-javascript', 'text/javascript')),
-            array('css', array('text/css')),
-            array('json', array('application/json', 'application/x-json')),
-            array('xml', array('text/xml', 'application/xml', 'application/x-xml')),
-            array('rdf', array('application/rdf+xml')),
-            array('atom', array('application/atom+xml')),
-        );
     }
 
     public function testGetUri()
@@ -849,6 +843,14 @@ class RequestTest extends TestCase
         $this->assertEquals('DELETE', $request->getMethod(), '->getMethod() returns the method from X-HTTP-Method-Override if defined and POST');
     }
 
+    private function disableHttpMethodParameterOverride()
+    {
+        $class = new \ReflectionClass('Symfony\\Component\\HttpFoundation\\Request');
+        $property = $class->getProperty('httpMethodParameterOverride');
+        $property->setAccessible(true);
+        $property->setValue(false);
+    }
+
     /**
      * @dataProvider getClientIpsProvider
      */
@@ -857,6 +859,24 @@ class RequestTest extends TestCase
         $request = $this->getRequestInstanceForClientIpTests($remoteAddr, $httpForwardedFor, $trustedProxies);
 
         $this->assertEquals($expected[0], $request->getClientIp());
+    }
+
+    private function getRequestInstanceForClientIpTests($remoteAddr, $httpForwardedFor, $trustedProxies)
+    {
+        $request = new Request();
+
+        $server = array('REMOTE_ADDR' => $remoteAddr);
+        if (null !== $httpForwardedFor) {
+            $server['HTTP_X_FORWARDED_FOR'] = $httpForwardedFor;
+        }
+
+        if ($trustedProxies) {
+            Request::setTrustedProxies($trustedProxies, Request::HEADER_X_FORWARDED_ALL);
+        }
+
+        $request->initialize(array(), array(), array(), array(), array(), $server);
+
+        return $request;
     }
 
     /**
@@ -877,6 +897,25 @@ class RequestTest extends TestCase
         $request = $this->getRequestInstanceForClientIpsForwardedTests($remoteAddr, $httpForwarded, $trustedProxies);
 
         $this->assertEquals($expected, $request->getClientIps());
+    }
+
+    private function getRequestInstanceForClientIpsForwardedTests($remoteAddr, $httpForwarded, $trustedProxies)
+    {
+        $request = new Request();
+
+        $server = array('REMOTE_ADDR' => $remoteAddr);
+
+        if (null !== $httpForwarded) {
+            $server['HTTP_FORWARDED'] = $httpForwarded;
+        }
+
+        if ($trustedProxies) {
+            Request::setTrustedProxies($trustedProxies, Request::HEADER_FORWARDED);
+        }
+
+        $request->initialize(array(), array(), array(), array(), array(), $server);
+
+        return $request;
     }
 
     public function getClientIpsForwardedProvider()
@@ -1636,51 +1675,6 @@ class RequestTest extends TestCase
         );
     }
 
-    private function disableHttpMethodParameterOverride()
-    {
-        $class = new \ReflectionClass('Symfony\\Component\\HttpFoundation\\Request');
-        $property = $class->getProperty('httpMethodParameterOverride');
-        $property->setAccessible(true);
-        $property->setValue(false);
-    }
-
-    private function getRequestInstanceForClientIpTests($remoteAddr, $httpForwardedFor, $trustedProxies)
-    {
-        $request = new Request();
-
-        $server = array('REMOTE_ADDR' => $remoteAddr);
-        if (null !== $httpForwardedFor) {
-            $server['HTTP_X_FORWARDED_FOR'] = $httpForwardedFor;
-        }
-
-        if ($trustedProxies) {
-            Request::setTrustedProxies($trustedProxies, Request::HEADER_X_FORWARDED_ALL);
-        }
-
-        $request->initialize(array(), array(), array(), array(), array(), $server);
-
-        return $request;
-    }
-
-    private function getRequestInstanceForClientIpsForwardedTests($remoteAddr, $httpForwarded, $trustedProxies)
-    {
-        $request = new Request();
-
-        $server = array('REMOTE_ADDR' => $remoteAddr);
-
-        if (null !== $httpForwarded) {
-            $server['HTTP_FORWARDED'] = $httpForwarded;
-        }
-
-        if ($trustedProxies) {
-            Request::setTrustedProxies($trustedProxies, Request::HEADER_FORWARDED);
-        }
-
-        $request->initialize(array(), array(), array(), array(), array(), $server);
-
-        return $request;
-    }
-
     public function testTrustedProxiesXForwardedFor()
     {
         $request = Request::create('http://example.com/');
@@ -2278,6 +2272,12 @@ class RequestTest extends TestCase
         $this->assertEquals('host:8080', $request->getHttpHost());
         $this->assertEquals($expectedBaseUrl, $request->getBaseUrl());
         $this->assertEquals($expectedBasePath, $request->getBasePath());
+    }
+
+    protected function tearDown()
+    {
+        // reset
+        Request::setTrustedProxies(array(), -1);
     }
 }
 

@@ -30,6 +30,26 @@ trait DeferredBinding
     }
 
     /**
+     * Returns all possible relation types that can be deferred.
+     * @return array
+     */
+    protected function getDeferrableRelationTypes()
+    {
+        return [
+            'hasMany',
+            'hasOne',
+            'morphMany',
+            'morphToMany',
+            'morphedByMany',
+            'morphOne',
+            'attachMany',
+            'attachOne',
+            'belongsToMany',
+            'belongsTo'
+        ];
+    }
+
+    /**
      * Bind a deferred relationship to the supplied record.
      */
     public function bindDeferred($relation, $record, $sessionKey)
@@ -77,25 +97,6 @@ trait DeferredBinding
     public function commitDeferred($sessionKey)
     {
         $this->commitDeferredOfType($sessionKey);
-        $this->deferredBindingCache = null;
-    }
-
-    /**
-     * Internally used method to commit all deferred bindings before saving.
-     * It is a rare need to have to call this, since it only applies to the
-     * "belongs to" relationship which generally does not need deferring.
-     */
-    protected function commitDeferredBefore($sessionKey)
-    {
-        $this->commitDeferredOfType($sessionKey, 'belongsTo');
-    }
-
-    /**
-     * Internally used method to commit all deferred bindings after saving.
-     */
-    protected function commitDeferredAfter($sessionKey)
-    {
-        $this->commitDeferredOfType($sessionKey, null, 'belongsTo');
         $this->deferredBindingCache = null;
     }
 
@@ -184,22 +185,21 @@ trait DeferredBinding
     }
 
     /**
-     * Returns all possible relation types that can be deferred.
-     * @return array
+     * Internally used method to commit all deferred bindings before saving.
+     * It is a rare need to have to call this, since it only applies to the
+     * "belongs to" relationship which generally does not need deferring.
      */
-    protected function getDeferrableRelationTypes()
+    protected function commitDeferredBefore($sessionKey)
     {
-        return [
-            'hasMany',
-            'hasOne',
-            'morphMany',
-            'morphToMany',
-            'morphedByMany',
-            'morphOne',
-            'attachMany',
-            'attachOne',
-            'belongsToMany',
-            'belongsTo'
-        ];
+        $this->commitDeferredOfType($sessionKey, 'belongsTo');
+    }
+
+    /**
+     * Internally used method to commit all deferred bindings after saving.
+     */
+    protected function commitDeferredAfter($sessionKey)
+    {
+        $this->commitDeferredOfType($sessionKey, null, 'belongsTo');
+        $this->deferredBindingCache = null;
     }
 }

@@ -83,6 +83,37 @@ class Session extends ComponentBase
     }
 
     /**
+     * Checks if the user can access this page based on the security rules
+     * @return bool
+     */
+    protected function checkUserSecurity()
+    {
+        $allowedGroup = $this->property('security', self::ALLOW_ALL);
+        $allowedUserGroups = $this->property('allowedUserGroups', []);
+        $isAuthenticated = Auth::check();
+
+        if ($isAuthenticated) {
+            if ($allowedGroup == self::ALLOW_GUEST) {
+                return false;
+            }
+
+            if (!empty($allowedUserGroups)) {
+                $userGroups = Auth::getUser()->groups->lists('code');
+                if (!count(array_intersect($allowedUserGroups, $userGroups))) {
+                    return false;
+                }
+            }
+        }
+        else {
+            if ($allowedGroup == self::ALLOW_USER) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Executed when this component is bound to a page or layout.
      */
     public function onRun()
@@ -122,6 +153,25 @@ class Session extends ComponentBase
     }
 
     /**
+     * If impersonating, revert back to the previously signed in user.
+     * @return Redirect
+     */
+    public function onStopImpersonating()
+    {
+        if (!Auth::isImpersonator()) {
+            return $this->onLogout();
+        }
+
+        Auth::stopImpersonate();
+
+        $url = post('redirect', Request::fullUrl());
+
+        Flash::success(Lang::get('rainlab.user::lang.session.stop_impersonate_success'));
+
+        return Redirect::to($url);
+    }
+
+    /**
      * Log out the user
      *
      * Usage:
@@ -146,55 +196,5 @@ class Session extends ComponentBase
         Flash::success(Lang::get('rainlab.user::lang.session.logout'));
 
         return Redirect::to($url);
-    }
-
-    /**
-     * If impersonating, revert back to the previously signed in user.
-     * @return Redirect
-     */
-    public function onStopImpersonating()
-    {
-        if (!Auth::isImpersonator()) {
-            return $this->onLogout();
-        }
-
-        Auth::stopImpersonate();
-
-        $url = post('redirect', Request::fullUrl());
-
-        Flash::success(Lang::get('rainlab.user::lang.session.stop_impersonate_success'));
-
-        return Redirect::to($url);
-    }
-
-    /**
-     * Checks if the user can access this page based on the security rules
-     * @return bool
-     */
-    protected function checkUserSecurity()
-    {
-        $allowedGroup = $this->property('security', self::ALLOW_ALL);
-        $allowedUserGroups = $this->property('allowedUserGroups', []);
-        $isAuthenticated = Auth::check();
-
-        if ($isAuthenticated) {
-            if ($allowedGroup == self::ALLOW_GUEST) {
-                return false;
-            }
-
-            if (!empty($allowedUserGroups)) {
-                $userGroups = Auth::getUser()->groups->lists('code');
-                if (!count(array_intersect($allowedUserGroups, $userGroups))) {
-                    return false;
-                }
-            }
-        }
-        else {
-            if ($allowedGroup == self::ALLOW_USER) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

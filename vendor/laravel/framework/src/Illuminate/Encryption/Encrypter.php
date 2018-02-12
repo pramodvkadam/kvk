@@ -71,6 +71,17 @@ class Encrypter implements EncrypterContract
     }
 
     /**
+     * Encrypt a string without serialization.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    public function encryptString($value)
+    {
+        return $this->encrypt($value, false);
+    }
+
+    /**
      * Encrypt the given value.
      *
      * @param  mixed  $value
@@ -110,14 +121,26 @@ class Encrypter implements EncrypterContract
     }
 
     /**
-     * Encrypt a string without serialization.
+     * Create a MAC for the given value.
      *
-     * @param  string  $value
+     * @param  string  $iv
+     * @param  mixed  $value
      * @return string
      */
-    public function encryptString($value)
+    protected function hash($iv, $value)
     {
-        return $this->encrypt($value, false);
+        return hash_hmac('sha256', $iv.$value, $this->key);
+    }
+
+    /**
+     * Decrypt the given string without unserialization.
+     *
+     * @param  string  $payload
+     * @return string
+     */
+    public function decryptString($payload)
+    {
+        return $this->decrypt($payload, false);
     }
 
     /**
@@ -147,29 +170,6 @@ class Encrypter implements EncrypterContract
         }
 
         return $unserialize ? unserialize($decrypted) : $decrypted;
-    }
-
-    /**
-     * Decrypt the given string without unserialization.
-     *
-     * @param  string  $payload
-     * @return string
-     */
-    public function decryptString($payload)
-    {
-        return $this->decrypt($payload, false);
-    }
-
-    /**
-     * Create a MAC for the given value.
-     *
-     * @param  string  $iv
-     * @param  mixed  $value
-     * @return string
-     */
-    protected function hash($iv, $value)
-    {
-        return hash_hmac('sha256', $iv.$value, $this->key);
     }
 
     /**

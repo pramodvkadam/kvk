@@ -17,19 +17,23 @@ class Resource implements ArrayAccess, JsonSerializable, Responsable, UrlRoutabl
     use ConditionallyLoadsAttributes, DelegatesToResource;
 
     /**
+     * The "data" wrapper that should be applied.
+     *
+     * @var string
+     */
+    public static $wrap = 'data';
+    /**
      * The resource instance.
      *
      * @var mixed
      */
     public $resource;
-
     /**
      * The additional data that should be added to the top-level resource array.
      *
      * @var array
      */
     public $with = [];
-
     /**
      * The additional meta data that should be added to the resource response.
      *
@@ -38,13 +42,6 @@ class Resource implements ArrayAccess, JsonSerializable, Responsable, UrlRoutabl
      * @var array
      */
     public $additional = [];
-
-    /**
-     * The "data" wrapper that should be applied.
-     *
-     * @var string
-     */
-    public static $wrap = 'data';
 
     /**
      * Create a new resource instance.
@@ -80,37 +77,24 @@ class Resource implements ArrayAccess, JsonSerializable, Responsable, UrlRoutabl
     }
 
     /**
-     * Resolve the resource to an array.
+     * Set the string that should wrap the outer-most resource array.
      *
-     * @param  \Illuminate\Http\Request|null  $request
-     * @return array
+     * @param  string  $value
+     * @return void
      */
-    public function resolve($request = null)
+    public static function wrap($value)
     {
-        $data = $this->toArray(
-            $request = $request ?: Container::getInstance()->make('request')
-        );
-
-        if (is_array($data)) {
-            $data = $data;
-        } elseif ($data instanceof Arrayable || $data instanceof Collection) {
-            $data = $data->toArray();
-        } elseif ($data instanceof JsonSerializable) {
-            $data = $data->jsonSerialize();
-        }
-
-        return $this->filter((array) $data);
+        static::$wrap = $value;
     }
 
     /**
-     * Transform the resource into an array.
+     * Disable wrapping of the outer-most resource array.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return array
+     * @return void
      */
-    public function toArray($request)
+    public static function withoutWrapping()
     {
-        return $this->resource->toArray();
+        static::$wrap = null;
     }
 
     /**
@@ -150,27 +134,6 @@ class Resource implements ArrayAccess, JsonSerializable, Responsable, UrlRoutabl
     }
 
     /**
-     * Set the string that should wrap the outer-most resource array.
-     *
-     * @param  string  $value
-     * @return void
-     */
-    public static function wrap($value)
-    {
-        static::$wrap = $value;
-    }
-
-    /**
-     * Disable wrapping of the outer-most resource array.
-     *
-     * @return void
-     */
-    public static function withoutWrapping()
-    {
-        static::$wrap = null;
-    }
-
-    /**
      * Transform the resource into an HTTP response.
      *
      * @param  \Illuminate\Http\Request|null  $request
@@ -202,5 +165,39 @@ class Resource implements ArrayAccess, JsonSerializable, Responsable, UrlRoutabl
     public function jsonSerialize()
     {
         return $this->resolve(Container::getInstance()->make('request'));
+    }
+
+    /**
+     * Resolve the resource to an array.
+     *
+     * @param  \Illuminate\Http\Request|null  $request
+     * @return array
+     */
+    public function resolve($request = null)
+    {
+        $data = $this->toArray(
+            $request = $request ?: Container::getInstance()->make('request')
+        );
+
+        if (is_array($data)) {
+            $data = $data;
+        } elseif ($data instanceof Arrayable || $data instanceof Collection) {
+            $data = $data->toArray();
+        } elseif ($data instanceof JsonSerializable) {
+            $data = $data->jsonSerialize();
+        }
+
+        return $this->filter((array) $data);
+    }
+
+    /**
+     * Transform the resource into an array.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
+    public function toArray($request)
+    {
+        return $this->resource->toArray();
     }
 }

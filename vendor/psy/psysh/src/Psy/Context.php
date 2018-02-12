@@ -35,6 +35,18 @@ class Context
     private $boundObject;
 
     /**
+     * Check whether a variable name is a magic variable.
+     *
+     * @param string $name
+     *
+     * @return bool
+     */
+    public static function isSpecialVariableName($name)
+    {
+        return in_array($name, self::$specialNames) || in_array($name, self::$commandScopeNames);
+    }
+
+    /**
      * Get a context variable.
      *
      * @throws InvalidArgumentException If the variable is not found in the current context
@@ -147,16 +159,6 @@ class Context
     }
 
     /**
-     * Set the most recent return value.
-     *
-     * @param mixed $value
-     */
-    public function setReturnValue($value)
-    {
-        $this->returnValue = $value;
-    }
-
-    /**
      * Get the most recent return value.
      *
      * @return mixed
@@ -167,13 +169,13 @@ class Context
     }
 
     /**
-     * Set the most recent Exception.
+     * Set the most recent return value.
      *
-     * @param \Exception $e
+     * @param mixed $value
      */
-    public function setLastException(\Exception $e)
+    public function setReturnValue($value)
     {
-        $this->lastException = $e;
+        $this->returnValue = $value;
     }
 
     /**
@@ -193,13 +195,13 @@ class Context
     }
 
     /**
-     * Set the most recent output from evaluated code.
+     * Set the most recent Exception.
      *
-     * @param string $lastStdout
+     * @param \Exception $e
      */
-    public function setLastStdout($lastStdout)
+    public function setLastException(\Exception $e)
     {
-        $this->lastStdout = $lastStdout;
+        $this->lastException = $e;
     }
 
     /**
@@ -219,13 +221,13 @@ class Context
     }
 
     /**
-     * Set the bound object ($this variable) for the interactive shell.
+     * Set the most recent output from evaluated code.
      *
-     * @param object|null $boundObject
+     * @param string $lastStdout
      */
-    public function setBoundObject($boundObject)
+    public function setLastStdout($lastStdout)
     {
-        $this->boundObject = is_object($boundObject) ? $boundObject : null;
+        $this->lastStdout = $lastStdout;
     }
 
     /**
@@ -236,6 +238,26 @@ class Context
     public function getBoundObject()
     {
         return $this->boundObject;
+    }
+
+    /**
+     * Set the bound object ($this variable) for the interactive shell.
+     *
+     * @param object|null $boundObject
+     */
+    public function setBoundObject($boundObject)
+    {
+        $this->boundObject = is_object($boundObject) ? $boundObject : null;
+    }
+
+    /**
+     * Get command-scope magic variables: $__class, $__file, etc.
+     *
+     * @return array
+     */
+    public function getCommandScopeVariables()
+    {
+        return $this->commandScopeVariables;
     }
 
     /**
@@ -257,16 +279,6 @@ class Context
     }
 
     /**
-     * Get command-scope magic variables: $__class, $__file, etc.
-     *
-     * @return array
-     */
-    public function getCommandScopeVariables()
-    {
-        return $this->commandScopeVariables;
-    }
-
-    /**
      * Get unused command-scope magic variables names: __class, __file, etc.
      *
      * This is used by the shell to unset old command-scope variables after a
@@ -277,17 +289,5 @@ class Context
     public function getUnusedCommandScopeVariableNames()
     {
         return array_diff(self::$commandScopeNames, array_keys($this->commandScopeVariables));
-    }
-
-    /**
-     * Check whether a variable name is a magic variable.
-     *
-     * @param string $name
-     *
-     * @return bool
-     */
-    public static function isSpecialVariableName($name)
-    {
-        return in_array($name, self::$specialNames) || in_array($name, self::$commandScopeNames);
     }
 }

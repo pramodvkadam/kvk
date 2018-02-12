@@ -31,6 +31,35 @@ namespace Doctrine\Common\Collections\Expr;
 class ClosureExpressionVisitor extends ExpressionVisitor
 {
     /**
+     * Helper for sorting arrays of objects based on multiple fields + orientations.
+     *
+     * @param string   $name
+     * @param int      $orientation
+     * @param \Closure $next
+     *
+     * @return \Closure
+     */
+    public static function sortByField($name, $orientation = 1, \Closure $next = null)
+    {
+        if ( ! $next) {
+            $next = function() {
+                return 0;
+            };
+        }
+
+        return function ($a, $b) use ($name, $next, $orientation) {
+            $aValue = ClosureExpressionVisitor::getObjectFieldValue($a, $name);
+            $bValue = ClosureExpressionVisitor::getObjectFieldValue($b, $name);
+
+            if ($aValue === $bValue) {
+                return $next($a, $b);
+            }
+
+            return (($aValue > $bValue) ? 1 : -1) * $orientation;
+        };
+    }
+
+    /**
      * Accesses the field of a given object. This field has to be public
      * directly or indirectly (through an accessor get*, is*, or a magic
      * method, __get, __call).
@@ -88,35 +117,6 @@ class ClosureExpressionVisitor extends ExpressionVisitor
         }
 
         return $object->$field;
-    }
-
-    /**
-     * Helper for sorting arrays of objects based on multiple fields + orientations.
-     *
-     * @param string   $name
-     * @param int      $orientation
-     * @param \Closure $next
-     *
-     * @return \Closure
-     */
-    public static function sortByField($name, $orientation = 1, \Closure $next = null)
-    {
-        if ( ! $next) {
-            $next = function() {
-                return 0;
-            };
-        }
-
-        return function ($a, $b) use ($name, $next, $orientation) {
-            $aValue = ClosureExpressionVisitor::getObjectFieldValue($a, $name);
-            $bValue = ClosureExpressionVisitor::getObjectFieldValue($b, $name);
-
-            if ($aValue === $bValue) {
-                return $next($a, $b);
-            }
-
-            return (($aValue > $bValue) ? 1 : -1) * $orientation;
-        };
     }
 
     /**

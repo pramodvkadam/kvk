@@ -86,6 +86,66 @@ class TagList extends FormWidgetBase
     }
 
     /**
+     * Returns defined field options, or from the relation if available.
+     * @return array
+     */
+    public function getFieldOptions()
+    {
+        $options = $this->formField->options();
+
+        if (!$options && $this->mode === static::MODE_RELATION) {
+            $options = $this->getRelationModel()->lists($this->nameFrom);
+        }
+
+        return $options;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getLoadValue()
+    {
+        $value = parent::getLoadValue();
+
+        if ($this->mode === static::MODE_RELATION) {
+            return $this->getRelationObject()->lists($this->nameFrom);
+        }
+
+        return $this->mode === static::MODE_STRING
+            ? explode($this->getSeparatorCharacter(), $value)
+            : $value;
+    }
+
+    /**
+     * Convert the character word to the singular character.
+     * @return string
+     */
+    protected function getSeparatorCharacter()
+    {
+        switch (strtolower($this->separator)) {
+            case 'comma': return ',';
+            case 'space': return ' ';
+        }
+    }
+
+    /**
+     * Returns character(s) to use for separating keywords.
+     * @return mixed
+     */
+    protected function getCustomSeparators()
+    {
+        if (!$this->customTags) {
+            return false;
+        }
+
+        $separators = [];
+
+        $separators[] = $this->getSeparatorCharacter();
+
+        return implode('|', $separators);
+    }
+
+    /**
      * @inheritDoc
      */
     public function getSaveValue($value)
@@ -126,66 +186,6 @@ class TagList extends FormWidgetBase
         }
 
         return array_keys($existingTags);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getLoadValue()
-    {
-        $value = parent::getLoadValue();
-
-        if ($this->mode === static::MODE_RELATION) {
-            return $this->getRelationObject()->lists($this->nameFrom);
-        }
-
-        return $this->mode === static::MODE_STRING
-            ? explode($this->getSeparatorCharacter(), $value)
-            : $value;
-    }
-
-    /**
-     * Returns defined field options, or from the relation if available.
-     * @return array
-     */
-    public function getFieldOptions()
-    {
-        $options = $this->formField->options();
-
-        if (!$options && $this->mode === static::MODE_RELATION) {
-            $options = $this->getRelationModel()->lists($this->nameFrom);
-        }
-
-        return $options;
-    }
-
-    /**
-     * Returns character(s) to use for separating keywords.
-     * @return mixed
-     */
-    protected function getCustomSeparators()
-    {
-        if (!$this->customTags) {
-            return false;
-        }
-
-        $separators = [];
-
-        $separators[] = $this->getSeparatorCharacter();
-
-        return implode('|', $separators);
-    }
-
-    /**
-     * Convert the character word to the singular character.
-     * @return string
-     */
-    protected function getSeparatorCharacter()
-    {
-        switch (strtolower($this->separator)) {
-            case 'comma': return ',';
-            case 'space': return ' ';
-        }
     }
 
 }

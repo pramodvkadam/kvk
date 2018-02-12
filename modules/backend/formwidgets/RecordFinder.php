@@ -84,17 +84,14 @@ class RecordFinder extends FormWidgetBase
     //
     // Object properties
     //
-
-    /**
-     * @inheritDoc
-     */
-    protected $defaultAlias = 'recordfinder';
-
     /**
      * @var Model Relationship model
      */
     public $relationModel;
-
+    /**
+     * @inheritDoc
+     */
+    protected $defaultAlias = 'recordfinder';
     /**
      * @var \Backend\Classes\WidgetBase Reference to the widget used for viewing (list or form).
      */
@@ -142,126 +139,6 @@ class RecordFinder extends FormWidgetBase
         }
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function render()
-    {
-        $this->prepareVars();
-        return $this->makePartial('container');
-    }
-
-    public function onRefresh()
-    {
-        list($model, $attribute) = $this->resolveModelAttribute($this->valueFrom);
-        $model->{$attribute} = post($this->getFieldName());
-
-        $this->prepareVars();
-        return ['#'.$this->getId('container') => $this->makePartial('recordfinder')];
-    }
-
-    public function onClearRecord()
-    {
-        list($model, $attribute) = $this->resolveModelAttribute($this->valueFrom);
-        $model->{$attribute} = null;
-
-        $this->prepareVars();
-        return ['#'.$this->getId('container') => $this->makePartial('recordfinder')];
-    }
-
-    /**
-     * Prepares the list data
-     */
-    public function prepareVars()
-    {
-        $this->relationModel = $this->getLoadValue();
-
-        if ($this->formField->disabled) {
-            $this->previewMode = true;
-        }
-
-        $this->vars['value'] = $this->getKeyValue();
-        $this->vars['field'] = $this->formField;
-        $this->vars['nameValue'] = $this->getNameValue();
-        $this->vars['descriptionValue'] = $this->getDescriptionValue();
-        $this->vars['listWidget'] = $this->listWidget;
-        $this->vars['searchWidget'] = $this->searchWidget;
-        $this->vars['title'] = $this->title;
-        $this->vars['prompt'] = str_replace('%s', '<i class="icon-th-list"></i>', e(trans($this->prompt)));
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function loadAssets()
-    {
-        $this->addJs('js/recordfinder.js', 'core');
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getSaveValue($value)
-    {
-        return strlen($value) ? $value : null;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getLoadValue()
-    {
-        list($model, $attribute) = $this->resolveModelAttribute($this->valueFrom);
-
-        if (!is_null($model)) {
-            return $model->{$attribute};
-        }
-
-        return null;
-    }
-
-    public function getKeyValue()
-    {
-        if (!$this->relationModel) {
-            return null;
-        }
-
-        return $this->relationModel->{$this->keyFrom};
-    }
-
-    public function getNameValue()
-    {
-        if (!$this->relationModel || !$this->nameFrom) {
-            return null;
-        }
-
-        return $this->relationModel->{$this->nameFrom};
-    }
-
-    public function getDescriptionValue()
-    {
-        if (!$this->relationModel || !$this->descriptionFrom) {
-            return null;
-        }
-
-        return $this->relationModel->{$this->descriptionFrom};
-    }
-
-    public function onFindRecord()
-    {
-        $this->prepareVars();
-
-        /*
-         * Purge the search term stored in session
-         */
-        if ($this->searchWidget) {
-            $this->listWidget->setSearchTerm(null);
-            $this->searchWidget->setActiveTerm(null);
-        }
-
-        return $this->makePartial('recordfinder_form');
-    }
-
     protected function makeListWidget()
     {
         $config = $this->makeConfig($this->getConfig('list'));
@@ -306,5 +183,125 @@ class RecordFinder extends FormWidgetBase
         $widget = $this->makeWidget('Backend\Widgets\Search', $config);
         $widget->cssClasses[] = 'recordfinder-search';
         return $widget;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function render()
+    {
+        $this->prepareVars();
+        return $this->makePartial('container');
+    }
+
+    /**
+     * Prepares the list data
+     */
+    public function prepareVars()
+    {
+        $this->relationModel = $this->getLoadValue();
+
+        if ($this->formField->disabled) {
+            $this->previewMode = true;
+        }
+
+        $this->vars['value'] = $this->getKeyValue();
+        $this->vars['field'] = $this->formField;
+        $this->vars['nameValue'] = $this->getNameValue();
+        $this->vars['descriptionValue'] = $this->getDescriptionValue();
+        $this->vars['listWidget'] = $this->listWidget;
+        $this->vars['searchWidget'] = $this->searchWidget;
+        $this->vars['title'] = $this->title;
+        $this->vars['prompt'] = str_replace('%s', '<i class="icon-th-list"></i>', e(trans($this->prompt)));
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getLoadValue()
+    {
+        list($model, $attribute) = $this->resolveModelAttribute($this->valueFrom);
+
+        if (!is_null($model)) {
+            return $model->{$attribute};
+        }
+
+        return null;
+    }
+
+    public function getKeyValue()
+    {
+        if (!$this->relationModel) {
+            return null;
+        }
+
+        return $this->relationModel->{$this->keyFrom};
+    }
+
+    public function getNameValue()
+    {
+        if (!$this->relationModel || !$this->nameFrom) {
+            return null;
+        }
+
+        return $this->relationModel->{$this->nameFrom};
+    }
+
+    public function getDescriptionValue()
+    {
+        if (!$this->relationModel || !$this->descriptionFrom) {
+            return null;
+        }
+
+        return $this->relationModel->{$this->descriptionFrom};
+    }
+
+    public function onRefresh()
+    {
+        list($model, $attribute) = $this->resolveModelAttribute($this->valueFrom);
+        $model->{$attribute} = post($this->getFieldName());
+
+        $this->prepareVars();
+        return ['#'.$this->getId('container') => $this->makePartial('recordfinder')];
+    }
+
+    public function onClearRecord()
+    {
+        list($model, $attribute) = $this->resolveModelAttribute($this->valueFrom);
+        $model->{$attribute} = null;
+
+        $this->prepareVars();
+        return ['#'.$this->getId('container') => $this->makePartial('recordfinder')];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSaveValue($value)
+    {
+        return strlen($value) ? $value : null;
+    }
+
+    public function onFindRecord()
+    {
+        $this->prepareVars();
+
+        /*
+         * Purge the search term stored in session
+         */
+        if ($this->searchWidget) {
+            $this->listWidget->setSearchTerm(null);
+            $this->searchWidget->setActiveTerm(null);
+        }
+
+        return $this->makePartial('recordfinder_form');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function loadAssets()
+    {
+        $this->addJs('js/recordfinder.js', 'core');
     }
 }

@@ -20,11 +20,9 @@ class SnippetList extends WidgetBase
 {
     use \Backend\Traits\SearchableWidget;
 
-    protected $theme;
-
-    protected $dataIdPrefix;
-
     public $noRecordsMessage = 'rainlab.pages::lang.snippet.no_records';
+    protected $theme;
+    protected $dataIdPrefix;
 
     public function __construct($controller, $alias)
     {
@@ -49,17 +47,6 @@ class SnippetList extends WidgetBase
 
     /*
      * Event handlers
-     */
-
-    public function onSearch()
-    {
-        $this->setSearchTerm(Input::get('search'));
-
-        return $this->updateList();
-    }
-
-    /*
-     * Methods for the internal use
      */
 
     protected function getData()
@@ -89,21 +76,32 @@ class SnippetList extends WidgetBase
         return $snippets;
     }
 
+    /*
+     * Methods for the internal use
+     */
+
+    public function onSearch()
+    {
+        $this->setSearchTerm(Input::get('search'));
+
+        return $this->updateList();
+    }
+
     protected function updateList()
     {
         return ['#'.$this->getId('snippet-list') => $this->makePartial('items', ['items' => $this->getData()])];
     }
-
-    protected function getThemeSessionKey($prefix)
-    {
-        return $prefix.$this->theme->getDirName();
-    }    
 
     protected function getSession($key = null, $default = null)
     {
         $key = strlen($key) ? $this->getThemeSessionKey($key) : $key;
 
         return parent::getSession($key, $default);
+    }
+
+    protected function getThemeSessionKey($prefix)
+    {
+        return $prefix.$this->theme->getDirName();
     }
 
     protected function putSession($key, $value) 

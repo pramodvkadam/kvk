@@ -13,6 +13,17 @@
 class Ini
 {
     /**
+     * Parses supplied INI file contents in to a PHP array.
+     * @param string $fileName File to read contents and parse.
+     * @return array
+     */
+    public function parseFile($fileName)
+    {
+        $contents = file_get_contents($fileName);
+        return $this->parse($contents);
+    }
+
+    /**
      * Parses supplied INI contents in to a PHP array.
      * @param string $contents INI contents to parse.
      * @return array
@@ -23,17 +34,6 @@ class Ini
         $contents = parse_ini_string($contents, true);
         $contents = $this->parsePostProcess($contents);
         return $contents;
-    }
-
-    /**
-     * Parses supplied INI file contents in to a PHP array.
-     * @param string $fileName File to read contents and parse.
-     * @return array
-     */
-    public function parseFile($fileName)
-    {
-        $contents = file_get_contents($fileName);
-        return $this->parse($contents);
     }
 
     /**
@@ -173,6 +173,36 @@ class Ini
     }
 
     /**
+     * Checks if the array is the final node in a multidimensional array.
+     * Checked supplied array is not associative and contains no array values.
+     * @param array $array
+     * @return bool
+     */
+    protected function isFinalArray(array $array)
+    {
+        return !empty($array) &&
+            !count(array_filter($array, 'is_array')) &&
+            !count(array_filter(array_keys($array), 'is_string'));
+    }
+
+    /**
+     * Converts a PHP value to make it suitable for INI format.
+     * Strings are escaped.
+     * @param string $value Specifies the value to process
+     * @return string Returns the processed value
+     */
+    protected function evalValue($value)
+    {
+        // Numeric
+        if (is_numeric($value)) {
+            return $value;
+        }
+
+        // String (default)
+        return '"'.str_replace('"', '\"', $value).'"';
+    }
+
+    /**
      * Renders section properties.
      * @param array $vars
      * @return string
@@ -235,35 +265,5 @@ class Ini
         }
 
         return $results;
-    }
-
-    /**
-     * Converts a PHP value to make it suitable for INI format.
-     * Strings are escaped.
-     * @param string $value Specifies the value to process
-     * @return string Returns the processed value
-     */
-    protected function evalValue($value)
-    {
-        // Numeric
-        if (is_numeric($value)) {
-            return $value;
-        }
-
-        // String (default)
-        return '"'.str_replace('"', '\"', $value).'"';
-    }
-
-    /**
-     * Checks if the array is the final node in a multidimensional array.
-     * Checked supplied array is not associative and contains no array values.
-     * @param array $array
-     * @return bool
-     */
-    protected function isFinalArray(array $array)
-    {
-        return !empty($array) &&
-            !count(array_filter($array, 'is_array')) &&
-            !count(array_filter(array_keys($array), 'is_string'));
     }
 }

@@ -44,6 +44,34 @@ class AssetCollectionIterator implements \RecursiveIterator
         }
     }
 
+    public function next()
+    {
+        return next($this->assets);
+    }
+
+    public function rewind()
+    {
+        return reset($this->assets);
+    }
+
+    public function valid()
+    {
+        return false !== current($this->assets);
+    }
+
+    public function hasChildren()
+    {
+        return current($this->assets) instanceof AssetCollectionInterface;
+    }
+
+    /**
+     * @uses current()
+     */
+    public function getChildren()
+    {
+        return new self($this->current(), $this->clones);
+    }
+
     /**
      * Returns a copy of the current asset with filters and a target URL applied.
      *
@@ -84,34 +112,6 @@ class AssetCollectionIterator implements \RecursiveIterator
     public function key()
     {
         return key($this->assets);
-    }
-
-    public function next()
-    {
-        return next($this->assets);
-    }
-
-    public function rewind()
-    {
-        return reset($this->assets);
-    }
-
-    public function valid()
-    {
-        return false !== current($this->assets);
-    }
-
-    public function hasChildren()
-    {
-        return current($this->assets) instanceof AssetCollectionInterface;
-    }
-
-    /**
-     * @uses current()
-     */
-    public function getChildren()
-    {
-        return new self($this->current(), $this->clones);
     }
 
     private function removeDuplicateVar($name)

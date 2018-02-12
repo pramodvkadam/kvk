@@ -8,19 +8,6 @@ class MailerTest extends TestCase
     // Helpers
     //
 
-    protected static function callProtectedMethod($object, $name, $params = [])
-    {
-        $className = get_class($object);
-        $class = new ReflectionClass($className);
-        $method = $class->getMethod($name);
-        $method->setAccessible(true);
-        return $method->invokeArgs($object, $params);
-    }
-
-    //
-    // Tests
-    //
-
     public function testProcessRecipients()
     {
         $mailer = $this->makeMailer();
@@ -96,12 +83,25 @@ class MailerTest extends TestCase
     }
 
     //
-    // Mock
+    // Tests
     //
 
     protected function makeMailer()
     {
         return new Mailer(new FactoryMailerTest, new SwiftMailerTest, new DispatcherMailerTest);
+    }
+
+    //
+    // Mock
+    //
+
+    protected static function callProtectedMethod($object, $name, $params = [])
+    {
+        $className = get_class($object);
+        $class = new ReflectionClass($className);
+        $method = $class->getMethod($name);
+        $method->setAccessible(true);
+        return $method->invokeArgs($object, $params);
     }
 
 }

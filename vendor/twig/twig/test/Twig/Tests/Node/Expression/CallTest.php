@@ -11,10 +11,22 @@
 
 class Twig_Tests_Node_Expression_CallTest extends \PHPUnit\Framework\TestCase
 {
+    public static function customStaticFunction($arg1, $arg2 = 'default', $arg3 = array())
+    {
+    }
+
     public function testGetArguments()
     {
         $node = new Twig_Tests_Node_Expression_Call(array(), array('type' => 'function', 'name' => 'date'));
         $this->assertEquals(array('U', null), $this->getArguments($node, array('date', array('format' => 'U', 'timestamp' => null))));
+    }
+
+    private function getArguments($call, $args)
+    {
+        $m = new ReflectionMethod($call, 'getArguments');
+        $m->setAccessible(true);
+
+        return $m->invokeArgs($call, $args);
     }
 
     /**
@@ -90,20 +102,8 @@ class Twig_Tests_Node_Expression_CallTest extends \PHPUnit\Framework\TestCase
         $this->getArguments($node, array(array($this, 'customFunctionWithArbitraryArguments'), array()));
     }
 
-    public static function customStaticFunction($arg1, $arg2 = 'default', $arg3 = array())
-    {
-    }
-
     public function customFunction($arg1, $arg2 = 'default', $arg3 = array())
     {
-    }
-
-    private function getArguments($call, $args)
-    {
-        $m = new ReflectionMethod($call, 'getArguments');
-        $m->setAccessible(true);
-
-        return $m->invokeArgs($call, $args);
     }
 
     public function customFunctionWithArbitraryArguments()

@@ -100,6 +100,69 @@ class MongoDbSessionHandler extends AbstractSessionHandler
     /**
      * {@inheritdoc}
      */
+    public function gc($maxlifetime)
+    {
+        $methodName = $this->mongo instanceof \MongoDB\Client ? 'deleteMany' : 'remove';
+
+        $this->getCollection()->$methodName(array(
+            $this->options['expiry_field'] => array('$lt' => $this->createDateTime()),
+        ));
+
+        return true;
+    }
+
+    /**
+     * Create a date object using the class appropriate for the current mongo connection.
+     *
+     * Return an instance of a MongoDate or \MongoDB\BSON\UTCDateTime
+     *
+     * @param int $seconds An integer representing UTC seconds since Jan 1 1970.  Defaults to now.
+     *
+     * @return \MongoDate|\MongoDB\BSON\UTCDateTime
+     */
+    private function createDateTime($seconds = null)
+    {
+        if (null === $seconds) {
+            $seconds = time();
+        }
+
+        if ($this->mongo instanceof \MongoDB\Client) {
+            return new \MongoDB\BSON\UTCDateTime($seconds * 1000);
+        }
+
+        return new \MongoDate($seconds);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updateTimestamp($sessionId, $data)
+    {
+        $expiry = $this->createDateTime(time() + (int) ini_get('session.gc_maxlifetime'));
+
+        if ($this->mongo instanceof \MongoDB\Client) {
+            $methodName = 'updateOne';
+            $options = array();
+        } else {
+            $methodName = 'update';
+            $options = array('multiple' => false);
+        }
+
+        $this->getCollection()->$methodName(
+            array($this->options['id_field'] => $sessionId),
+            array('$set' => array(
+                $this->options['time_field'] => $this->createDateTime(),
+                $this->options['expiry_field'] => $expiry,
+            )),
+            $options
+        );
+
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     protected function doDestroy($sessionId)
     {
         $methodName = $this->mongo instanceof \MongoDB\Client ? 'deleteOne' : 'remove';
@@ -112,17 +175,17 @@ class MongoDbSessionHandler extends AbstractSessionHandler
     }
 
     /**
-     * {@inheritdoc}
+     * Return a "MongoCollection" instance.
+     *
+     * @return \MongoCollection
      */
-    public function gc($maxlifetime)
+    private function getCollection()
     {
-        $methodName = $this->mongo instanceof \MongoDB\Client ? 'deleteMany' : 'remove';
+        if (null === $this->collection) {
+            $this->collection = $this->mongo->selectCollection($this->options['database'], $this->options['collection']);
+        }
 
-        $this->getCollection()->$methodName(array(
-            $this->options['expiry_field'] => array('$lt' => $this->createDateTime()),
-        ));
-
-        return true;
+        return $this->collection;
     }
 
     /**
@@ -160,33 +223,6 @@ class MongoDbSessionHandler extends AbstractSessionHandler
     /**
      * {@inheritdoc}
      */
-    public function updateTimestamp($sessionId, $data)
-    {
-        $expiry = $this->createDateTime(time() + (int) ini_get('session.gc_maxlifetime'));
-
-        if ($this->mongo instanceof \MongoDB\Client) {
-            $methodName = 'updateOne';
-            $options = array();
-        } else {
-            $methodName = 'update';
-            $options = array('multiple' => false);
-        }
-
-        $this->getCollection()->$methodName(
-            array($this->options['id_field'] => $sessionId),
-            array('$set' => array(
-                $this->options['time_field'] => $this->createDateTime(),
-                $this->options['expiry_field'] => $expiry,
-            )),
-            $options
-        );
-
-        return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     protected function doRead($sessionId)
     {
         $dbData = $this->getCollection()->findOne(array(
@@ -206,20 +242,6 @@ class MongoDbSessionHandler extends AbstractSessionHandler
     }
 
     /**
-     * Return a "MongoCollection" instance.
-     *
-     * @return \MongoCollection
-     */
-    private function getCollection()
-    {
-        if (null === $this->collection) {
-            $this->collection = $this->mongo->selectCollection($this->options['database'], $this->options['collection']);
-        }
-
-        return $this->collection;
-    }
-
-    /**
      * Return a Mongo instance.
      *
      * @return \Mongo|\MongoClient|\MongoDB\Client
@@ -227,27 +249,5 @@ class MongoDbSessionHandler extends AbstractSessionHandler
     protected function getMongo()
     {
         return $this->mongo;
-    }
-
-    /**
-     * Create a date object using the class appropriate for the current mongo connection.
-     *
-     * Return an instance of a MongoDate or \MongoDB\BSON\UTCDateTime
-     *
-     * @param int $seconds An integer representing UTC seconds since Jan 1 1970.  Defaults to now.
-     *
-     * @return \MongoDate|\MongoDB\BSON\UTCDateTime
-     */
-    private function createDateTime($seconds = null)
-    {
-        if (null === $seconds) {
-            $seconds = time();
-        }
-
-        if ($this->mongo instanceof \MongoDB\Client) {
-            return new \MongoDB\BSON\UTCDateTime($seconds * 1000);
-        }
-
-        return new \MongoDate($seconds);
     }
 }

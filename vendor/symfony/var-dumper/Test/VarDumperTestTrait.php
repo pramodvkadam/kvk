@@ -30,17 +30,6 @@ trait VarDumperTestTrait
         $this->assertSame(rtrim($dump), $this->getDump($data, null, $filter), $message);
     }
 
-    public function assertDumpMatchesFormat($dump, $data, $filter = 0, $message = '')
-    {
-        if (is_string($filter)) {
-            @trigger_error(sprintf('The $message argument of the "%s()" method at 3rd position is deprecated since version 3.4 and will be moved at 4th position in 4.0.', __METHOD__), E_USER_DEPRECATED);
-            $message = $filter;
-            $filter = 0;
-        }
-
-        $this->assertStringMatchesFormat(rtrim($dump), $this->getDump($data, null, $filter), $message);
-    }
-
     protected function getDump($data, $key = null, $filter = 0)
     {
         $flags = getenv('DUMP_LIGHT_ARRAY') ? CliDumper::DUMP_LIGHT_ARRAY : 0;
@@ -56,5 +45,16 @@ trait VarDumperTestTrait
         }
 
         return rtrim($dumper->dump($data, true));
+    }
+
+    public function assertDumpMatchesFormat($dump, $data, $filter = 0, $message = '')
+    {
+        if (is_string($filter)) {
+            @trigger_error(sprintf('The $message argument of the "%s()" method at 3rd position is deprecated since version 3.4 and will be moved at 4th position in 4.0.', __METHOD__), E_USER_DEPRECATED);
+            $message = $filter;
+            $filter = 0;
+        }
+
+        $this->assertStringMatchesFormat(rtrim($dump), $this->getDump($data, null, $filter), $message);
     }
 }

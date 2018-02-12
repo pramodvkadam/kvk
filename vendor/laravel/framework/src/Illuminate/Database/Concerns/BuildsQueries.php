@@ -9,6 +9,24 @@ use Illuminate\Pagination\LengthAwarePaginator;
 trait BuildsQueries
 {
     /**
+     * Execute a callback over each item while chunking.
+     *
+     * @param  callable  $callback
+     * @param  int  $count
+     * @return bool
+     */
+    public function each(callable $callback, $count = 1000)
+    {
+        return $this->chunk($count, function ($results) use ($callback) {
+            foreach ($results as $key => $value) {
+                if ($callback($value, $key) === false) {
+                    return false;
+                }
+            }
+        });
+    }
+
+    /**
      * Chunk the results of the query.
      *
      * @param  int  $count
@@ -49,24 +67,6 @@ trait BuildsQueries
     }
 
     /**
-     * Execute a callback over each item while chunking.
-     *
-     * @param  callable  $callback
-     * @param  int  $count
-     * @return bool
-     */
-    public function each(callable $callback, $count = 1000)
-    {
-        return $this->chunk($count, function ($results) use ($callback) {
-            foreach ($results as $key => $value) {
-                if ($callback($value, $key) === false) {
-                    return false;
-                }
-            }
-        });
-    }
-
-    /**
      * Execute the query and get the first result.
      *
      * @param  array  $columns
@@ -75,6 +75,17 @@ trait BuildsQueries
     public function first($columns = ['*'])
     {
         return $this->take(1)->get($columns)->first();
+    }
+
+    /**
+     * Pass the query to a given callback.
+     *
+     * @param  \Closure  $callback
+     * @return \Illuminate\Database\Query\Builder
+     */
+    public function tap($callback)
+    {
+        return $this->when(true, $callback);
     }
 
     /**
@@ -94,17 +105,6 @@ trait BuildsQueries
         }
 
         return $this;
-    }
-
-    /**
-     * Pass the query to a given callback.
-     *
-     * @param  \Closure  $callback
-     * @return \Illuminate\Database\Query\Builder
-     */
-    public function tap($callback)
-    {
-        return $this->when(true, $callback);
     }
 
     /**

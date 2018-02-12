@@ -26,14 +26,17 @@ abstract class ParserAbstract implements Parser
     /*
      * The following members will be filled with generated parsing data:
      */
-
+    protected static $specialNames = array(
+        'self'   => true,
+        'parent' => true,
+        'static' => true,
+    );
     /** @var int Size of $tokenToSymbol map */
     protected $tokenToSymbolMapSize;
     /** @var int Size of $action table */
     protected $actionTableSize;
     /** @var int Size of $goto table */
     protected $gotoTableSize;
-
     /** @var int Symbol number signifying an invalid token */
     protected $invalidSymbol;
     /** @var int Symbol number of error recovery token */
@@ -42,17 +45,14 @@ abstract class ParserAbstract implements Parser
     protected $defaultAction;
     /** @var int Rule number signifying that an unexpected token was encountered */
     protected $unexpectedTokenRule;
-
     protected $YY2TBLSTATE;
     protected $YYNLSTATES;
-
     /** @var array Map of lexer tokens to internal symbols */
     protected $tokenToSymbol;
     /** @var array Map of symbols to their names */
     protected $symbolToName;
     /** @var array Names of the production rules (only necessary for debugging) */
     protected $productions;
-
     /** @var array Map of states to a displacement into the $action table. The corresponding action for this
      *             state/symbol pair is $action[$actionBase[$state] + $symbol]. If $actionBase[$state] is 0, the
                    action is defaulted, i.e. $actionDefault[$state] should be used instead. */
@@ -64,7 +64,6 @@ abstract class ParserAbstract implements Parser
     protected $actionCheck;
     /** @var array Map of states to their default action */
     protected $actionDefault;
-
     /** @var array Map of non-terminals to a displacement into the $goto table. The corresponding goto state for this
      *             non-terminal/state pair is $goto[$gotoBase[$nonTerminal] + $state] (unless defaulted) */
     protected $gotoBase;
@@ -75,18 +74,16 @@ abstract class ParserAbstract implements Parser
     protected $gotoCheck;
     /** @var array Map of non-terminals to the default state to goto after their reduction */
     protected $gotoDefault;
-
     /** @var array Map of rules to the non-terminal on their left-hand side, i.e. the non-terminal to use for
      *             determining the state to goto after reduction. */
     protected $ruleToNonTerminal;
-    /** @var array Map of rules to the length of their right-hand side, which is the number of elements that have to
-     *             be popped from the stack(s) on reduction. */
-    protected $ruleToLength;
 
     /*
      * The following members are part of the parser state:
      */
-
+    /** @var array Map of rules to the length of their right-hand side, which is the number of elements that have to
+     *             be popped from the stack(s) on reduction. */
+    protected $ruleToLength;
     /** @var Lexer Lexer that is used when parsing */
     protected $lexer;
     /** @var mixed Temporary value containing the result of last semantic action (reduction) */
@@ -103,7 +100,6 @@ abstract class ParserAbstract implements Parser
     protected $endAttributes;
     /** @var array Start attributes of last *read* token */
     protected $lookaheadStartAttributes;
-
     /** @var ErrorHandler Error handler */
     protected $errorHandler;
     /** @var Error[] Errors collected during last parse */
@@ -359,34 +355,6 @@ abstract class ParserAbstract implements Parser
         return 'Syntax error, unexpected ' . $this->symbolToName[$symbol] . $expectedString;
     }
 
-    protected function getExpectedTokens($state) {
-        $expected = array();
-
-        $base = $this->actionBase[$state];
-        foreach ($this->symbolToName as $symbol => $name) {
-            $idx = $base + $symbol;
-            if ($idx >= 0 && $idx < $this->actionTableSize && $this->actionCheck[$idx] === $symbol
-                || $state < $this->YY2TBLSTATE
-                && ($idx = $this->actionBase[$state + $this->YYNLSTATES] + $symbol) >= 0
-                && $idx < $this->actionTableSize && $this->actionCheck[$idx] === $symbol
-            ) {
-                if ($this->action[$idx] != $this->unexpectedTokenRule
-                    && $this->action[$idx] != $this->defaultAction
-                    && $symbol != $this->errorSymbol
-                ) {
-                    if (count($expected) == 4) {
-                        /* Too many expected tokens */
-                        return array();
-                    }
-
-                    $expected[] = $name;
-                }
-            }
-        }
-
-        return $expected;
-    }
-
     /*
      * Tracing functions used for debugging the parser.
      */
@@ -425,6 +393,34 @@ abstract class ParserAbstract implements Parser
     /*
      * Helper functions invoked by semantic actions
      */
+
+    protected function getExpectedTokens($state) {
+        $expected = array();
+
+        $base = $this->actionBase[$state];
+        foreach ($this->symbolToName as $symbol => $name) {
+            $idx = $base + $symbol;
+            if ($idx >= 0 && $idx < $this->actionTableSize && $this->actionCheck[$idx] === $symbol
+                || $state < $this->YY2TBLSTATE
+                && ($idx = $this->actionBase[$state + $this->YYNLSTATES] + $symbol) >= 0
+                && $idx < $this->actionTableSize && $this->actionCheck[$idx] === $symbol
+            ) {
+                if ($this->action[$idx] != $this->unexpectedTokenRule
+                    && $this->action[$idx] != $this->defaultAction
+                    && $symbol != $this->errorSymbol
+                ) {
+                    if (count($expected) == 4) {
+                        /* Too many expected tokens */
+                        return array();
+                    }
+
+                    $expected[] = $name;
+                }
+            }
+        }
+
+        return $expected;
+    }
 
     /**
      * Moves statements of semicolon-style namespaces into $ns->stmts and checks various error conditions.
@@ -541,16 +537,6 @@ abstract class ParserAbstract implements Parser
         return isset($scalarTypes[$lowerName]) ? $lowerName : $name;
     }
 
-    protected static $specialNames = array(
-        'self'   => true,
-        'parent' => true,
-        'static' => true,
-    );
-
-    protected function getAttributesAt($pos) {
-        return $this->startAttributeStack[$pos] + $this->endAttributeStack[$pos];
-    }
-
     protected function parseLNumber($str, $attributes, $allowInvalidOctal = false) {
         try {
             return LNumber::fromString($str, $attributes, $allowInvalidOctal);
@@ -582,6 +568,10 @@ abstract class ParserAbstract implements Parser
             $error->setAttributes($this->getAttributesAt($modifierPos));
             $this->emitError($error);
         }
+    }
+
+    protected function getAttributesAt($pos) {
+        return $this->startAttributeStack[$pos] + $this->endAttributeStack[$pos];
     }
 
     protected function checkParam(Param $node) {

@@ -24,29 +24,6 @@ class Processor
     }
 
     /**
-     * Process the results of a "select" query.
-     *
-     * @param  \October\Rain\Halcyon\Builder  $query
-     * @param  array  $results
-     * @return array
-     */
-    public function processSelect(Builder $query, $results)
-    {
-        if (!count($results)) {
-            return [];
-        }
-
-        $items = [];
-
-        foreach ($results as $result) {
-            $fileName = array_get($result, 'fileName');
-            $items[$fileName] = $this->parseTemplateContent($query, $result, $fileName);
-        }
-
-        return $items;
-    }
-
-    /**
      * Helper to break down template content in to a useful array.
      * @param  int     $mtime
      * @param  string  $content
@@ -69,6 +46,29 @@ class Processor
             'markup' => $processed['markup'],
             'code' => $processed['code']
         ] + $processed['settings'];
+    }
+
+    /**
+     * Process the results of a "select" query.
+     *
+     * @param  \October\Rain\Halcyon\Builder  $query
+     * @param  array  $results
+     * @return array
+     */
+    public function processSelect(Builder $query, $results)
+    {
+        if (!count($results)) {
+            return [];
+        }
+
+        $items = [];
+
+        foreach ($results as $result) {
+            $fileName = array_get($result, 'fileName');
+            $items[$fileName] = $this->parseTemplateContent($query, $result, $fileName);
+        }
+
+        return $items;
     }
 
     /**

@@ -84,24 +84,6 @@ class Parser
     }
 
     /**
-     * Returns an array of all fields and their options.
-     * @return array
-     */
-    public function toEditor()
-    {
-        return $this->fieldParser->getFields();
-    }
-
-    /**
-     * Returns the template with fields replaced with Twig markup
-     * @return string
-     */
-    public function toTwig()
-    {
-        return $this->toViewEngine('twig');
-    }
-
-    /**
      * Returns the template with fields replaced with the simple
      * templating engine used by the TextParser class.
      * @return string
@@ -176,6 +158,24 @@ class Parser
         $tagReplacement = $this->{'eval'.$engine.'ViewField'}($prefixField, $params);
         $template = str_replace($tagString, $tagReplacement, $template);
         return $template;
+    }
+
+    /**
+     * Returns an array of all fields and their options.
+     * @return array
+     */
+    public function toEditor()
+    {
+        return $this->fieldParser->getFields();
+    }
+
+    /**
+     * Returns the template with fields replaced with Twig markup
+     * @return string
+     */
+    public function toTwig()
+    {
+        return $this->toViewEngine('twig');
     }
 
     /**

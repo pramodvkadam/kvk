@@ -48,11 +48,26 @@ class SingleDatabaseSynchronizer extends AbstractSchemaSynchronizer
     /**
      * {@inheritdoc}
      */
+    public function createSchema(Schema $createSchema)
+    {
+        $this->processSql($this->getCreateSchema($createSchema));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getCreateSchema(Schema $createSchema)
     {
         return $createSchema->toSql($this->platform);
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function updateSchema(Schema $toSchema, $noDrops = false)
+    {
+        $this->processSql($this->getUpdateSchema($toSchema, $noDrops));
+    }
 
     /**
      * {@inheritdoc}
@@ -70,6 +85,14 @@ class SingleDatabaseSynchronizer extends AbstractSchemaSynchronizer
         }
 
         return $schemaDiff->toSql($this->platform);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function dropSchema(Schema $dropSchema)
+    {
+        $this->processSqlSafely($this->getDropSchema($dropSchema));
     }
 
     /**
@@ -130,6 +153,14 @@ class SingleDatabaseSynchronizer extends AbstractSchemaSynchronizer
     /**
      * {@inheritdoc}
      */
+    public function dropAllSchema()
+    {
+        $this->processSql($this->getDropAllSchema());
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getDropAllSchema()
     {
         $sm      = $this->conn->getSchemaManager();
@@ -140,37 +171,5 @@ class SingleDatabaseSynchronizer extends AbstractSchemaSynchronizer
         $schema->visit($visitor);
 
         return $visitor->getQueries();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function createSchema(Schema $createSchema)
-    {
-        $this->processSql($this->getCreateSchema($createSchema));
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function updateSchema(Schema $toSchema, $noDrops = false)
-    {
-        $this->processSql($this->getUpdateSchema($toSchema, $noDrops));
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function dropSchema(Schema $dropSchema)
-    {
-        $this->processSqlSafely($this->getDropSchema($dropSchema));
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function dropAllSchema()
-    {
-        $this->processSql($this->getDropAllSchema());
     }
 }

@@ -26,17 +26,14 @@ abstract class WidgetBase extends Extendable
      * @var object Supplied configuration.
      */
     public $config;
-
-    /**
-     * @var \Backend\Classes\Controller Backend controller object.
-     */
-    protected $controller;
-
     /**
      * @var string Defined alias used for this widget.
      */
     public $alias;
-
+    /**
+     * @var \Backend\Classes\Controller Backend controller object.
+     */
+    protected $controller;
     /**
      * @var string A unique alias to identify this widget.
      */
@@ -84,91 +81,12 @@ abstract class WidgetBase extends Extendable
     }
 
     /**
-     * Initialize the widget, called by the constructor and free from its parameters.
-     * @return void
-     */
-    public function init()
-    {
-    }
-
-    /**
-     * Renders the widget's primary contents.
-     * @return string HTML markup supplied by this widget.
-     */
-    public function render()
-    {
-    }
-
-    /**
      * Adds widget specific asset files. Use $this->addJs() and $this->addCss()
      * to register new assets to include on the page.
      * @return void
      */
     protected function loadAssets()
     {
-    }
-
-    /**
-     * Binds a widget to the controller for safe use.
-     * @return void
-     */
-    public function bindToController()
-    {
-        if ($this->controller->widget === null) {
-            $this->controller->widget = new stdClass;
-        }
-
-        $this->controller->widget->{$this->alias} = $this;
-    }
-
-    /**
-     * Transfers config values stored inside the $config property directly
-     * on to the root object properties. If no properties are defined
-     * all config will be transferred if it finds a matching property.
-     * @param array $properties
-     * @return void
-     */
-    protected function fillFromConfig($properties = null)
-    {
-        if ($properties === null) {
-            $properties = array_keys((array) $this->config);
-        }
-
-        foreach ($properties as $property) {
-            if (property_exists($this, $property)) {
-                $this->{$property} = $this->getConfig($property, $this->{$property});
-            }
-        }
-    }
-
-    /**
-     * Returns a unique ID for this widget. Useful in creating HTML markup.
-     * @param string $suffix An extra string to append to the ID.
-     * @return string A unique identifier.
-     */
-    public function getId($suffix = null)
-    {
-        $id = class_basename(get_called_class());
-
-        if ($this->alias != $this->defaultAlias) {
-            $id .= '-' . $this->alias;
-        }
-
-        if ($suffix !== null) {
-            $id .= '-' . $suffix;
-        }
-
-        return HtmlHelper::nameToId($id);
-    }
-
-    /**
-     * Returns a fully qualified event handler name for this widget.
-     * @param string $name The ajax event handler name.
-     * @return string
-     */
-    public function getEventHandler($name)
-    {
-        return $this->alias . '::' . $name;
     }
 
     /**
@@ -209,10 +127,89 @@ abstract class WidgetBase extends Extendable
     }
 
     /**
+     * Initialize the widget, called by the constructor and free from its parameters.
+     * @return void
+     */
+    public function init()
+    {
+    }
+
+    /**
+     * Renders the widget's primary contents.
+     * @return string HTML markup supplied by this widget.
+     */
+    public function render()
+    {
+    }
+
+    /**
+     * Binds a widget to the controller for safe use.
+     * @return void
+     */
+    public function bindToController()
+    {
+        if ($this->controller->widget === null) {
+            $this->controller->widget = new stdClass;
+        }
+
+        $this->controller->widget->{$this->alias} = $this;
+    }
+
+    /**
+     * Returns a unique ID for this widget. Useful in creating HTML markup.
+     * @param string $suffix An extra string to append to the ID.
+     * @return string A unique identifier.
+     */
+    public function getId($suffix = null)
+    {
+        $id = class_basename(get_called_class());
+
+        if ($this->alias != $this->defaultAlias) {
+            $id .= '-' . $this->alias;
+        }
+
+        if ($suffix !== null) {
+            $id .= '-' . $suffix;
+        }
+
+        return HtmlHelper::nameToId($id);
+    }
+
+    /**
+     * Returns a fully qualified event handler name for this widget.
+     * @param string $name The ajax event handler name.
+     * @return string
+     */
+    public function getEventHandler($name)
+    {
+        return $this->alias . '::' . $name;
+    }
+
+    /**
      * Returns the controller using this widget.
      */
     public function getController()
     {
         return $this->controller;
+    }
+
+    /**
+     * Transfers config values stored inside the $config property directly
+     * on to the root object properties. If no properties are defined
+     * all config will be transferred if it finds a matching property.
+     * @param array $properties
+     * @return void
+     */
+    protected function fillFromConfig($properties = null)
+    {
+        if ($properties === null) {
+            $properties = array_keys((array) $this->config);
+        }
+
+        foreach ($properties as $property) {
+            if (property_exists($this, $property)) {
+                $this->{$property} = $this->getConfig($property, $this->{$property});
+            }
+        }
     }
 }

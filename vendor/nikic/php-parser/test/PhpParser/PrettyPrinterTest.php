@@ -17,6 +17,14 @@ require_once __DIR__ . '/CodeTestAbstract.php';
 
 class PrettyPrinterTest extends CodeTestAbstract
 {
+    /**
+     * @dataProvider provideTestPrettyPrint
+     * @covers PhpParser\PrettyPrinter\Standard<extended>
+     */
+    public function testPrettyPrint($name, $code, $expected, $mode) {
+        $this->doTestPrettyPrintMethod('prettyPrint', $name, $code, $expected, $mode);
+    }
+
     protected function doTestPrettyPrintMethod($method, $name, $code, $expected, $modeLine) {
         $lexer = new Lexer\Emulative;
         $parser5 = new Parser\Php5($lexer);
@@ -55,12 +63,11 @@ class PrettyPrinterTest extends CodeTestAbstract
         }
     }
 
-    /**
-     * @dataProvider provideTestPrettyPrint
-     * @covers PhpParser\PrettyPrinter\Standard<extended>
-     */
-    public function testPrettyPrint($name, $code, $expected, $mode) {
-        $this->doTestPrettyPrintMethod('prettyPrint', $name, $code, $expected, $mode);
+    private function parseModeLine($modeLine) {
+        $parts = explode(' ', $modeLine, 2);
+        $version = isset($parts[0]) ? $parts[0] : 'both';
+        $options = isset($parts[1]) ? json_decode($parts[1], true) : [];
+        return [$version, $options];
     }
 
     /**
@@ -99,13 +106,6 @@ class PrettyPrinterTest extends CodeTestAbstract
         $stmts = [new Stmt\InlineHTML('Hello World!', ['comments' => [$comment]])];
         $expected = "<?php\n\n/**\n * This is a comment\n */\n?>\nHello World!";
         $this->assertSame($expected, $prettyPrinter->prettyPrintFile($stmts));
-    }
-
-    private function parseModeLine($modeLine) {
-        $parts = explode(' ', $modeLine, 2);
-        $version = isset($parts[0]) ? $parts[0] : 'both';
-        $options = isset($parts[1]) ? json_decode($parts[1], true) : [];
-        return [$version, $options];
     }
 
     public function testArraySyntaxDefault() {

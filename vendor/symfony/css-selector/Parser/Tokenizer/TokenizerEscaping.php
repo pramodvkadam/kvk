@@ -35,11 +35,11 @@ class TokenizerEscaping
      *
      * @return string
      */
-    public function escapeUnicode($value)
+    public function escapeUnicodeAndNewLine($value)
     {
-        $value = $this->replaceUnicodeSequences($value);
+        $value = preg_replace($this->patterns->getNewLineEscapePattern(), '', $value);
 
-        return preg_replace($this->patterns->getSimpleEscapePattern(), '$1', $value);
+        return $this->escapeUnicode($value);
     }
 
     /**
@@ -47,11 +47,11 @@ class TokenizerEscaping
      *
      * @return string
      */
-    public function escapeUnicodeAndNewLine($value)
+    public function escapeUnicode($value)
     {
-        $value = preg_replace($this->patterns->getNewLineEscapePattern(), '', $value);
+        $value = $this->replaceUnicodeSequences($value);
 
-        return $this->escapeUnicode($value);
+        return preg_replace($this->patterns->getSimpleEscapePattern(), '$1', $value);
     }
 
     /**

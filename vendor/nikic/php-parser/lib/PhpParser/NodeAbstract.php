@@ -16,21 +16,20 @@ abstract class NodeAbstract implements Node, \JsonSerializable
     }
 
     /**
-     * Gets the type of the node.
-     *
-     * @return string Type of the node
-     */
-    public function getType() {
-        return strtr(substr(rtrim(get_class($this), '_'), 15), '\\', '_');
-    }
-
-    /**
      * Gets line the node started in.
      *
      * @return int Line
      */
     public function getLine() {
         return $this->getAttribute('startLine', -1);
+    }
+
+    public function &getAttribute($key, $default = null) {
+        if (!array_key_exists($key, $this->attributes)) {
+            return $default;
+        } else {
+            return $this->attributes[$key];
+        }
     }
 
     /**
@@ -42,6 +41,10 @@ abstract class NodeAbstract implements Node, \JsonSerializable
      */
     public function setLine($line) {
         $this->setAttribute('startLine', (int) $line);
+    }
+
+    public function setAttribute($key, $value) {
+        $this->attributes[$key] = $value;
     }
 
     /**
@@ -87,20 +90,8 @@ abstract class NodeAbstract implements Node, \JsonSerializable
         $this->setAttribute('comments', $comments);
     }
 
-    public function setAttribute($key, $value) {
-        $this->attributes[$key] = $value;
-    }
-
     public function hasAttribute($key) {
         return array_key_exists($key, $this->attributes);
-    }
-
-    public function &getAttribute($key, $default = null) {
-        if (!array_key_exists($key, $this->attributes)) {
-            return $default;
-        } else {
-            return $this->attributes[$key];
-        }
     }
 
     public function getAttributes() {
@@ -109,5 +100,14 @@ abstract class NodeAbstract implements Node, \JsonSerializable
 
     public function jsonSerialize() {
         return ['nodeType' => $this->getType()] + get_object_vars($this);
+    }
+
+    /**
+     * Gets the type of the node.
+     *
+     * @return string Type of the node
+     */
+    public function getType() {
+        return strtr(substr(rtrim(get_class($this), '_'), 15), '\\', '_');
     }
 }

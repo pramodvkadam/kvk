@@ -40,49 +40,6 @@ class MySqlConnector extends Connector implements ConnectorInterface
     }
 
     /**
-     * Set the connection character set and collation.
-     *
-     * @param  \PDO  $connection
-     * @param  array  $config
-     * @return void
-     */
-    protected function configureEncoding($connection, array $config)
-    {
-        if (! isset($config['charset'])) {
-            return $connection;
-        }
-
-        $connection->prepare(
-            "set names '{$config['charset']}'".$this->getCollation($config)
-        )->execute();
-    }
-
-    /**
-     * Get the collation for the configuration.
-     *
-     * @param  array  $config
-     * @return string
-     */
-    protected function getCollation(array $config)
-    {
-        return isset($config['collation']) ? " collate '{$config['collation']}'" : '';
-    }
-
-    /**
-     * Set the timezone on the connection.
-     *
-     * @param  \PDO  $connection
-     * @param  array  $config
-     * @return void
-     */
-    protected function configureTimezone($connection, array $config)
-    {
-        if (isset($config['timezone'])) {
-            $connection->prepare('set time_zone="'.$config['timezone'].'"')->execute();
-        }
-    }
-
-    /**
      * Create a DSN string from a configuration.
      *
      * Chooses socket or host/port based on the 'unix_socket' config value.
@@ -132,6 +89,49 @@ class MySqlConnector extends Connector implements ConnectorInterface
         return isset($port)
                     ? "mysql:host={$host};port={$port};dbname={$database}"
                     : "mysql:host={$host};dbname={$database}";
+    }
+
+    /**
+     * Set the connection character set and collation.
+     *
+     * @param  \PDO  $connection
+     * @param  array  $config
+     * @return void
+     */
+    protected function configureEncoding($connection, array $config)
+    {
+        if (! isset($config['charset'])) {
+            return $connection;
+        }
+
+        $connection->prepare(
+            "set names '{$config['charset']}'".$this->getCollation($config)
+        )->execute();
+    }
+
+    /**
+     * Get the collation for the configuration.
+     *
+     * @param  array  $config
+     * @return string
+     */
+    protected function getCollation(array $config)
+    {
+        return isset($config['collation']) ? " collate '{$config['collation']}'" : '';
+    }
+
+    /**
+     * Set the timezone on the connection.
+     *
+     * @param  \PDO  $connection
+     * @param  array  $config
+     * @return void
+     */
+    protected function configureTimezone($connection, array $config)
+    {
+        if (isset($config['timezone'])) {
+            $connection->prepare('set time_zone="'.$config['timezone'].'"')->execute();
+        }
     }
 
     /**

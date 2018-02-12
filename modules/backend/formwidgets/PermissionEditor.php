@@ -12,9 +12,8 @@ use BackendAuth;
  */
 class PermissionEditor extends FormWidgetBase
 {
-    protected $user;
-
     public $mode;
+    protected $user;
 
     /**
      * @inheritDoc
@@ -58,6 +57,42 @@ class PermissionEditor extends FormWidgetBase
         $this->vars['field'] = $this->formField;
     }
 
+    protected function getControlMode()
+    {
+        return strlen($this->mode) ? $this->mode : 'radio';
+    }
+
+    /**
+     * Returns the available permissions; removing those that the logged-in user does not have access to
+     *
+     * @return array The permissions that the logged-in user does have access to
+     */
+    protected function getFilteredPermissions()
+    {
+        $permissions = BackendAuth::listTabbedPermissions();
+
+        if ($this->user->isSuperUser()) {
+            return $permissions;
+        }
+
+        foreach ($permissions as $tab => $permissionsArray) {
+            foreach ($permissionsArray as $index => $permission) {
+                if (!$this->user->hasAccess($permission->code)) {
+                    unset($permissionsArray[$index]);
+                }
+            }
+
+            if (empty($permissionsArray)) {
+                unset($permissions[$tab]);
+            }
+            else {
+                $permissions[$tab] = $permissionsArray;
+            }
+        }
+
+        return $permissions;
+    }
+
     /**
      * @inheritDoc
      */
@@ -68,20 +103,6 @@ class PermissionEditor extends FormWidgetBase
         }
 
         return $this->getSaveValueSecure($value);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function loadAssets()
-    {
-        $this->addCss('css/permissioneditor.css', 'core');
-        $this->addJs('js/permissioneditor.js', 'core');
-    }
-
-    protected function getControlMode()
-    {
-        return strlen($this->mode) ? $this->mode : 'radio';
     }
 
     /**
@@ -115,33 +136,11 @@ class PermissionEditor extends FormWidgetBase
     }
 
     /**
-     * Returns the available permissions; removing those that the logged-in user does not have access to
-     *
-     * @return array The permissions that the logged-in user does have access to
+     * @inheritDoc
      */
-    protected function getFilteredPermissions()
+    protected function loadAssets()
     {
-        $permissions = BackendAuth::listTabbedPermissions();
-
-        if ($this->user->isSuperUser()) {
-            return $permissions;
-        }
-
-        foreach ($permissions as $tab => $permissionsArray) {
-            foreach ($permissionsArray as $index => $permission) {
-                if (!$this->user->hasAccess($permission->code)) {
-                    unset($permissionsArray[$index]);
-                }
-            }
-
-            if (empty($permissionsArray)) {
-                unset($permissions[$tab]);
-            }
-            else {
-                $permissions[$tab] = $permissionsArray;
-            }
-        }
-
-        return $permissions;
+        $this->addCss('css/permissioneditor.css', 'core');
+        $this->addJs('js/permissioneditor.js', 'core');
     }
 }

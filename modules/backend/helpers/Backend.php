@@ -19,19 +19,19 @@ use Backend\Classes\Skin;
 class Backend
 {
     /**
-     * Returns the backend URI segment.
-     */
-    public function uri()
-    {
-        return Config::get('cms.backendUri', 'backend');
-    }
-
-    /**
      * Returns a URL in context of the Backend
      */
     public function url($path = null, $parameters = [], $secure = null)
     {
         return Url::to($this->uri() . '/' . $path, $parameters, $secure);
+    }
+
+    /**
+     * Returns the backend URI segment.
+     */
+    public function uri()
+    {
+        return Config::get('cms.backendUri', 'backend');
     }
 
     /**

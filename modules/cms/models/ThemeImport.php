@@ -28,21 +28,9 @@ class ThemeImport extends Model
      * @var array The rules to be applied to the data.
      */
     public $rules = [];
-
-    /**
-     * @var array Guarded fields
-     */
-    protected $guarded = [];
-
-    /**
-     * @var array Fillable fields
-     */
-    protected $fillable = [];
-
     public $attachOne = [
         'uploaded_file' => \System\Models\File::class
     ];
-
     /**
      * @var array Make the model's attributes public so behaviors can modify them.
      */
@@ -59,17 +47,14 @@ class ThemeImport extends Model
             'content'  => true,
         ]
     ];
-
-    public function getFoldersOptions()
-    {
-        return [
-            'assets'   => 'Assets',
-            'pages'    => 'Pages',
-            'layouts'  => 'Layouts',
-            'partials' => 'Partials',
-            'content'  => 'Content',
-        ];
-    }
+    /**
+     * @var array Guarded fields
+     */
+    protected $guarded = [];
+    /**
+     * @var array Fillable fields
+     */
+    protected $fillable = [];
 
     public function setThemeAttribute($theme)
     {
@@ -189,5 +174,16 @@ class ThemeImport extends Model
         }
 
         return true;
+    }
+
+    public function getFoldersOptions()
+    {
+        return [
+            'assets'   => 'Assets',
+            'pages'    => 'Pages',
+            'layouts'  => 'Layouts',
+            'partials' => 'Partials',
+            'content'  => 'Content',
+        ];
     }
 }

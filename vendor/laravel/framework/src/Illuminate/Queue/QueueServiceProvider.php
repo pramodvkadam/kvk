@@ -58,6 +58,19 @@ class QueueServiceProvider extends ServiceProvider
     }
 
     /**
+     * Register the connectors on the queue manager.
+     *
+     * @param  \Illuminate\Queue\QueueManager  $manager
+     * @return void
+     */
+    public function registerConnectors($manager)
+    {
+        foreach (['Null', 'Sync', 'Database', 'Redis', 'Beanstalkd', 'Sqs'] as $connector) {
+            $this->{"register{$connector}Connector"}($manager);
+        }
+    }
+
+    /**
      * Register the default queue connection binding.
      *
      * @return void
@@ -70,16 +83,71 @@ class QueueServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register the connectors on the queue manager.
+     * Register the queue worker.
      *
-     * @param  \Illuminate\Queue\QueueManager  $manager
      * @return void
      */
-    public function registerConnectors($manager)
+    protected function registerWorker()
     {
-        foreach (['Null', 'Sync', 'Database', 'Redis', 'Beanstalkd', 'Sqs'] as $connector) {
-            $this->{"register{$connector}Connector"}($manager);
-        }
+        $this->app->singleton('queue.worker', function () {
+            return new Worker(
+                $this->app['queue'], $this->app['events'], $this->app[ExceptionHandler::class]
+            );
+        });
+    }
+
+    /**
+     * Register the queue listener.
+     *
+     * @return void
+     */
+    protected function registerListener()
+    {
+        $this->app->singleton('queue.listener', function () {
+            return new Listener($this->app->basePath());
+        });
+    }
+
+    /**
+     * Register the failed job services.
+     *
+     * @return void
+     */
+    protected function registerFailedJobServices()
+    {
+        $this->app->singleton('queue.failer', function () {
+            $config = $this->app['config']['queue.failed'];
+
+            return isset($config['table'])
+                        ? $this->databaseFailedJobProvider($config)
+                        : new NullFailedJobProvider;
+        });
+    }
+
+    /**
+     * Create a new database failed job provider.
+     *
+     * @param  array  $config
+     * @return \Illuminate\Queue\Failed\DatabaseFailedJobProvider
+     */
+    protected function databaseFailedJobProvider($config)
+    {
+        return new DatabaseFailedJobProvider(
+            $this->app['db'], $config['database'], $config['table']
+        );
+    }
+
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array
+     */
+    public function provides()
+    {
+        return [
+            'queue', 'queue.worker', 'queue.listener',
+            'queue.failer', 'queue.connection',
+        ];
     }
 
     /**
@@ -158,73 +226,5 @@ class QueueServiceProvider extends ServiceProvider
         $manager->addConnector('sqs', function () {
             return new SqsConnector;
         });
-    }
-
-    /**
-     * Register the queue worker.
-     *
-     * @return void
-     */
-    protected function registerWorker()
-    {
-        $this->app->singleton('queue.worker', function () {
-            return new Worker(
-                $this->app['queue'], $this->app['events'], $this->app[ExceptionHandler::class]
-            );
-        });
-    }
-
-    /**
-     * Register the queue listener.
-     *
-     * @return void
-     */
-    protected function registerListener()
-    {
-        $this->app->singleton('queue.listener', function () {
-            return new Listener($this->app->basePath());
-        });
-    }
-
-    /**
-     * Register the failed job services.
-     *
-     * @return void
-     */
-    protected function registerFailedJobServices()
-    {
-        $this->app->singleton('queue.failer', function () {
-            $config = $this->app['config']['queue.failed'];
-
-            return isset($config['table'])
-                        ? $this->databaseFailedJobProvider($config)
-                        : new NullFailedJobProvider;
-        });
-    }
-
-    /**
-     * Create a new database failed job provider.
-     *
-     * @param  array  $config
-     * @return \Illuminate\Queue\Failed\DatabaseFailedJobProvider
-     */
-    protected function databaseFailedJobProvider($config)
-    {
-        return new DatabaseFailedJobProvider(
-            $this->app['db'], $config['database'], $config['table']
-        );
-    }
-
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return array
-     */
-    public function provides()
-    {
-        return [
-            'queue', 'queue.worker', 'queue.listener',
-            'queue.failer', 'queue.connection',
-        ];
     }
 }

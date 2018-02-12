@@ -11,6 +11,16 @@ class UserEventBase extends EventBase
         \RainLab\User\NotifyRules\UserAttributeCondition::class
     ];
 
+    public static function makeParamsFromEvent(array $args, $eventName = null)
+    {
+        $user = array_get($args, 0);
+
+        $params = $user->getNotificationVars();
+        $params['user'] = $user;
+
+        return $params;
+    }
+
     /**
      * Defines the usable parameters provided by this class.
      */
@@ -26,15 +36,5 @@ class UserEventBase extends EventBase
                 'label' => "User's email address",
             ],
         ];
-    }
-
-    public static function makeParamsFromEvent(array $args, $eventName = null)
-    {
-        $user = array_get($args, 0);
-
-        $params = $user->getNotificationVars();
-        $params['user'] = $user;
-
-        return $params;
     }
 }

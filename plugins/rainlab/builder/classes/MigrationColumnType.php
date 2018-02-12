@@ -46,21 +46,18 @@ class MigrationColumnType extends BaseModel
     const REGEX_LENGTH_SINGLE = '/^([0-9]+)$/';
     const REGEX_LENGTH_DOUBLE = '/^([0-9]+)\,([0-9]+)$/';
 
-    public static function getIntegerTypes()
+    /**
+     * Converts a migration column type to a corresponding Doctrine mapping type name.
+     */
+    public static function toDoctrineTypeName($type)
     {
-        return [
-            self::TYPE_INTEGER,
-            self::TYPE_SMALLINTEGER,
-            self::TYPE_BIGINTEGER
-        ];
-    }
+        $typeMap = self::getDoctrineTypeMap();
 
-    public static function getDecimalTypes()
-    {
-        return [
-            self::TYPE_DECIMAL,
-            self::TYPE_DOUBLE
-        ];
+        if (!array_key_exists($type, $typeMap)) {
+            throw new SystemException(sprintf('Unknown column type: %s', $type));
+        }
+
+        return $typeMap[$type];
     }
 
     public static function getDoctrineTypeMap()
@@ -80,51 +77,6 @@ class MigrationColumnType extends BaseModel
             self::TYPE_DECIMAL => DoctrineType::DECIMAL,
             self::TYPE_DOUBLE => DoctrineType::FLOAT
         ];
-    }
-
-    /**
-     * Converts a migration column type to a corresponding Doctrine mapping type name.
-     */
-    public static function toDoctrineTypeName($type)
-    {
-        $typeMap = self::getDoctrineTypeMap();
-
-        if (!array_key_exists($type, $typeMap)) {
-            throw new SystemException(sprintf('Unknown column type: %s', $type));
-        }
-
-        return $typeMap[$type];
-    }
-
-    /**
-     * Converts Doctrine mapping type name to a migration column method name
-     */
-    public static function toMigrationMethodName($type, $columnName)
-    {
-        $typeMap = self::getDoctrineTypeMap();
-
-        if (!in_array($type, $typeMap)) {
-            throw new SystemException(sprintf('Unknown column type: %s', $type));
-        }
-
-        // Some Doctrine types map to multiple migration types, for example
-        // Doctrine boolean could be boolean and tinyInteger in migrations.
-        // Some guessing could be required in this method. The method is not
-        // 100% reliable.
-
-        if ($type == DoctrineType::DATETIME) {
-            // The datetime type maps to datetime and timestamp. Use the name 
-            // guessing as the only possible solution.
-
-            if (in_array($columnName, ['created_at', 'updated_at', 'deleted_at', 'published_at', 'deleted_at'])) {
-                return self::TYPE_TIMESTAMP;
-            }
-
-            return self::TYPE_DATETIME;
-        }
-
-        $typeMap = array_flip($typeMap);
-        return $typeMap[$type];
     }
 
     /**
@@ -151,6 +103,14 @@ class MigrationColumnType extends BaseModel
                 ]));
             }
         }
+    }
+
+    public static function getDecimalTypes()
+    {
+        return [
+            self::TYPE_DECIMAL,
+            self::TYPE_DOUBLE
+        ];
     }
 
     /**
@@ -202,6 +162,15 @@ class MigrationColumnType extends BaseModel
         return $result;
     }
 
+    public static function getIntegerTypes()
+    {
+        return [
+            self::TYPE_INTEGER,
+            self::TYPE_SMALLINTEGER,
+            self::TYPE_BIGINTEGER
+        ];
+    }
+
     /**
      * Converts Doctrine length, precision and scale to migration-compatible length string
      * @return string
@@ -220,5 +189,36 @@ class MigrationColumnType extends BaseModel
         }
 
         return $column->getLength();
+    }
+
+    /**
+     * Converts Doctrine mapping type name to a migration column method name
+     */
+    public static function toMigrationMethodName($type, $columnName)
+    {
+        $typeMap = self::getDoctrineTypeMap();
+
+        if (!in_array($type, $typeMap)) {
+            throw new SystemException(sprintf('Unknown column type: %s', $type));
+        }
+
+        // Some Doctrine types map to multiple migration types, for example
+        // Doctrine boolean could be boolean and tinyInteger in migrations.
+        // Some guessing could be required in this method. The method is not
+        // 100% reliable.
+
+        if ($type == DoctrineType::DATETIME) {
+            // The datetime type maps to datetime and timestamp. Use the name
+            // guessing as the only possible solution.
+
+            if (in_array($columnName, ['created_at', 'updated_at', 'deleted_at', 'published_at', 'deleted_at'])) {
+                return self::TYPE_TIMESTAMP;
+            }
+
+            return self::TYPE_DATETIME;
+        }
+
+        $typeMap = array_flip($typeMap);
+        return $typeMap[$type];
     }
 }

@@ -34,6 +34,13 @@ class Welcome extends ReportWidgetBase
         return $this->makePartial('widget');
     }
 
+    protected function loadData()
+    {
+        $this->vars['user'] = $user = BackendAuth::getUser();
+        $this->vars['appName'] = BrandSetting::get('app_name');
+        $this->vars['lastSeen'] = AccessLog::getRecent($user);
+    }
+
     public function defineProperties()
     {
         return [
@@ -53,12 +60,5 @@ class Welcome extends ReportWidgetBase
     protected function loadAssets()
     {
         $this->addCss('css/welcome.css', 'core');
-    }
-
-    protected function loadData()
-    {
-        $this->vars['user'] = $user = BackendAuth::getUser();
-        $this->vars['appName'] = BrandSetting::get('app_name');
-        $this->vars['lastSeen'] = AccessLog::getRecent($user);
     }
 }

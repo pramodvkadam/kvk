@@ -25,6 +25,10 @@ use Composer\Util\Filesystem;
  */
 class BitrixInstaller extends BaseInstaller
 {
+    /**
+     * @var array Storage for informations about duplicates at all the time of installation packages.
+     */
+    private static $checkedDuplicates = array();
     protected $locations = array(
         'module'    => '{$bitrix_dir}/modules/{$name}/',    // deprecated, remove on the major release (Backward compatibility will be broken)
         'component' => '{$bitrix_dir}/components/{$name}/', // deprecated, remove on the major release (Backward compatibility will be broken)
@@ -33,11 +37,6 @@ class BitrixInstaller extends BaseInstaller
         'd7-component' => '{$bitrix_dir}/components/{$vendor}/{$name}/',
         'd7-template'     => '{$bitrix_dir}/templates/{$vendor}_{$name}/',
     );
-
-    /**
-     * @var array Storage for informations about duplicates at all the time of installation packages.
-     */
-    private static $checkedDuplicates = array();
 
     /**
      * {@inheritdoc}

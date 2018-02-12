@@ -97,6 +97,48 @@ abstract class YamlModel extends BaseModel
         $this->originalFilePath = $filePath;
     }
 
+    public function isNewModel()
+    {
+        return !strlen($this->originalFilePath);
+    }
+
+    protected function beforeCreate()
+    {
+    }
+
+    /**
+     * Converts the model's data to an array before it's saved to a YAML file.
+     * @return array
+     */
+    abstract protected function modelToYamlArray();
+
+    /**
+     * Returns a file path to save the model to.
+     * @return string Returns a path.
+     */
+    abstract protected function getFilePath();
+
+    protected function afterCreate()
+    {
+    }
+
+    public function deleteModel()
+    {
+        if (!File::isFile($this->originalFilePath)) {
+            throw new ApplicationException('Cannot load the model - the original file is not found: '.$filePath);
+        }
+
+        if (strtolower(substr($this->originalFilePath, -5)) !== '.yaml') {
+            throw new ApplicationException('Cannot delete the model - the original file should be a YAML document');
+        }
+
+        File::delete($this->originalFilePath);
+    }
+
+    public function initDefaults()
+    {
+    }
+
     protected function load($filePath)
     {
         $filePath = File::symbolizePath($filePath);
@@ -107,7 +149,7 @@ abstract class YamlModel extends BaseModel
 
         try {
             $data = Yaml::parse(File::get($filePath));
-        } 
+        }
         catch (Exception $ex) {
             throw new ApplicationException(sprintf('Cannot parse the YAML file %s: %s', basename($filePath), $ex->getMessage()));
         }
@@ -131,56 +173,14 @@ abstract class YamlModel extends BaseModel
         $this->yamlArrayToModel($data);
     }
 
-    public function deleteModel()
-    {
-        if (!File::isFile($this->originalFilePath)) {
-            throw new ApplicationException('Cannot load the model - the original file is not found: '.$filePath);
-        }
-
-        if (strtolower(substr($this->originalFilePath, -5)) !== '.yaml') {
-            throw new ApplicationException('Cannot delete the model - the original file should be a YAML document');
-        }
-
-        File::delete($this->originalFilePath);
-    }
-
-    public function initDefaults()
-    {
-    }
-
-    public function isNewModel()
-    {
-        return !strlen($this->originalFilePath);
-    }
-
-    protected function beforeCreate()
-    {
-    }
-
-    protected function afterCreate()
-    {
-    }
-
-    protected function getArrayKeySafe($array, $key, $default = null)
-    {
-        return array_key_exists($key, $array) ? $array[$key] : $default;
-    }
-
-    /**
-     * Converts the model's data to an array before it's saved to a YAML file.
-     * @return array
-     */
-    abstract protected function modelToYamlArray();
-
     /**
      * Load the model's data from an array.
      * @param array $array An array to load the model fields from.
      */
     abstract protected function yamlArrayToModel($array);
 
-    /**
-     * Returns a file path to save the model to.
-     * @return string Returns a path.
-     */
-    abstract protected function getFilePath();
+    protected function getArrayKeySafe($array, $key, $default = null)
+    {
+        return array_key_exists($key, $array) ? $array[$key] : $default;
+    }
 }

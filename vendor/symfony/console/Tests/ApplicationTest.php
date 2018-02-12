@@ -59,23 +59,6 @@ class ApplicationTest extends TestCase
         require_once self::$fixturesPath.'/FooSubnamespaced2Command.php';
     }
 
-    protected function normalizeLineBreaks($text)
-    {
-        return str_replace(PHP_EOL, "\n", $text);
-    }
-
-    /**
-     * Replaces the dynamic placeholders of the command help text with a static version.
-     * The placeholder %command.full_name% includes the script path that is not predictable
-     * and can not be tested against.
-     */
-    protected function ensureStaticCommandHelp(Application $application)
-    {
-        foreach ($application->all() as $command) {
-            $command->setHelp(str_replace('%command.full_name%', 'app/console %command.name%', $command->getHelp()));
-        }
-    }
-
     public function testConstructor()
     {
         $application = new Application('foo', 'bar');
@@ -108,6 +91,11 @@ class ApplicationTest extends TestCase
     {
         $application = new Application();
         $this->assertStringEqualsFile(self::$fixturesPath.'/application_gethelp.txt', $this->normalizeLineBreaks($application->getHelp()), '->getHelp() returns a help message');
+    }
+
+    protected function normalizeLineBreaks($text)
+    {
+        return str_replace(PHP_EOL, "\n", $text);
     }
 
     public function testAll()
@@ -861,6 +849,18 @@ class ApplicationTest extends TestCase
     }
 
     /**
+     * Replaces the dynamic placeholders of the command help text with a static version.
+     * The placeholder %command.full_name% includes the script path that is not predictable
+     * and can not be tested against.
+     */
+    protected function ensureStaticCommandHelp(Application $application)
+    {
+        foreach ($application->all() as $command) {
+            $command->setHelp(str_replace('%command.full_name%', 'app/console %command.name%', $command->getHelp()));
+        }
+    }
+
+    /**
      * Issue #9285.
      *
      * If the "verbose" option is just before an argument in ArgvInput,
@@ -1096,6 +1096,32 @@ class ApplicationTest extends TestCase
         $tester = new ApplicationTester($application);
         $tester->run(array('command' => 'foo'));
         $this->assertEquals('before.foo.after.'.PHP_EOL, $tester->getDisplay());
+    }
+
+    protected function getDispatcher($skipCommand = false)
+    {
+        $dispatcher = new EventDispatcher();
+        $dispatcher->addListener('console.command', function (ConsoleCommandEvent $event) use ($skipCommand) {
+            $event->getOutput()->write('before.');
+
+            if ($skipCommand) {
+                $event->disableCommand();
+            }
+        });
+        $dispatcher->addListener('console.terminate', function (ConsoleTerminateEvent $event) use ($skipCommand) {
+            $event->getOutput()->writeln('after.');
+
+            if (!$skipCommand) {
+                $event->setExitCode(ConsoleCommandEvent::RETURN_CODE_DISABLED);
+            }
+        });
+        $dispatcher->addListener('console.error', function (ConsoleErrorEvent $event) {
+            $event->getOutput()->write('error.');
+
+            $event->setError(new \LogicException('error.', $event->getExitCode(), $event->getError()));
+        });
+
+        return $dispatcher;
     }
 
     /**
@@ -1554,32 +1580,6 @@ class ApplicationTest extends TestCase
         $application = new Application();
         $application->setCommandLoader(new FactoryCommandLoader(array('disabled' => function () { return new DisabledCommand(); })));
         $this->assertArrayNotHasKey('disabled', $application->all());
-    }
-
-    protected function getDispatcher($skipCommand = false)
-    {
-        $dispatcher = new EventDispatcher();
-        $dispatcher->addListener('console.command', function (ConsoleCommandEvent $event) use ($skipCommand) {
-            $event->getOutput()->write('before.');
-
-            if ($skipCommand) {
-                $event->disableCommand();
-            }
-        });
-        $dispatcher->addListener('console.terminate', function (ConsoleTerminateEvent $event) use ($skipCommand) {
-            $event->getOutput()->writeln('after.');
-
-            if (!$skipCommand) {
-                $event->setExitCode(ConsoleCommandEvent::RETURN_CODE_DISABLED);
-            }
-        });
-        $dispatcher->addListener('console.error', function (ConsoleErrorEvent $event) {
-            $event->getOutput()->write('error.');
-
-            $event->setError(new \LogicException('error.', $event->getExitCode(), $event->getError()));
-        });
-
-        return $dispatcher;
     }
 
     /**

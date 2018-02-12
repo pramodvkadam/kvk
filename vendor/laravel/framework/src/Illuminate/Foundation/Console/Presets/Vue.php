@@ -23,21 +23,6 @@ class Vue extends Preset
     }
 
     /**
-     * Update the given package array.
-     *
-     * @param  array  $packages
-     * @return array
-     */
-    protected static function updatePackageArray(array $packages)
-    {
-        return ['vue' => '^2.1.10'] + Arr::except($packages, [
-            'babel-preset-react',
-            'react',
-            'react-dom',
-        ]);
-    }
-
-    /**
      * Update the Webpack configuration.
      *
      * @return void
@@ -45,6 +30,16 @@ class Vue extends Preset
     protected static function updateWebpackConfiguration()
     {
         copy(__DIR__.'/vue-stubs/webpack.mix.js', base_path('webpack.mix.js'));
+    }
+
+    /**
+     * Update the bootstrapping files.
+     *
+     * @return void
+     */
+    protected static function updateBootstrapping()
+    {
+        copy(__DIR__.'/vue-stubs/app.js', resource_path('assets/js/app.js'));
     }
 
     /**
@@ -65,12 +60,17 @@ class Vue extends Preset
     }
 
     /**
-     * Update the bootstrapping files.
+     * Update the given package array.
      *
-     * @return void
+     * @param  array  $packages
+     * @return array
      */
-    protected static function updateBootstrapping()
+    protected static function updatePackageArray(array $packages)
     {
-        copy(__DIR__.'/vue-stubs/app.js', resource_path('assets/js/app.js'));
+        return ['vue' => '^2.1.10'] + Arr::except($packages, [
+            'babel-preset-react',
+            'react',
+            'react-dom',
+        ]);
     }
 }

@@ -45,6 +45,41 @@ class CoalescingDirectoryResource implements IteratorResourceInterface
         return true;
     }
 
+    /**
+     * Performs the coalesce.
+     *
+     * @return array An array of file resources
+     */
+    private function getFileResources()
+    {
+        $paths = array();
+
+        foreach ($this->directories as $directory) {
+            foreach ($directory as $file) {
+                $relative = $this->getRelativeName($file, $directory);
+
+                if (!isset($paths[$relative])) {
+                    $paths[$relative] = $file;
+                }
+            }
+        }
+
+        return array_values($paths);
+    }
+
+    /**
+     * Returns the relative version of a filename.
+     *
+     * @param ResourceInterface $file      The file
+     * @param ResourceInterface $directory The directory
+     *
+     * @return string The name to compare with files from other directories
+     */
+    protected function getRelativeName(ResourceInterface $file, ResourceInterface $directory)
+    {
+        return substr((string) $file, strlen((string) $directory));
+    }
+
     public function getContent()
     {
         $parts = array();
@@ -73,40 +108,5 @@ class CoalescingDirectoryResource implements IteratorResourceInterface
     public function getIterator()
     {
         return new \ArrayIterator($this->getFileResources());
-    }
-
-    /**
-     * Returns the relative version of a filename.
-     *
-     * @param ResourceInterface $file      The file
-     * @param ResourceInterface $directory The directory
-     *
-     * @return string The name to compare with files from other directories
-     */
-    protected function getRelativeName(ResourceInterface $file, ResourceInterface $directory)
-    {
-        return substr((string) $file, strlen((string) $directory));
-    }
-
-    /**
-     * Performs the coalesce.
-     *
-     * @return array An array of file resources
-     */
-    private function getFileResources()
-    {
-        $paths = array();
-
-        foreach ($this->directories as $directory) {
-            foreach ($directory as $file) {
-                $relative = $this->getRelativeName($file, $directory);
-
-                if (!isset($paths[$relative])) {
-                    $paths[$relative] = $file;
-                }
-            }
-        }
-
-        return array_values($paths);
     }
 }

@@ -79,6 +79,16 @@ class CommandTester
         return $this->statusCode = $this->command->run($this->input, $this->output);
     }
 
+    private static function createStream(array $inputs)
+    {
+        $stream = fopen('php://memory', 'r+', false);
+
+        fwrite($stream, implode(PHP_EOL, $inputs));
+        rewind($stream);
+
+        return $stream;
+    }
+
     /**
      * Gets the display returned by the last execution of the command.
      *
@@ -142,15 +152,5 @@ class CommandTester
         $this->inputs = $inputs;
 
         return $this;
-    }
-
-    private static function createStream(array $inputs)
-    {
-        $stream = fopen('php://memory', 'r+', false);
-
-        fwrite($stream, implode(PHP_EOL, $inputs));
-        rewind($stream);
-
-        return $stream;
     }
 }

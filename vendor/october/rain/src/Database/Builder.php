@@ -40,18 +40,6 @@ class Builder extends BuilderModel
     }
 
     /**
-     * Add an "or search where" clause to the query.
-     * @param  string $term  Search query
-     * @param  array $columns Table columns to search
-     * @param  string $mode  Search mode: all, any, exact.
-     * @return self
-     */
-    public function orSearchWhere($term, $columns = [], $mode = 'all')
-    {
-        return $this->searchWhereInternal($term, $columns, $mode, 'or');
-    }
-
-    /**
      * Internal method to apply a search constraint to the query.
      * Mode can be any of these options:
      * - all: result must contain all words
@@ -97,6 +85,18 @@ class Builder extends BuilderModel
         }
 
         return $this;
+    }
+
+    /**
+     * Add an "or search where" clause to the query.
+     * @param  string $term  Search query
+     * @param  array $columns Table columns to search
+     * @param  string $mode  Search mode: all, any, exact.
+     * @return self
+     */
+    public function orSearchWhere($term, $columns = [], $mode = 'all')
+    {
+        return $this->searchWhereInternal($term, $columns, $mode, 'or');
     }
 
     /**

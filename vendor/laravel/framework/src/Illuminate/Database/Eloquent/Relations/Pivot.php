@@ -37,6 +37,24 @@ class Pivot extends Model
     protected $guarded = [];
 
     /**
+     * Create a new pivot model from raw values returned from a query.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $parent
+     * @param  array   $attributes
+     * @param  string  $table
+     * @param  bool    $exists
+     * @return static
+     */
+    public static function fromRawAttributes(Model $parent, $attributes, $table, $exists = false)
+    {
+        $instance = static::fromAttributes($parent, $attributes, $table, $exists);
+
+        $instance->setRawAttributes($attributes, true);
+
+        return $instance;
+    }
+
+    /**
      * Create a new pivot model instance.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $parent
@@ -70,38 +88,23 @@ class Pivot extends Model
     }
 
     /**
-     * Create a new pivot model from raw values returned from a query.
+     * Determine if the pivot model has timestamp attributes.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $parent
-     * @param  array   $attributes
-     * @param  string  $table
-     * @param  bool    $exists
-     * @return static
+     * @return bool
      */
-    public static function fromRawAttributes(Model $parent, $attributes, $table, $exists = false)
+    public function hasTimestampAttributes()
     {
-        $instance = static::fromAttributes($parent, $attributes, $table, $exists);
-
-        $instance->setRawAttributes($attributes, true);
-
-        return $instance;
+        return array_key_exists($this->getCreatedAtColumn(), $this->attributes);
     }
 
     /**
-     * Set the keys for a save update query.
+     * Get the name of the "created at" column.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return string
      */
-    protected function setKeysForSaveQuery(Builder $query)
+    public function getCreatedAtColumn()
     {
-        if (isset($this->attributes[$this->getKeyName()])) {
-            return parent::setKeysForSaveQuery($query);
-        }
-
-        $query->where($this->foreignKey, $this->getAttribute($this->foreignKey));
-
-        return $query->where($this->relatedKey, $this->getAttribute($this->relatedKey));
+        return $this->pivotParent->getCreatedAtColumn();
     }
 
     /**
@@ -162,9 +165,9 @@ class Pivot extends Model
      *
      * @return string
      */
-    public function getRelatedKey()
+    public function getOtherKey()
     {
-        return $this->relatedKey;
+        return $this->getRelatedKey();
     }
 
     /**
@@ -172,9 +175,9 @@ class Pivot extends Model
      *
      * @return string
      */
-    public function getOtherKey()
+    public function getRelatedKey()
     {
-        return $this->getRelatedKey();
+        return $this->relatedKey;
     }
 
     /**
@@ -194,26 +197,6 @@ class Pivot extends Model
     }
 
     /**
-     * Determine if the pivot model has timestamp attributes.
-     *
-     * @return bool
-     */
-    public function hasTimestampAttributes()
-    {
-        return array_key_exists($this->getCreatedAtColumn(), $this->attributes);
-    }
-
-    /**
-     * Get the name of the "created at" column.
-     *
-     * @return string
-     */
-    public function getCreatedAtColumn()
-    {
-        return $this->pivotParent->getCreatedAtColumn();
-    }
-
-    /**
      * Get the name of the "updated at" column.
      *
      * @return string
@@ -221,5 +204,22 @@ class Pivot extends Model
     public function getUpdatedAtColumn()
     {
         return $this->pivotParent->getUpdatedAtColumn();
+    }
+
+    /**
+     * Set the keys for a save update query.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    protected function setKeysForSaveQuery(Builder $query)
+    {
+        if (isset($this->attributes[$this->getKeyName()])) {
+            return parent::setKeysForSaveQuery($query);
+        }
+
+        $query->where($this->foreignKey, $this->getAttribute($this->foreignKey));
+
+        return $query->where($this->relatedKey, $this->getAttribute($this->relatedKey));
     }
 }

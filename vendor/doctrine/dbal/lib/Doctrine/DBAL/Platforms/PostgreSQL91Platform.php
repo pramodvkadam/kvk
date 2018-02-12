@@ -37,14 +37,6 @@ class PostgreSQL91Platform extends PostgreSqlPlatform
     }
 
     /**
-     * {@inheritdoc}
-     */
-    protected function getReservedKeywordsClass()
-    {
-        return 'Doctrine\DBAL\Platforms\Keywords\PostgreSQL91Keywords';
-    }
-
-    /**
      * {@inheritDoc}
      */
     public function getColumnCollationDeclarationSQL($collation)
@@ -61,5 +53,13 @@ class PostgreSQL91Platform extends PostgreSqlPlatform
         $parts = explode('AS complete_type,', $sql, 2);
 
         return $parts[0].'AS complete_type, (SELECT tc.collcollate FROM pg_catalog.pg_collation tc WHERE tc.oid = a.attcollation) AS collation,'.$parts[1];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getReservedKeywordsClass()
+    {
+        return 'Doctrine\DBAL\Platforms\Keywords\PostgreSQL91Keywords';
     }
 }

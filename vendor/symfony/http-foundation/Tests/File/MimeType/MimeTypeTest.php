@@ -22,6 +22,15 @@ class MimeTypeTest extends TestCase
 {
     protected $path;
 
+    public static function tearDownAfterClass()
+    {
+        $path = __DIR__.'/../Fixtures/to_delete';
+        if (file_exists($path)) {
+            @chmod($path, 0666);
+            @unlink($path);
+        }
+    }
+
     public function testGuessImageWithoutExtension()
     {
         $this->assertEquals('image/gif', MimeTypeGuesser::getInstance()->guess(__DIR__.'/../Fixtures/test'));
@@ -76,15 +85,6 @@ class MimeTypeTest extends TestCase
             MimeTypeGuesser::getInstance()->guess($path);
         } else {
             $this->markTestSkipped('Can not verify chmod operations, change of file permissions failed');
-        }
-    }
-
-    public static function tearDownAfterClass()
-    {
-        $path = __DIR__.'/../Fixtures/to_delete';
-        if (file_exists($path)) {
-            @chmod($path, 0666);
-            @unlink($path);
         }
     }
 }

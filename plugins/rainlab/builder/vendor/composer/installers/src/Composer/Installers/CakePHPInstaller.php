@@ -30,17 +30,6 @@ class CakePHPInstaller extends BaseInstaller
     }
 
     /**
-     * Change the default plugin location when cakephp >= 3.0
-     */
-    public function getLocations()
-    {
-        if ($this->matchesCakeVersion('>=', '3.0.0')) {
-            $this->locations['plugin'] =  $this->composer->getConfig()->get('vendor-dir') . '/{$vendor}/{$name}/';
-        }
-        return $this->locations;
-    }
-
-    /**
      * Check if CakePHP version matches against a version
      *
      * @param string $matcher
@@ -78,5 +67,16 @@ class CakePHPInstaller extends BaseInstaller
             }
         }
         return false;
+    }
+
+    /**
+     * Change the default plugin location when cakephp >= 3.0
+     */
+    public function getLocations()
+    {
+        if ($this->matchesCakeVersion('>=', '3.0.0')) {
+            $this->locations['plugin'] =  $this->composer->getConfig()->get('vendor-dir') . '/{$vendor}/{$name}/';
+        }
+        return $this->locations;
     }
 }

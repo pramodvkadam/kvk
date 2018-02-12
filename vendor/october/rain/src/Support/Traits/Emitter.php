@@ -45,23 +45,6 @@ trait Emitter
     }
 
     /**
-     * Sort the listeners for a given event by priority.
-     *
-     * @param  string  $eventName
-     * @return array
-     */
-    protected function emitterEventSortEvents($eventName)
-    {
-        $this->emitterEventSorted[$eventName] = [];
-
-        if (isset($this->emitterEventCollection[$eventName])) {
-            krsort($this->emitterEventCollection[$eventName]);
-
-            $this->emitterEventSorted[$eventName] = call_user_func_array('array_merge', $this->emitterEventCollection[$eventName]);
-        }
-    }
-
-    /**
      * Destroys an event binding.
      * @param string $event Event to destroy
      * @return self
@@ -141,5 +124,22 @@ trait Emitter
         }
 
         return $halt ? null : $result;
+    }
+
+    /**
+     * Sort the listeners for a given event by priority.
+     *
+     * @param  string  $eventName
+     * @return array
+     */
+    protected function emitterEventSortEvents($eventName)
+    {
+        $this->emitterEventSorted[$eventName] = [];
+
+        if (isset($this->emitterEventCollection[$eventName])) {
+            krsort($this->emitterEventCollection[$eventName]);
+
+            $this->emitterEventSorted[$eventName] = call_user_func_array('array_merge', $this->emitterEventCollection[$eventName]);
+        }
     }
 }

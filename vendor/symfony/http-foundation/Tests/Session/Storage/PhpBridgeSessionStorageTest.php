@@ -29,37 +29,6 @@ class PhpBridgeSessionStorageTest extends TestCase
 {
     private $savePath;
 
-    protected function setUp()
-    {
-        $this->iniSet('session.save_handler', 'files');
-        $this->iniSet('session.save_path', $this->savePath = sys_get_temp_dir().'/sf2test');
-        if (!is_dir($this->savePath)) {
-            mkdir($this->savePath);
-        }
-    }
-
-    protected function tearDown()
-    {
-        session_write_close();
-        array_map('unlink', glob($this->savePath.'/*'));
-        if (is_dir($this->savePath)) {
-            rmdir($this->savePath);
-        }
-
-        $this->savePath = null;
-    }
-
-    /**
-     * @return PhpBridgeSessionStorage
-     */
-    protected function getStorage()
-    {
-        $storage = new PhpBridgeSessionStorage();
-        $storage->registerBag(new AttributeBag());
-
-        return $storage;
-    }
-
     public function testPhpSession()
     {
         $storage = $this->getStorage();
@@ -80,6 +49,17 @@ class PhpBridgeSessionStorageTest extends TestCase
         $this->assertTrue(isset($_SESSION[$key]));
     }
 
+    /**
+     * @return PhpBridgeSessionStorage
+     */
+    protected function getStorage()
+    {
+        $storage = new PhpBridgeSessionStorage();
+        $storage->registerBag(new AttributeBag());
+
+        return $storage;
+    }
+
     public function testClear()
     {
         $storage = $this->getStorage();
@@ -92,5 +72,25 @@ class PhpBridgeSessionStorageTest extends TestCase
         $storage->clear();
         $this->assertEquals($_SESSION[$key], array());
         $this->assertEquals($_SESSION['drak'], 'loves symfony');
+    }
+
+    protected function setUp()
+    {
+        $this->iniSet('session.save_handler', 'files');
+        $this->iniSet('session.save_path', $this->savePath = sys_get_temp_dir().'/sf2test');
+        if (!is_dir($this->savePath)) {
+            mkdir($this->savePath);
+        }
+    }
+
+    protected function tearDown()
+    {
+        session_write_close();
+        array_map('unlink', glob($this->savePath.'/*'));
+        if (is_dir($this->savePath)) {
+            rmdir($this->savePath);
+        }
+
+        $this->savePath = null;
     }
 }

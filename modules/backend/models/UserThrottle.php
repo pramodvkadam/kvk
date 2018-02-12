@@ -11,14 +11,13 @@ use October\Rain\Auth\Models\Throttle as ThrottleBase;
 class UserThrottle extends ThrottleBase
 {
     /**
-     * @var string The database table used by the model.
-     */
-    protected $table = 'backend_user_throttle';
-
-    /**
      * @var array Relations
      */
     public $belongsTo = [
         'user' => User::class
     ];
+    /**
+     * @var string The database table used by the model.
+     */
+    protected $table = 'backend_user_throttle';
 }

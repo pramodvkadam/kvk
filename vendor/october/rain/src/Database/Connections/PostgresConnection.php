@@ -9,16 +9,6 @@ use Illuminate\Database\Schema\Grammars\PostgresGrammar as SchemaGrammar;
 class PostgresConnection extends Connection
 {
     /**
-     * Get the default query grammar instance.
-     *
-     * @return \Illuminate\Database\Query\Grammars\PostgresGrammar
-     */
-    protected function getDefaultQueryGrammar()
-    {
-        return $this->withTablePrefix(new QueryGrammar);
-    }
-
-    /**
      * Get a schema builder instance for the connection.
      *
      * @return \Illuminate\Database\Schema\PostgresBuilder
@@ -30,6 +20,16 @@ class PostgresConnection extends Connection
         }
 
         return new PostgresBuilder($this);
+    }
+
+    /**
+     * Get the default query grammar instance.
+     *
+     * @return \Illuminate\Database\Query\Grammars\PostgresGrammar
+     */
+    protected function getDefaultQueryGrammar()
+    {
+        return $this->withTablePrefix(new QueryGrammar);
     }
 
     /**

@@ -13,6 +13,21 @@ class __TwigTemplate_64cc84d0bd22c15596d552659df599a5a50645867eca4e1c3136eeff665
         );
     }
 
+    public function getTemplateName()
+    {
+        return "/var/www/html/atma/themes/atma-new/pages/staff.htm";
+    }
+
+    public function isTraitable()
+    {
+        return false;
+    }
+
+    public function getDebugInfo()
+    {
+        return array (  164 => 55,  158 => 53,  156 => 52,  153 => 51,  142 => 48,  137 => 47,  133 => 46,  130 => 45,  124 => 43,  122 => 42,  119 => 41,  117 => 40,  112 => 37,  103 => 35,  96 => 32,  93 => 31,  89 => 29,  87 => 28,  81 => 25,  77 => 24,  73 => 23,  69 => 22,  64 => 20,  61 => 19,  55 => 17,  52 => 16,  49 => 15,  45 => 13,  41 => 11,  36 => 10,  31 => 7,  29 => 6,  27 => 5,  25 => 4,  23 => 3,  21 => 2,  19 => 1,);
+    }
+
     protected function doDisplay(array $context, array $blocks = array())
     {
         // line 1
@@ -164,21 +179,6 @@ class __TwigTemplate_64cc84d0bd22c15596d552659df599a5a50645867eca4e1c3136eeff665
             echo "    </ul>
 ";
         }
-    }
-
-    public function getTemplateName()
-    {
-        return "/var/www/html/atma/themes/atma-new/pages/staff.htm";
-    }
-
-    public function isTraitable()
-    {
-        return false;
-    }
-
-    public function getDebugInfo()
-    {
-        return array (  164 => 55,  158 => 53,  156 => 52,  153 => 51,  142 => 48,  137 => 47,  133 => 46,  130 => 45,  124 => 43,  122 => 42,  119 => 41,  117 => 40,  112 => 37,  103 => 35,  96 => 32,  93 => 31,  89 => 29,  87 => 28,  81 => 25,  77 => 24,  73 => 23,  69 => 22,  64 => 20,  61 => 19,  55 => 17,  52 => 16,  49 => 15,  45 => 13,  41 => 11,  36 => 10,  31 => 7,  29 => 6,  27 => 5,  25 => 4,  23 => 3,  21 => 2,  19 => 1,);
     }
 
     public function getSourceContext()

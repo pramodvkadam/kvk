@@ -29,29 +29,6 @@ class PhpSourceStream
         $this->headBookmarks = [];
     }
 
-    public function getHead()
-    {
-        return $this->head;
-    }
-
-    /**
-     * Updates the head position.
-     * @return boolean Returns true if the head was successfully updated. Returns false otherwise.
-     */
-    public function setHead($head)
-    {
-        if ($head < 0) {
-            return false;
-        }
-
-        if ($head > (count($this->tokens) - 1)) {
-            return false;
-        }
-
-        $this->head = $head;
-        return true;
-    }
-
     /**
      * Bookmarks the head position in the internal bookmark stack.
      */
@@ -85,37 +62,18 @@ class PhpSourceStream
     }
 
     /**
-     * Returns the current token and doesn't move the head.
+     * Reads the next token, updates the head and and returns the token if it has the expected code.
+     * @param integer $expectedCode Specifies the code to expect.
+     * @return mixed Returns the token or null if the token code was not expected.
      */
-    public function getCurrent()
+    public function getNextExpected($expectedCode)
     {
-        return $this->tokens[$this->head];
-    }
-
-    /**
-     * Returns the current token's text and doesn't move the head.
-     */
-    public function getCurrentText()
-    {
-        $token = $this->getCurrent();
-        if (!is_array($token)) {
-            return $token;
-        }
-
-        return $token[1];
-    }
-
-    /**
-     * Returns the current token's code and doesn't move the head.
-     */
-    public function getCurrentCode()
-    {
-        $token = $this->getCurrent();
-        if (!is_array($token)) {
+        $token = $this->getNext();
+        if ($this->getCurrentCode() != $expectedCode) {
             return null;
         }
 
-        return $token[0];
+        return $token;
     }
 
     /**
@@ -133,18 +91,24 @@ class PhpSourceStream
     }
 
     /**
-     * Reads the next token, updates the head and and returns the token if it has the expected code.
-     * @param integer $expectedCode Specifies the code to expect.
-     * @return mixed Returns the token or null if the token code was not expected.
+     * Returns the current token's code and doesn't move the head.
      */
-    public function getNextExpected($expectedCode)
+    public function getCurrentCode()
     {
-        $token = $this->getNext();
-        if ($this->getCurrentCode() != $expectedCode) {
+        $token = $this->getCurrent();
+        if (!is_array($token)) {
             return null;
         }
 
-        return $token;
+        return $token[0];
+    }
+
+    /**
+     * Returns the current token and doesn't move the head.
+     */
+    public function getCurrent()
+    {
+        return $this->tokens[$this->head];
     }
 
     /**
@@ -181,12 +145,25 @@ class PhpSourceStream
                 return $buffer;
             }
 
-            // The token should be either expected or termination. 
+            // The token should be either expected or termination.
             // If something else is found, return null.
             return null;
         }
 
         return $buffer;
+    }
+
+    /**
+     * Returns the current token's text and doesn't move the head.
+     */
+    public function getCurrentText()
+    {
+        $token = $this->getCurrent();
+        if (!is_array($token)) {
+            return $token;
+        }
+
+        return $token[1];
     }
 
     /**
@@ -197,6 +174,29 @@ class PhpSourceStream
     public function forward()
     {
         return $this->setHead($this->getHead()+1);
+    }
+
+    public function getHead()
+    {
+        return $this->head;
+    }
+
+    /**
+     * Updates the head position.
+     * @return boolean Returns true if the head was successfully updated. Returns false otherwise.
+     */
+    public function setHead($head)
+    {
+        if ($head < 0) {
+            return false;
+        }
+
+        if ($head > (count($this->tokens) - 1)) {
+            return false;
+        }
+
+        $this->head = $head;
+        return true;
     }
 
     /**

@@ -72,19 +72,6 @@ class ParameterBag implements \IteratorAggregate, \Countable
     }
 
     /**
-     * Returns a parameter by name.
-     *
-     * @param string $key     The key
-     * @param mixed  $default The default value if the parameter key does not exist
-     *
-     * @return mixed
-     */
-    public function get($key, $default = null)
-    {
-        return array_key_exists($key, $this->parameters) ? $this->parameters[$key] : $default;
-    }
-
-    /**
      * Sets a parameter by name.
      *
      * @param string $key   The key
@@ -131,6 +118,19 @@ class ParameterBag implements \IteratorAggregate, \Countable
     }
 
     /**
+     * Returns a parameter by name.
+     *
+     * @param string $key     The key
+     * @param mixed  $default The default value if the parameter key does not exist
+     *
+     * @return mixed
+     */
+    public function get($key, $default = null)
+    {
+        return array_key_exists($key, $this->parameters) ? $this->parameters[$key] : $default;
+    }
+
+    /**
      * Returns the alphabetic characters and digits of the parameter value.
      *
      * @param string $key     The parameter key
@@ -155,32 +155,6 @@ class ParameterBag implements \IteratorAggregate, \Countable
     {
         // we need to remove - and + because they're allowed in the filter
         return str_replace(array('-', '+'), '', $this->filter($key, $default, FILTER_SANITIZE_NUMBER_INT));
-    }
-
-    /**
-     * Returns the parameter value converted to integer.
-     *
-     * @param string $key     The parameter key
-     * @param int    $default The default value if the parameter key does not exist
-     *
-     * @return int The filtered value
-     */
-    public function getInt($key, $default = 0)
-    {
-        return (int) $this->get($key, $default);
-    }
-
-    /**
-     * Returns the parameter value converted to boolean.
-     *
-     * @param string $key     The parameter key
-     * @param mixed  $default The default value if the parameter key does not exist
-     *
-     * @return bool The filtered value
-     */
-    public function getBoolean($key, $default = false)
-    {
-        return $this->filter($key, $default, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -210,6 +184,32 @@ class ParameterBag implements \IteratorAggregate, \Countable
         }
 
         return filter_var($value, $filter, $options);
+    }
+
+    /**
+     * Returns the parameter value converted to integer.
+     *
+     * @param string $key     The parameter key
+     * @param int    $default The default value if the parameter key does not exist
+     *
+     * @return int The filtered value
+     */
+    public function getInt($key, $default = 0)
+    {
+        return (int) $this->get($key, $default);
+    }
+
+    /**
+     * Returns the parameter value converted to boolean.
+     *
+     * @param string $key     The parameter key
+     * @param mixed  $default The default value if the parameter key does not exist
+     *
+     * @return bool The filtered value
+     */
+    public function getBoolean($key, $default = false)
+    {
+        return $this->filter($key, $default, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

@@ -160,6 +160,19 @@ class Zip extends ZipArchive
     }
 
     /**
+     * Removes a prefix from a path.
+     * @param  string $prefix /var/sites/
+     * @param  string $path /var/sites/moo/cow/
+     * @return string moo/cow/
+     */
+    protected function removePathPrefix($prefix, $path)
+    {
+        return (strpos($path, $prefix) === 0)
+            ? substr($path, strlen($prefix))
+            : $path;
+    }
+
+    /**
      * Creates a new folder inside the Zip and adds source files (optional)
      * @param  string $name Folder name
      * @param  mixed  $source
@@ -221,18 +234,5 @@ class Zip extends ZipArchive
         }
 
         return $this;
-    }
-
-    /**
-     * Removes a prefix from a path.
-     * @param  string $prefix /var/sites/
-     * @param  string $path /var/sites/moo/cow/
-     * @return string moo/cow/
-     */
-    protected function removePathPrefix($prefix, $path)
-    {
-        return (strpos($path, $prefix) === 0)
-            ? substr($path, strlen($prefix))
-            : $path;
     }
 }

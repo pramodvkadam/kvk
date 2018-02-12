@@ -40,6 +40,20 @@ class SwiftMailerHandler extends MailHandler
     }
 
     /**
+     * BC getter, to be removed in 2.0
+     */
+    public function __get($name)
+    {
+        if ($name === 'message') {
+            trigger_error('SwiftMailerHandler->message is deprecated, use ->buildMessage() instead to retrieve the message', E_USER_DEPRECATED);
+
+            return $this->buildMessage(null, array());
+        }
+
+        throw new \InvalidArgumentException('Invalid property '.$name);
+    }
+
+    /**
      * {@inheritdoc}
      */
     protected function send($content, array $records)
@@ -81,19 +95,5 @@ class SwiftMailerHandler extends MailHandler
         }
 
         return $message;
-    }
-
-    /**
-     * BC getter, to be removed in 2.0
-     */
-    public function __get($name)
-    {
-        if ($name === 'message') {
-            trigger_error('SwiftMailerHandler->message is deprecated, use ->buildMessage() instead to retrieve the message', E_USER_DEPRECATED);
-
-            return $this->buildMessage(null, array());
-        }
-
-        throw new \InvalidArgumentException('Invalid property '.$name);
     }
 }

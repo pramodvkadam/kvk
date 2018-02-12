@@ -96,6 +96,52 @@ class ListController extends ControllerBehavior
     }
 
     /**
+     * Static helper for extending list columns.
+     * @param  callable $callback
+     * @return void
+     */
+    public static function extendListColumns($callback)
+    {
+        $calledClass = self::getCalledExtensionClass();
+        Event::listen('backend.list.extendColumns', function ($widget) use ($calledClass, $callback) {
+            if (!is_a($widget->getController(), $calledClass)) {
+                return;
+            }
+            call_user_func_array($callback, [$widget, $widget->model]);
+        });
+    }
+
+     /**
+     * Static helper for extending filter scopes.
+     * @param  callable $callback
+     * @return void
+     */
+    public static function extendListFilterScopes($callback)
+    {
+        $calledClass = self::getCalledExtensionClass();
+        Event::listen('backend.filter.extendScopes', function ($widget) use ($calledClass, $callback) {
+            if (!is_a($widget->getController(), $calledClass)) {
+                return;
+            }
+            call_user_func_array($callback, [$widget]);
+        });
+    }
+
+    /**
+     * Index Controller action.
+     * @return void
+     */
+    public function index()
+    {
+        $this->controller->pageTitle = $this->controller->pageTitle ?: Lang::get($this->getConfig(
+            'title',
+            'backend::lang.list.default_title'
+        ));
+        $this->controller->bodyClass = 'slim-container';
+        $this->makeLists();
+    }
+
+    /**
      * Creates all the list widgets based on the definitions.
      * @return array
      */
@@ -266,20 +312,6 @@ class ListController extends ControllerBehavior
     }
 
     /**
-     * Index Controller action.
-     * @return void
-     */
-    public function index()
-    {
-        $this->controller->pageTitle = $this->controller->pageTitle ?: Lang::get($this->getConfig(
-            'title',
-            'backend::lang.list.default_title'
-        ));
-        $this->controller->bodyClass = 'slim-container';
-        $this->makeLists();
-    }
-
-    /**
      * Bulk delete records.
      * @return void
      */
@@ -415,6 +447,10 @@ class ListController extends ControllerBehavior
         return $this->listWidgets[$definition]->onRefresh();
     }
 
+    //
+    // Overrides
+    //
+
     /**
      * Returns the widget used by this behavior.
      * @return \Backend\Classes\WidgetBase
@@ -444,10 +480,6 @@ class ListController extends ControllerBehavior
 
         return $config;
     }
-
-    //
-    // Overrides
-    //
 
     /**
      * Called after the list columns are defined.
@@ -543,37 +575,5 @@ class ListController extends ControllerBehavior
      */
     public function listOverrideHeaderValue($columnName, $definition = null)
     {
-    }
-
-    /**
-     * Static helper for extending list columns.
-     * @param  callable $callback
-     * @return void
-     */
-    public static function extendListColumns($callback)
-    {
-        $calledClass = self::getCalledExtensionClass();
-        Event::listen('backend.list.extendColumns', function ($widget) use ($calledClass, $callback) {
-            if (!is_a($widget->getController(), $calledClass)) {
-                return;
-            }
-            call_user_func_array($callback, [$widget, $widget->model]);
-        });
-    }
-
-     /**
-     * Static helper for extending filter scopes.
-     * @param  callable $callback
-     * @return void
-     */
-    public static function extendListFilterScopes($callback)
-    {
-        $calledClass = self::getCalledExtensionClass();
-        Event::listen('backend.filter.extendScopes', function ($widget) use ($calledClass, $callback) {
-            if (!is_a($widget->getController(), $calledClass)) {
-                return;
-            }
-            call_user_func_array($callback, [$widget]);
-        });
     }
 }

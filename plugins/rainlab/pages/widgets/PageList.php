@@ -21,19 +21,14 @@ class PageList extends WidgetBase
     use \Backend\Traits\CollapsableWidget;
     use \Backend\Traits\SelectableWidget;
 
-    protected $theme;
-
-    protected $dataIdPrefix;
-
     /**
      * @var string Message to display when the Delete button is clicked.
      */
     public $deleteConfirmation = 'rainlab.pages::lang.page.delete_confirmation';
-
     public $noRecordsMessage = 'rainlab.pages::lang.page.no_records';
-    
     public $addSubpageLabel = 'rainlab.pages::lang.page.add_subpage';
-
+    protected $theme;
+    protected $dataIdPrefix;
 
     public function __construct($controller, $alias)
     {
@@ -58,36 +53,6 @@ class PageList extends WidgetBase
 
     /*
      * Event handlers
-     */
-
-    public function onReorder()
-    {
-        $structure = json_decode(Input::get('structure'), true);
-        if (!$structure) {
-            throw new SystemException('Invalid structure data posted.');
-        }
-
-        $pageList = new StaticPageList($this->theme);
-        $pageList->updateStructure($structure);
-    }
-
-    public function onUpdate()
-    {
-        $this->extendSelection();
-
-        return $this->updateList();
-    }
-
-    public function onSearch()
-    {
-        $this->setSearchTerm(Input::get('search'));
-        $this->extendSelection();
-
-        return $this->updateList();
-    }
-
-    /*
-     * Methods for th internal use
      */
 
     protected function getData()
@@ -121,16 +86,6 @@ class PageList extends WidgetBase
         return $pages;
     }
 
-    protected function getThemeSessionKey($prefix)
-    {
-        return $prefix.$this->theme->getDirName();
-    }
-
-    protected function updateList()
-    {
-        return ['#'.$this->getId('page-list') => $this->makePartial('items', ['items' => $this->getData()])];
-    }
-
     protected function subtreeToText($page)
     {
         $result = $this->pageToText($page->page);
@@ -154,11 +109,51 @@ class PageList extends WidgetBase
         return $page->getViewBag()->property('title').' '.$page->getViewBag()->property('url');
     }
 
+    /*
+     * Methods for th internal use
+     */
+
+    public function onReorder()
+    {
+        $structure = json_decode(Input::get('structure'), true);
+        if (!$structure) {
+            throw new SystemException('Invalid structure data posted.');
+        }
+
+        $pageList = new StaticPageList($this->theme);
+        $pageList->updateStructure($structure);
+    }
+
+    public function onUpdate()
+    {
+        $this->extendSelection();
+
+        return $this->updateList();
+    }
+
+    protected function updateList()
+    {
+        return ['#'.$this->getId('page-list') => $this->makePartial('items', ['items' => $this->getData()])];
+    }
+
+    public function onSearch()
+    {
+        $this->setSearchTerm(Input::get('search'));
+        $this->extendSelection();
+
+        return $this->updateList();
+    }
+
     protected function getSession($key = null, $default = null)
     {
         $key = strlen($key) ? $this->getThemeSessionKey($key) : $key;
 
         return parent::getSession($key, $default);
+    }
+
+    protected function getThemeSessionKey($prefix)
+    {
+        return $prefix.$this->theme->getDirName();
     }
 
     protected function putSession($key, $value)

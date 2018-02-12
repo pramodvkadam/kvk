@@ -8,12 +8,17 @@ use Illuminate\Contracts\View\View;
 trait ManagesLayouts
 {
     /**
+     * The parent placeholder for the request.
+     *
+     * @var mixed
+     */
+    protected static $parentPlaceholder = [];
+    /**
      * All of the finished, captured sections.
      *
      * @var array
      */
     protected $sections = [];
-
     /**
      * The stack of in-progress sections.
      *
@@ -22,11 +27,16 @@ trait ManagesLayouts
     protected $sectionStack = [];
 
     /**
-     * The parent placeholder for the request.
+     * Inject inline content into a section.
      *
-     * @var mixed
+     * @param  string  $section
+     * @param  string  $content
+     * @return void
      */
-    protected static $parentPlaceholder = [];
+    public function inject($section, $content)
+    {
+        $this->startSection($section, $content);
+    }
 
     /**
      * Start injecting content into a section.
@@ -47,15 +57,34 @@ trait ManagesLayouts
     }
 
     /**
-     * Inject inline content into a section.
+     * Append content to a given section.
      *
      * @param  string  $section
      * @param  string  $content
      * @return void
      */
-    public function inject($section, $content)
+    protected function extendSection($section, $content)
     {
-        $this->startSection($section, $content);
+        if (isset($this->sections[$section])) {
+            $content = str_replace(static::parentPlaceholder($section), $content, $this->sections[$section]);
+        }
+
+        $this->sections[$section] = $content;
+    }
+
+    /**
+     * Get the parent placeholder for the current request.
+     *
+     * @param  string  $section
+     * @return string
+     */
+    public static function parentPlaceholder($section = '')
+    {
+        if (! isset(static::$parentPlaceholder[$section])) {
+            static::$parentPlaceholder[$section] = '##parent-placeholder-'.sha1($section).'##';
+        }
+
+        return static::$parentPlaceholder[$section];
     }
 
     /**
@@ -70,6 +99,28 @@ trait ManagesLayouts
         }
 
         return $this->yieldContent($this->stopSection());
+    }
+
+    /**
+     * Get the string contents of a section.
+     *
+     * @param  string  $section
+     * @param  string  $default
+     * @return string
+     */
+    public function yieldContent($section, $default = '')
+    {
+        $sectionContent = $default instanceof View ? $default : e($default);
+
+        if (isset($this->sections[$section])) {
+            $sectionContent = $this->sections[$section];
+        }
+
+        $sectionContent = str_replace('@@parent', '--parent--holder--', $sectionContent);
+
+        return str_replace(
+            '--parent--holder--', '@parent', str_replace(static::parentPlaceholder($section), '', $sectionContent)
+        );
     }
 
     /**
@@ -117,59 +168,6 @@ trait ManagesLayouts
         }
 
         return $last;
-    }
-
-    /**
-     * Append content to a given section.
-     *
-     * @param  string  $section
-     * @param  string  $content
-     * @return void
-     */
-    protected function extendSection($section, $content)
-    {
-        if (isset($this->sections[$section])) {
-            $content = str_replace(static::parentPlaceholder($section), $content, $this->sections[$section]);
-        }
-
-        $this->sections[$section] = $content;
-    }
-
-    /**
-     * Get the string contents of a section.
-     *
-     * @param  string  $section
-     * @param  string  $default
-     * @return string
-     */
-    public function yieldContent($section, $default = '')
-    {
-        $sectionContent = $default instanceof View ? $default : e($default);
-
-        if (isset($this->sections[$section])) {
-            $sectionContent = $this->sections[$section];
-        }
-
-        $sectionContent = str_replace('@@parent', '--parent--holder--', $sectionContent);
-
-        return str_replace(
-            '--parent--holder--', '@parent', str_replace(static::parentPlaceholder($section), '', $sectionContent)
-        );
-    }
-
-    /**
-     * Get the parent placeholder for the current request.
-     *
-     * @param  string  $section
-     * @return string
-     */
-    public static function parentPlaceholder($section = '')
-    {
-        if (! isset(static::$parentPlaceholder[$section])) {
-            static::$parentPlaceholder[$section] = '##parent-placeholder-'.sha1($section).'##';
-        }
-
-        return static::$parentPlaceholder[$section];
     }
 
     /**

@@ -45,6 +45,14 @@ abstract class DataSourceBase
     abstract public function purge();
 
     /**
+     * Identical to getRecords except provided with a search query.
+     */
+    public function searchRecords($query, $offset, $count)
+    {
+        return $this->getRecords($offset, $count);
+    }
+
+    /**
      * Return records from the data source.
      * @param integer $offset Specifies the offset of the first record to return, zero-based.
      * @param integer $count Specifies the number of records to return.
@@ -52,14 +60,6 @@ abstract class DataSourceBase
      * If there are no more records, returns an empty array.
      */
     abstract public function getRecords($offset, $count);
-
-    /**
-     * Identical to getRecords except provided with a search query.
-     */
-    public function searchRecords($query, $offset, $count)
-    {
-        return $this->getRecords($offset, $count);
-    }
 
     /**
      * Rewinds the the data source to the first record.

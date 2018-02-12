@@ -45,19 +45,6 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * Bootstrap the module events.
-     *
-     * @return void
-     */
-    public function boot()
-    {
-        parent::boot('cms');
-
-        $this->bootMenuItemEvents();
-        $this->bootRichEditorEvents();
-    }
-
-    /**
      * Register components.
      */
     protected function registerComponents()
@@ -97,9 +84,6 @@ class ServiceProvider extends ModuleServiceProvider
         });
     }
 
-    /*
-     * Register navigation
-     */
     protected function registerBackendNavigation()
     {
         BackendMenu::registerCallback(function ($manager) {
@@ -172,8 +156,9 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /*
-     * Register report widgets
+     * Register navigation
      */
+
     protected function registerBackendReportWidgets()
     {
         WidgetManager::instance()->registerReportWidgets(function ($manager) {
@@ -185,8 +170,9 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /*
-     * Register permissions
+     * Register report widgets
      */
+
     protected function registerBackendPermissions()
     {
         BackendAuth::registerCallback(function ($manager) {
@@ -237,8 +223,9 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /*
-     * Register widgets
+     * Register permissions
      */
+
     protected function registerBackendWidgets()
     {
         WidgetManager::instance()->registerFormWidgets(function ($manager) {
@@ -247,8 +234,9 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /*
-     * Register settings
+     * Register widgets
      */
+
     protected function registerBackendSettings()
     {
         SettingsManager::instance()->registerCallback(function ($manager) {
@@ -283,6 +271,23 @@ class ServiceProvider extends ModuleServiceProvider
                 ]
             ]);
         });
+    }
+
+    /*
+     * Register settings
+     */
+
+    /**
+     * Bootstrap the module events.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        parent::boot('cms');
+
+        $this->bootMenuItemEvents();
+        $this->bootRichEditorEvents();
     }
 
     /**

@@ -46,6 +46,53 @@ class Lexer
     }
 
     /**
+     * Creates the token map.
+     *
+     * The token map maps the PHP internal token identifiers
+     * to the identifiers used by the Parser. Additionally it
+     * maps T_OPEN_TAG_WITH_ECHO to T_ECHO and T_CLOSE_TAG to ';'.
+     *
+     * @return array The token map
+     */
+    protected function createTokenMap() {
+        $tokenMap = array();
+
+        // 256 is the minimum possible token number, as everything below
+        // it is an ASCII value
+        for ($i = 256; $i < 1000; ++$i) {
+            if (T_DOUBLE_COLON === $i) {
+                // T_DOUBLE_COLON is equivalent to T_PAAMAYIM_NEKUDOTAYIM
+                $tokenMap[$i] = Tokens::T_PAAMAYIM_NEKUDOTAYIM;
+            } elseif(T_OPEN_TAG_WITH_ECHO === $i) {
+                // T_OPEN_TAG_WITH_ECHO with dropped T_OPEN_TAG results in T_ECHO
+                $tokenMap[$i] = Tokens::T_ECHO;
+            } elseif(T_CLOSE_TAG === $i) {
+                // T_CLOSE_TAG is equivalent to ';'
+                $tokenMap[$i] = ord(';');
+            } elseif ('UNKNOWN' !== $name = token_name($i)) {
+                if ('T_HASHBANG' === $name) {
+                    // HHVM uses a special token for #! hashbang lines
+                    $tokenMap[$i] = Tokens::T_INLINE_HTML;
+                } else if (defined($name = 'PhpParser\Parser\Tokens::' . $name)) {
+                    // Other tokens can be mapped directly
+                    $tokenMap[$i] = constant($name);
+                }
+            }
+        }
+
+        // HHVM uses a special token for numbers that overflow to double
+        if (defined('T_ONUMBER')) {
+            $tokenMap[T_ONUMBER] = Tokens::T_DNUMBER;
+        }
+        // HHVM also has a separate token for the __COMPILER_HALT_OFFSET__ constant
+        if (defined('T_COMPILER_HALT_OFFSET')) {
+            $tokenMap[T_COMPILER_HALT_OFFSET] = Tokens::T_STRING;
+        }
+
+        return $tokenMap;
+    }
+
+    /**
      * Initializes the lexer for lexing the provided source code.
      *
      * This function does not throw if lexing errors occur. Instead, errors may be retrieved using
@@ -89,50 +136,6 @@ class Lexer
             @$undefinedVariable;
             restore_error_handler();
         }
-    }
-
-    private function handleInvalidCharacterRange($start, $end, $line, ErrorHandler $errorHandler) {
-        for ($i = $start; $i < $end; $i++) {
-            $chr = $this->code[$i];
-            if ($chr === 'b' || $chr === 'B') {
-                // HHVM does not treat b" tokens correctly, so ignore these
-                continue;
-            }
-
-            if ($chr === "\0") {
-                // PHP cuts error message after null byte, so need special case
-                $errorMsg = 'Unexpected null byte';
-            } else {
-                $errorMsg = sprintf(
-                    'Unexpected character "%s" (ASCII %d)', $chr, ord($chr)
-                );
-            }
-
-            $errorHandler->handleError(new Error($errorMsg, [
-                'startLine' => $line,
-                'endLine' => $line,
-                'startFilePos' => $i,
-                'endFilePos' => $i,
-            ]));
-        }
-    }
-
-    private function isUnterminatedComment($token) {
-        return ($token[0] === T_COMMENT || $token[0] === T_DOC_COMMENT)
-            && substr($token[1], 0, 2) === '/*'
-            && substr($token[1], -2) !== '*/';
-    }
-
-    private function errorMayHaveOccurred() {
-        if (defined('HHVM_VERSION')) {
-            // In HHVM token_get_all() does not throw warnings, so we need to conservatively
-            // assume that an error occurred
-            return true;
-        }
-
-        $error = error_get_last();
-        return null !== $error
-            && false === strpos($error['message'], 'Undefined variable');
     }
 
     protected function handleErrors(ErrorHandler $errorHandler) {
@@ -197,6 +200,50 @@ class Lexer
                 ]));
             }
         }
+    }
+
+    private function errorMayHaveOccurred() {
+        if (defined('HHVM_VERSION')) {
+            // In HHVM token_get_all() does not throw warnings, so we need to conservatively
+            // assume that an error occurred
+            return true;
+        }
+
+        $error = error_get_last();
+        return null !== $error
+            && false === strpos($error['message'], 'Undefined variable');
+    }
+
+    private function handleInvalidCharacterRange($start, $end, $line, ErrorHandler $errorHandler) {
+        for ($i = $start; $i < $end; $i++) {
+            $chr = $this->code[$i];
+            if ($chr === 'b' || $chr === 'B') {
+                // HHVM does not treat b" tokens correctly, so ignore these
+                continue;
+            }
+
+            if ($chr === "\0") {
+                // PHP cuts error message after null byte, so need special case
+                $errorMsg = 'Unexpected null byte';
+            } else {
+                $errorMsg = sprintf(
+                    'Unexpected character "%s" (ASCII %d)', $chr, ord($chr)
+                );
+            }
+
+            $errorHandler->handleError(new Error($errorMsg, [
+                'startLine' => $line,
+                'endLine' => $line,
+                'startFilePos' => $i,
+                'endFilePos' => $i,
+            ]));
+        }
+    }
+
+    private function isUnterminatedComment($token) {
+        return ($token[0] === T_COMMENT || $token[0] === T_DOC_COMMENT)
+            && substr($token[1], 0, 2) === '/*'
+            && substr($token[1], -2) !== '*/';
     }
 
     /**
@@ -330,52 +377,5 @@ class Lexer
 
         // return with (); removed
         return (string) substr($textAfter, strlen($matches[0])); // (string) converts false to ''
-    }
-
-    /**
-     * Creates the token map.
-     *
-     * The token map maps the PHP internal token identifiers
-     * to the identifiers used by the Parser. Additionally it
-     * maps T_OPEN_TAG_WITH_ECHO to T_ECHO and T_CLOSE_TAG to ';'.
-     *
-     * @return array The token map
-     */
-    protected function createTokenMap() {
-        $tokenMap = array();
-
-        // 256 is the minimum possible token number, as everything below
-        // it is an ASCII value
-        for ($i = 256; $i < 1000; ++$i) {
-            if (T_DOUBLE_COLON === $i) {
-                // T_DOUBLE_COLON is equivalent to T_PAAMAYIM_NEKUDOTAYIM
-                $tokenMap[$i] = Tokens::T_PAAMAYIM_NEKUDOTAYIM;
-            } elseif(T_OPEN_TAG_WITH_ECHO === $i) {
-                // T_OPEN_TAG_WITH_ECHO with dropped T_OPEN_TAG results in T_ECHO
-                $tokenMap[$i] = Tokens::T_ECHO;
-            } elseif(T_CLOSE_TAG === $i) {
-                // T_CLOSE_TAG is equivalent to ';'
-                $tokenMap[$i] = ord(';');
-            } elseif ('UNKNOWN' !== $name = token_name($i)) {
-                if ('T_HASHBANG' === $name) {
-                    // HHVM uses a special token for #! hashbang lines
-                    $tokenMap[$i] = Tokens::T_INLINE_HTML;
-                } else if (defined($name = 'PhpParser\Parser\Tokens::' . $name)) {
-                    // Other tokens can be mapped directly
-                    $tokenMap[$i] = constant($name);
-                }
-            }
-        }
-
-        // HHVM uses a special token for numbers that overflow to double
-        if (defined('T_ONUMBER')) {
-            $tokenMap[T_ONUMBER] = Tokens::T_DNUMBER;
-        }
-        // HHVM also has a separate token for the __COMPILER_HALT_OFFSET__ constant
-        if (defined('T_COMPILER_HALT_OFFSET')) {
-            $tokenMap[T_COMPILER_HALT_OFFSET] = Tokens::T_STRING;
-        }
-
-        return $tokenMap;
     }
 }

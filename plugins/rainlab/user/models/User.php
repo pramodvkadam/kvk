@@ -12,11 +12,7 @@ class User extends UserBase
 {
     use \October\Rain\Database\Traits\SoftDelete;
 
-    /**
-     * @var string The database table used by the model.
-     */
-    protected $table = 'users';
-
+    public static $loginAttribute = null;
     /**
      * Validation rules
      */
@@ -38,7 +34,10 @@ class User extends UserBase
     public $attachOne = [
         'avatar' => \System\Models\File::class
     ];
-
+    /**
+     * @var string The database table used by the model.
+     */
+    protected $table = 'users';
     /**
      * @var array The attributes that are mass assignable.
      */
@@ -51,12 +50,10 @@ class User extends UserBase
         'password',
         'password_confirmation'
     ];
-
     /**
      * Purge attributes from data set.
      */
     protected $purgeable = ['password_confirmation', 'send_invite'];
-
     protected $dates = [
         'last_seen',
         'deleted_at',
@@ -66,7 +63,18 @@ class User extends UserBase
         'last_login'
     ];
 
-    public static $loginAttribute = null;
+    /**
+     * Looks up a user by their email address.
+     * @return self
+     */
+    public static function findByEmail($email)
+    {
+        if (!$email) {
+            return;
+        }
+
+        return self::where('email', $email)->first();
+    }
 
     /**
      * Sends the confirmation email to a user, after activating.
@@ -84,6 +92,10 @@ class User extends UserBase
 
         return true;
     }
+
+    //
+    // Constructors
+    //
 
     /**
      * Converts a guest user to a registered one and sends an invitation notification.
@@ -109,24 +121,54 @@ class User extends UserBase
     }
 
     //
-    // Constructors
+    // Getters
     //
 
     /**
-     * Looks up a user by their email address.
-     * @return self
+     * Assigns this user with a random password.
+     * @return void
      */
-    public static function findByEmail($email)
+    protected function generatePassword()
     {
-        if (!$email) {
-            return;
+        $this->password = $this->password_confirmation = Str::random(6);
+    }
+
+    /**
+     * Sends an invitation to the user using template "rainlab.user::mail.invite".
+     * @return void
+     */
+    protected function sendInvitation()
+    {
+        Mail::sendTo($this, 'rainlab.user::mail.invite', $this->getNotificationVars());
+    }
+
+    /**
+     * Returns the variables available when sending a user notification.
+     * @return array
+     */
+    public function getNotificationVars()
+    {
+        $vars = [
+            'name'     => $this->name,
+            'email'    => $this->email,
+            'username' => $this->username,
+            'login'    => $this->getLogin(),
+            'password' => $this->getOriginalHashValue('password')
+        ];
+
+        /*
+         * Extensibility
+         */
+        $result = Event::fire('rainlab.user.getNotificationVars', [$this]);
+        if ($result && is_array($result)) {
+            $vars = call_user_func_array('array_merge', $result) + $vars;
         }
 
-        return self::where('email', $email)->first();
+        return $vars;
     }
 
     //
-    // Getters
+    // Scopes
     //
 
     /**
@@ -170,6 +212,10 @@ class User extends UserBase
         }
     }
 
+    //
+    // Events
+    //
+
     /**
      * Returns the name for the user's login.
      * @return string
@@ -183,10 +229,6 @@ class User extends UserBase
         return static::$loginAttribute = UserSettings::get('login_attribute', UserSettings::LOGIN_EMAIL);
     }
 
-    //
-    // Scopes
-    //
-
     public function scopeIsActivated($query)
     {
         return $query->where('is_activated', 1);
@@ -198,10 +240,6 @@ class User extends UserBase
             $group->whereIn('id', $filter);
         });
     }
-
-    //
-    // Events
-    //
 
     /**
      * Before validation event
@@ -239,6 +277,10 @@ class User extends UserBase
             $this->sendInvitation();
         }
     }
+
+    //
+    // Banning
+    //
 
     /**
      * Before login event
@@ -297,7 +339,7 @@ class User extends UserBase
     }
 
     //
-    // Banning
+    // Last Seen
     //
 
     /**
@@ -329,7 +371,7 @@ class User extends UserBase
     }
 
     //
-    // Last Seen
+    // Utils
     //
 
     /**
@@ -372,52 +414,5 @@ class User extends UserBase
     public function getLastSeen()
     {
         return $this->last_seen ?: $this->created_at;
-    }
-
-    //
-    // Utils
-    //
-
-    /**
-     * Returns the variables available when sending a user notification.
-     * @return array
-     */
-    public function getNotificationVars()
-    {
-        $vars = [
-            'name'     => $this->name,
-            'email'    => $this->email,
-            'username' => $this->username,
-            'login'    => $this->getLogin(),
-            'password' => $this->getOriginalHashValue('password')
-        ];
-
-        /*
-         * Extensibility
-         */
-        $result = Event::fire('rainlab.user.getNotificationVars', [$this]);
-        if ($result && is_array($result)) {
-            $vars = call_user_func_array('array_merge', $result) + $vars;
-        }
-
-        return $vars;
-    }
-
-    /**
-     * Sends an invitation to the user using template "rainlab.user::mail.invite".
-     * @return void
-     */
-    protected function sendInvitation()
-    {
-        Mail::sendTo($this, 'rainlab.user::mail.invite', $this->getNotificationVars());
-    }
-
-    /**
-     * Assigns this user with a random password.
-     * @return void
-     */
-    protected function generatePassword()
-    {
-        $this->password = $this->password_confirmation = Str::random(6);
     }
 }

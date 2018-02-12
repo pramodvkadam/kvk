@@ -28,21 +28,18 @@ class Toolbar extends WidgetBase
     //
     // Object properties
     //
-
-    /**
-     * @inheritDoc
-     */
-    protected $defaultAlias = 'toolbar';
-
-    /**
-     * @var WidgetBase Reference to the search widget object.
-     */
-    protected $searchWidget;
-
     /**
      * @var array List of CSS classes to apply to the toolbar container element
      */
     public $cssClasses = [];
+    /**
+     * @inheritDoc
+     */
+    protected $defaultAlias = 'toolbar';
+    /**
+     * @var WidgetBase Reference to the search widget object.
+     */
+    protected $searchWidget;
 
     /**
      * Initialize the widget, called by the constructor and free from its parameters.
@@ -91,11 +88,6 @@ class Toolbar extends WidgetBase
         $this->vars['controlPanel'] = $this->makeControlPanel();
     }
 
-    public function getSearchWidget()
-    {
-        return $this->searchWidget;
-    }
-
     public function makeControlPanel()
     {
         if (!isset($this->buttons)) {
@@ -103,5 +95,10 @@ class Toolbar extends WidgetBase
         }
 
         return $this->controller->makePartial($this->buttons, $this->vars);
+    }
+
+    public function getSearchWidget()
+    {
+        return $this->searchWidget;
     }
 }

@@ -17,6 +17,11 @@ abstract class Swift_Transport_AbstractSmtpEventSupportTest extends Swift_Transp
         $smtp->registerPlugin($listener);
     }
 
+    protected function createEventDispatcher($stub = true)
+    {
+        return $this->getMockery('Swift_Events_EventDispatcher')->shouldIgnoreMissing();
+    }
+
     public function testSendingDispatchesBeforeSendEvent()
     {
         $buf = $this->getBuffer();
@@ -549,10 +554,5 @@ abstract class Swift_Transport_AbstractSmtpEventSupportTest extends Swift_Transp
 
         $this->finishBuffer($buf);
         $smtp->start();
-    }
-
-    protected function createEventDispatcher($stub = true)
-    {
-        return $this->getMockery('Swift_Events_EventDispatcher')->shouldIgnoreMissing();
     }
 }

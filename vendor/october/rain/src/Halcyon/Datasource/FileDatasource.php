@@ -69,6 +69,15 @@ class FileDatasource extends Datasource implements DatasourceInterface
     }
 
     /**
+     * Helper to make file path.
+     * @return string
+     */
+    protected function makeFilePath($dirName, $fileName, $extension)
+    {
+        return $this->basePath . '/' . $dirName . '/' .$fileName . '.' . $extension;
+    }
+
+    /**
      * Returns all templates.
      *
      * @param  string  $dirName
@@ -180,6 +189,40 @@ class FileDatasource extends Datasource implements DatasourceInterface
     }
 
     /**
+     * Ensure the requested file can be created in the requested directory.
+     * @return void
+     */
+    protected function validateDirectoryForSave($dirName, $fileName, $extension)
+    {
+        $path = $this->makeFilePath($dirName, $fileName, $extension);
+        $dirPath = $this->basePath . '/' . $dirName;
+
+        /*
+         * Create base directory
+         */
+        if (
+            (!$this->files->exists($dirPath) || !$this->files->isDirectory($dirPath)) &&
+            !$this->files->makeDirectory($dirPath, 0777, true, true)
+        ) {
+            throw (new CreateDirectoryException)->setInvalidPath($dirPath);
+        }
+
+        /*
+         * Create base file directory
+         */
+        if (($pos = strpos($fileName, '/')) !== false) {
+            $fileDirPath = dirname($path);
+
+            if (
+                !$this->files->isDirectory($fileDirPath) &&
+                !$this->files->makeDirectory($fileDirPath, 0777, true, true)
+            ) {
+                throw (new CreateDirectoryException)->setInvalidPath($fileDirPath);
+            }
+        }
+    }
+
+    /**
      * Updates an existing template.
      *
      * @param  string  $dirName
@@ -258,49 +301,6 @@ class FileDatasource extends Datasource implements DatasourceInterface
         catch (Exception $ex) {
             return null;
         }
-    }
-
-    /**
-     * Ensure the requested file can be created in the requested directory.
-     * @return void
-     */
-    protected function validateDirectoryForSave($dirName, $fileName, $extension)
-    {
-        $path = $this->makeFilePath($dirName, $fileName, $extension);
-        $dirPath = $this->basePath . '/' . $dirName;
-
-        /*
-         * Create base directory
-         */
-        if (
-            (!$this->files->exists($dirPath) || !$this->files->isDirectory($dirPath)) &&
-            !$this->files->makeDirectory($dirPath, 0777, true, true)
-        ) {
-            throw (new CreateDirectoryException)->setInvalidPath($dirPath);
-        }
-
-        /*
-         * Create base file directory
-         */
-        if (($pos = strpos($fileName, '/')) !== false) {
-            $fileDirPath = dirname($path);
-
-            if (
-                !$this->files->isDirectory($fileDirPath) &&
-                !$this->files->makeDirectory($fileDirPath, 0777, true, true)
-            ) {
-                throw (new CreateDirectoryException)->setInvalidPath($fileDirPath);
-            }
-        }
-    }
-
-    /**
-     * Helper to make file path.
-     * @return string
-     */
-    protected function makeFilePath($dirName, $fileName, $extension)
-    {
-        return $this->basePath . '/' . $dirName . '/' .$fileName . '.' . $extension;
     }
 
     /**

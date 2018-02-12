@@ -39,11 +39,6 @@ class FlashTokenParser extends Twig_TokenParser
         return new FlashNode($name, $body, $lineno, $this->getTag());
     }
 
-    public function decideIfEnd(Twig_Token $token)
-    {
-        return $token->test(['endflash']);
-    }
-
     /**
      * Gets the tag name associated with this token parser.
      *
@@ -52,5 +47,10 @@ class FlashTokenParser extends Twig_TokenParser
     public function getTag()
     {
         return 'flash';
+    }
+
+    public function decideIfEnd(Twig_Token $token)
+    {
+        return $token->test(['endflash']);
     }
 }

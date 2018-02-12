@@ -18,14 +18,6 @@ class File extends FileBase
     protected $table = 'system_files';
 
     /**
-     * If working with local storage, determine the absolute local path.
-     */
-    protected function getLocalRootPath()
-    {
-        return Config::get('filesystems.disks.local.root', storage_path('app'));
-    }
-
-    /**
      * Define the public address for the storage path.
      */
     public function getPublicPath()
@@ -55,5 +47,13 @@ class File extends FileBase
         else {
             return $uploadsFolder . '/protected/';
         }
+    }
+
+    /**
+     * If working with local storage, determine the absolute local path.
+     */
+    protected function getLocalRootPath()
+    {
+        return Config::get('filesystems.disks.local.root', storage_path('app'));
     }
 }

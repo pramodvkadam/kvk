@@ -70,13 +70,13 @@ class RequestMatcher implements RequestMatcherInterface
     }
 
     /**
-     * Adds a check for the HTTP scheme.
+     * Adds a check for the URL path info.
      *
-     * @param string|string[]|null $scheme An HTTP scheme or an array of HTTP schemes
+     * @param string|null $regexp A Regexp
      */
-    public function matchScheme($scheme)
+    public function matchPath($regexp)
     {
-        $this->schemes = null !== $scheme ? array_map('strtolower', (array) $scheme) : array();
+        $this->path = $regexp;
     }
 
     /**
@@ -90,23 +90,13 @@ class RequestMatcher implements RequestMatcherInterface
     }
 
     /**
-     * Adds a check for the URL path info.
+     * Adds a check for the HTTP method.
      *
-     * @param string|null $regexp A Regexp
+     * @param string|string[]|null $method An HTTP method or an array of HTTP methods
      */
-    public function matchPath($regexp)
+    public function matchMethod($method)
     {
-        $this->path = $regexp;
-    }
-
-    /**
-     * Adds a check for the client IP.
-     *
-     * @param string $ip A specific IP address or a range specified using IP/netmask like 192.168.1.0/24
-     */
-    public function matchIp($ip)
-    {
-        $this->matchIps($ip);
+        $this->methods = null !== $method ? array_map('strtoupper', (array) $method) : array();
     }
 
     /**
@@ -120,13 +110,13 @@ class RequestMatcher implements RequestMatcherInterface
     }
 
     /**
-     * Adds a check for the HTTP method.
+     * Adds a check for the HTTP scheme.
      *
-     * @param string|string[]|null $method An HTTP method or an array of HTTP methods
+     * @param string|string[]|null $scheme An HTTP scheme or an array of HTTP schemes
      */
-    public function matchMethod($method)
+    public function matchScheme($scheme)
     {
-        $this->methods = null !== $method ? array_map('strtoupper', (array) $method) : array();
+        $this->schemes = null !== $scheme ? array_map('strtolower', (array) $scheme) : array();
     }
 
     /**
@@ -138,6 +128,16 @@ class RequestMatcher implements RequestMatcherInterface
     public function matchAttribute($key, $regexp)
     {
         $this->attributes[$key] = $regexp;
+    }
+
+    /**
+     * Adds a check for the client IP.
+     *
+     * @param string $ip A specific IP address or a range specified using IP/netmask like 192.168.1.0/24
+     */
+    public function matchIp($ip)
+    {
+        $this->matchIps($ip);
     }
 
     /**

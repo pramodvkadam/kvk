@@ -184,6 +184,21 @@ class Twig_Tests_EnvironmentTest extends \PHPUnit\Framework\TestCase
         $twig->loadTemplate($templateName);
     }
 
+    protected function getMockLoader($templateName, $templateContent)
+    {
+        $loader = $this->getMockBuilder('Twig_LoaderInterface')->getMock();
+        $loader->expects($this->any())
+          ->method('getSourceContext')
+          ->with($templateName)
+          ->will($this->returnValue(new Twig_Source($templateContent, $templateName)));
+        $loader->expects($this->any())
+          ->method('getCacheKey')
+          ->with($templateName)
+          ->will($this->returnValue($templateName));
+
+        return $loader;
+    }
+
     public function testAutoReloadCacheHit()
     {
         $templateName = __FUNCTION__;
@@ -377,21 +392,6 @@ class Twig_Tests_EnvironmentTest extends \PHPUnit\Framework\TestCase
         )));
 
         $twig->loadTemplate('base1.html.twig');
-    }
-
-    protected function getMockLoader($templateName, $templateContent)
-    {
-        $loader = $this->getMockBuilder('Twig_LoaderInterface')->getMock();
-        $loader->expects($this->any())
-          ->method('getSourceContext')
-          ->with($templateName)
-          ->will($this->returnValue(new Twig_Source($templateContent, $templateName)));
-        $loader->expects($this->any())
-          ->method('getCacheKey')
-          ->with($templateName)
-          ->will($this->returnValue($templateName));
-
-        return $loader;
     }
 }
 

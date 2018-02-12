@@ -19,19 +19,16 @@ class ThemeLog extends Model
     const TYPE_CREATE = 'create';
     const TYPE_UPDATE = 'update';
     const TYPE_DELETE = 'delete';
-
-    /**
-     * @var string The database table used by the model.
-     */
-    protected $table = 'cms_theme_logs';
-
     /**
      * @var array Relations
      */
     public $belongsTo = [
         'user' => \Backend\Models\User::class
     ];
-
+    /**
+     * @var string The database table used by the model.
+     */
+    protected $table = 'cms_theme_logs';
     protected $themeCache;
 
     /**
@@ -112,15 +109,6 @@ class ThemeLog extends Model
         return $theme->getConfigValue('name', $theme->getDirName());
     }
 
-    public function getTypeOptions()
-    {
-        return [
-            self::TYPE_CREATE => 'cms::lang.theme_log.type_create',
-            self::TYPE_UPDATE => 'cms::lang.theme_log.type_update',
-            self::TYPE_DELETE => 'cms::lang.theme_log.type_delete'
-        ];
-    }
-
     public function getAnyTemplateAttribute()
     {
         return $this->template ?: $this->old_template;
@@ -129,5 +117,14 @@ class ThemeLog extends Model
     public function getTypeNameAttribute()
     {
         return array_get($this->getTypeOptions(), $this->type);
+    }
+
+    public function getTypeOptions()
+    {
+        return [
+            self::TYPE_CREATE => 'cms::lang.theme_log.type_create',
+            self::TYPE_UPDATE => 'cms::lang.theme_log.type_update',
+            self::TYPE_DELETE => 'cms::lang.theme_log.type_delete'
+        ];
     }
 }

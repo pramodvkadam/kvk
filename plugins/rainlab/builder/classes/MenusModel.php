@@ -13,15 +13,93 @@ use Lang;
  */
 class MenusModel extends PluginYamlModel
 {
-    public $menus = [];
-
-    protected $yamlSection = 'navigation';
-
-    protected $pluginCodeObj;
-
     protected static $fillable = [
         'menus'
     ];
+    public $menus = [];
+    protected $yamlSection = 'navigation';
+    protected $pluginCodeObj;
+
+    public function validate()
+    {
+        parent::validate();
+
+        $this->validateDupicateMenus();
+    }
+
+    protected function validateDupicateMenus()
+    {
+        foreach ($this->menus as $outerIndex=>$mainMenuItem) {
+            $mainMenuItem = $this->trimMenuProperties($mainMenuItem);
+
+            if (!isset($mainMenuItem['code'])) {
+                continue;
+            }
+
+            if ($this->codeExistsInList($outerIndex, $mainMenuItem['code'], $this->menus)) {
+                throw new ValidationException([
+                    'permissions' => Lang::get('rainlab.builder::lang.menu.error_duplicate_main_menu_code',
+                        ['code' => $mainMenuItem['code']]
+                    )
+                ]);
+            }
+
+            if (isset($mainMenuItem['sideMenu'])) {
+                foreach ($mainMenuItem['sideMenu'] as $innerIndex=>$sideMenuItem) {
+                    $sideMenuItem = $this->trimMenuProperties($sideMenuItem);
+
+                    if (!isset($sideMenuItem['code'])) {
+                        continue;
+                    }
+
+                    if ($this->codeExistsInList($innerIndex, $sideMenuItem['code'], $mainMenuItem['sideMenu'])) {
+                        throw new ValidationException([
+                            'permissions' => Lang::get('rainlab.builder::lang.menu.error_duplicate_side_menu_code',
+                                ['code' => $sideMenuItem['code']]
+                            )
+                        ]);
+                    }
+                }
+            }
+        }
+    }
+
+    protected function codeExistsInList($codeIndex, $code, $list)
+    {
+        foreach ($list as $index=>$item) {
+            if (!isset($item['code'])) {
+                continue;
+            }
+
+            if ($index == $codeIndex) {
+                continue;
+            }
+
+            if ($code == $item['code']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function fill(array $attributes)
+    {
+        if (!is_array($attributes['menus'])) {
+            $attributes['menus'] = json_decode($attributes['menus'], true);
+
+            if ($attributes['menus'] === null) {
+                throw new SystemException('Cannot decode menus JSON string.');
+            }
+        }
+
+        return parent::fill($attributes);
+    }
+
+    public function setPluginCodeObj($pluginCodeObj)
+    {
+        $this->pluginCodeObj = $pluginCodeObj;
+    }
 
     /**
      * Converts the model's data to an array before it's saved to a YAML file.
@@ -66,29 +144,17 @@ class MenusModel extends PluginYamlModel
         return $fileMenus;
     }
 
-    public function validate()
+    protected function trimMenuProperties($menu)
     {
-        parent::validate();
-
-        $this->validateDupicateMenus();
-    }
-
-    public function fill(array $attributes)
-    {
-        if (!is_array($attributes['menus'])) {
-            $attributes['menus'] = json_decode($attributes['menus'], true);
-
-            if ($attributes['menus'] === null) {
-                throw new SystemException('Cannot decode menus JSON string.');
+        array_walk($menu, function($value, $key){
+            if (!is_scalar($value)) {
+                return $value;
             }
-        }
 
-        return parent::fill($attributes);
-    }
+            return trim($value);
+        });
 
-    public function setPluginCodeObj($pluginCodeObj)
-    {
-        $this->pluginCodeObj = $pluginCodeObj;
+        return $menu;
     }
 
     /**
@@ -121,19 +187,6 @@ class MenusModel extends PluginYamlModel
         $this->menus = $menus;
     }
 
-    protected function trimMenuProperties($menu)
-    {
-        array_walk($menu, function($value, $key){
-            if (!is_scalar($value)) {
-                return $value;
-            }
-
-            return trim($value);
-        });
-
-        return $menu;
-    }
-
     /**
      * Returns a file path to save the model to.
      * @return string Returns a path.
@@ -145,61 +198,5 @@ class MenusModel extends PluginYamlModel
         }
 
         return $this->pluginCodeObj->toPluginFilePath();
-    }
-
-    protected function validateDupicateMenus()
-    {
-        foreach ($this->menus as $outerIndex=>$mainMenuItem) {
-            $mainMenuItem = $this->trimMenuProperties($mainMenuItem);
-
-            if (!isset($mainMenuItem['code'])) {
-                continue;
-            }
-
-            if ($this->codeExistsInList($outerIndex, $mainMenuItem['code'], $this->menus)) {
-                throw new ValidationException([
-                    'permissions' => Lang::get('rainlab.builder::lang.menu.error_duplicate_main_menu_code', 
-                        ['code' => $mainMenuItem['code']]
-                    )
-                ]);
-            }
-
-            if (isset($mainMenuItem['sideMenu'])) {
-                foreach ($mainMenuItem['sideMenu'] as $innerIndex=>$sideMenuItem) {
-                    $sideMenuItem = $this->trimMenuProperties($sideMenuItem);
-
-                    if (!isset($sideMenuItem['code'])) {
-                        continue;
-                    }
-
-                    if ($this->codeExistsInList($innerIndex, $sideMenuItem['code'], $mainMenuItem['sideMenu'])) {
-                        throw new ValidationException([
-                            'permissions' => Lang::get('rainlab.builder::lang.menu.error_duplicate_side_menu_code', 
-                                ['code' => $sideMenuItem['code']]
-                            )
-                        ]);
-                    }
-                }
-            }
-        }
-    }
-
-    protected function codeExistsInList($codeIndex, $code, $list)
-    {
-        foreach ($list as $index=>$item) {
-            if (!isset($item['code'])) {
-                continue;
-            }
-
-            if ($index == $codeIndex) {
-                continue;
-            }
-
-            if ($code == $item['code']) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

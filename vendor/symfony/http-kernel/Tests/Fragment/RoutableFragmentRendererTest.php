@@ -25,6 +25,16 @@ class RoutableFragmentRendererTest extends TestCase
         $this->assertEquals($uri, $this->callGenerateFragmentUriMethod($controller, Request::create('/')));
     }
 
+    private function callGenerateFragmentUriMethod(ControllerReference $reference, Request $request, $absolute = false)
+    {
+        $renderer = $this->getMockForAbstractClass('Symfony\Component\HttpKernel\Fragment\RoutableFragmentRenderer');
+        $r = new \ReflectionObject($renderer);
+        $m = $r->getMethod('generateFragmentUri');
+        $m->setAccessible(true);
+
+        return $m->invoke($renderer, $reference, $request, $absolute);
+    }
+
     /**
      * @dataProvider getGenerateFragmentUriData
      */
@@ -70,16 +80,6 @@ class RoutableFragmentRendererTest extends TestCase
             array(new ControllerReference('controller', array('foo' => new Foo(), 'bar' => 'bar'), array())),
             array(new ControllerReference('controller', array('foo' => array('foo' => 'foo'), 'bar' => array('bar' => new Foo())), array())),
         );
-    }
-
-    private function callGenerateFragmentUriMethod(ControllerReference $reference, Request $request, $absolute = false)
-    {
-        $renderer = $this->getMockForAbstractClass('Symfony\Component\HttpKernel\Fragment\RoutableFragmentRenderer');
-        $r = new \ReflectionObject($renderer);
-        $m = $r->getMethod('generateFragmentUri');
-        $m->setAccessible(true);
-
-        return $m->invoke($renderer, $reference, $request, $absolute);
     }
 }
 

@@ -31,6 +31,8 @@ abstract class IndexOperationsBehaviorBase extends ControllerBehavior
         return $form;
     }
 
+    abstract protected function loadOrCreateBaseModel($modelCode, $options = []);
+
     protected function getPluginCode()
     {
         $vector = $this->controller->getBuilderActivePluginVector();
@@ -41,6 +43,4 @@ abstract class IndexOperationsBehaviorBase extends ControllerBehavior
 
         return $vector->pluginCodeObj;
     }
-
-    abstract protected function loadOrCreateBaseModel($modelCode, $options = []);
 }

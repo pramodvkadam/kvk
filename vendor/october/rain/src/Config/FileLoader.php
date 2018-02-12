@@ -89,6 +89,33 @@ class FileLoader implements LoaderInterface
     }
 
     /**
+     * Get the configuration path for a namespace.
+     *
+     * @param  string  $namespace
+     * @return string
+     */
+    protected function getPath($namespace)
+    {
+        if (is_null($namespace)) {
+            return $this->defaultPath;
+        }
+        elseif (isset($this->hints[$namespace])) {
+            return $this->hints[$namespace];
+        }
+    }
+
+    /**
+     * Get a file's contents by requiring it.
+     *
+     * @param  string  $path
+     * @return mixed
+     */
+    protected function getRequire($path)
+    {
+        return $this->files->getRequire($path);
+    }
+
+    /**
      * Merge the items in the given file into the items.
      *
      * @param  array   $items
@@ -193,22 +220,6 @@ class FileLoader implements LoaderInterface
     }
 
     /**
-     * Get the configuration path for a namespace.
-     *
-     * @param  string  $namespace
-     * @return string
-     */
-    protected function getPath($namespace)
-    {
-        if (is_null($namespace)) {
-            return $this->defaultPath;
-        }
-        elseif (isset($this->hints[$namespace])) {
-            return $this->hints[$namespace];
-        }
-    }
-
-    /**
      * Add a new namespace to the loader.
      *
      * @param  string  $namespace
@@ -229,17 +240,6 @@ class FileLoader implements LoaderInterface
     public function getNamespaces()
     {
         return $this->hints;
-    }
-
-    /**
-     * Get a file's contents by requiring it.
-     *
-     * @param  string  $path
-     * @return mixed
-     */
-    protected function getRequire($path)
-    {
-        return $this->files->getRequire($path);
     }
 
     /**

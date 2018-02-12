@@ -45,161 +45,130 @@ class RelationController extends ControllerBehavior
      * @var const Postback parameter for read only mode.
      */
     const PARAM_EXTRA_CONFIG = '_relation_extra_config';
-
-    /**
-     * @var Backend\Widgets\Search Reference to the search widget object.
-     */
-    protected $searchWidget;
-
-    /**
-     * @var Backend\Widgets\Toolbar Reference to the toolbar widget object.
-     */
-    protected $toolbarWidget;
-
-    /**
-     * @var Backend\Classes\WidgetBase Reference to the widget used for viewing (list or form).
-     */
-    protected $viewWidget;
-
-    /**
-     * @var Backend\Classes\WidgetBase Reference to the widget used for relation management.
-     */
-    protected $manageWidget;
-
-    /**
-     * @var Backend\Classes\WidgetBase Reference to widget for relations with pivot data.
-     */
-    protected $pivotWidget;
-
-    /**
-     * @inheritDoc
-     */
-    protected $requiredProperties = ['relationConfig'];
-
-    /**
-     * @var array Properties that must exist for each relationship definition.
-     */
-    protected $requiredRelationProperties = ['label'];
-
-    /**
-     * @var array Configuration values that must exist when applying the primary config file.
-     */
-    protected $requiredConfig = [];
-
-    /**
-     * @var array Original configuration values
-     */
-    protected $originalConfig;
-
-    /**
-     * @var array Config provided by the relationRender method
-     */
-    protected $extraConfig;
-
-    /**
-     * @var bool Has the behavior been initialized.
-     */
-    protected $initialized = false;
-
     /**
      * @var string Relationship type
      */
     public $relationType;
-
     /**
      * @var string Relationship name
      */
     public $relationName;
-
     /**
      * @var Model Relationship model
      */
     public $relationModel;
-
     /**
      * @var Model Relationship object
      */
     public $relationObject;
-
-    /**
-     * @var Model The parent model of the relationship.
-     */
-    protected $model;
-
-    /**
-     * @var Model The relationship field as defined in the configuration.
-     */
-    protected $field;
-
-    /**
-     * @var string A unique alias to pass to widgets.
-     */
-    protected $alias;
-
-    /**
-     * @var array The set of buttons to display in view mode.
-     */
-    protected $toolbarButtons;
-
-    /**
-     * @var Model Reference to the model used for viewing (form only).
-     */
-    protected $viewModel;
-
-    /**
-     * @var string Relation has many (multi) or has one (single).
-     */
-    protected $viewMode;
-
-    /**
-     * @var string The title used for the manage popup.
-     */
-    protected $manageTitle;
-
-    /**
-     * @var string Management of relation as list, form, or pivot.
-     */
-    protected $manageMode;
-
-    /**
-     * @var string Force a certain view mode.
-     */
-    protected $forceViewMode;
-
-    /**
-     * @var string Force a certain manage mode.
-     */
-    protected $forceManageMode;
-
-    /**
-     * @var string The target that triggered an AJAX event (button, list)
-     */
-    protected $eventTarget;
-
-    /**
-     * @var int Primary id of an existing relation record.
-     */
-    protected $manageId;
-
-    /**
-     * @var int Foeign id of a selected pivot record.
-     */
-    protected $foreignId;
-
     /**
      * @var string Active session key, used for deferred bindings.
      */
     public $sessionKey;
-
     /**
      * @var bool Disables the ability to add, update, delete or create relations.
      */
     public $readOnly = false;
-
     /**
      * @var bool Defers all binding actions using a session key when it is available.
      */
     public $deferredBinding = false;
+    /**
+     * @var Backend\Widgets\Search Reference to the search widget object.
+     */
+    protected $searchWidget;
+    /**
+     * @var Backend\Widgets\Toolbar Reference to the toolbar widget object.
+     */
+    protected $toolbarWidget;
+    /**
+     * @var Backend\Classes\WidgetBase Reference to the widget used for viewing (list or form).
+     */
+    protected $viewWidget;
+    /**
+     * @var Backend\Classes\WidgetBase Reference to the widget used for relation management.
+     */
+    protected $manageWidget;
+    /**
+     * @var Backend\Classes\WidgetBase Reference to widget for relations with pivot data.
+     */
+    protected $pivotWidget;
+    /**
+     * @inheritDoc
+     */
+    protected $requiredProperties = ['relationConfig'];
+    /**
+     * @var array Properties that must exist for each relationship definition.
+     */
+    protected $requiredRelationProperties = ['label'];
+    /**
+     * @var array Configuration values that must exist when applying the primary config file.
+     */
+    protected $requiredConfig = [];
+    /**
+     * @var array Original configuration values
+     */
+    protected $originalConfig;
+    /**
+     * @var array Config provided by the relationRender method
+     */
+    protected $extraConfig;
+    /**
+     * @var bool Has the behavior been initialized.
+     */
+    protected $initialized = false;
+    /**
+     * @var Model The parent model of the relationship.
+     */
+    protected $model;
+    /**
+     * @var Model The relationship field as defined in the configuration.
+     */
+    protected $field;
+    /**
+     * @var string A unique alias to pass to widgets.
+     */
+    protected $alias;
+    /**
+     * @var array The set of buttons to display in view mode.
+     */
+    protected $toolbarButtons;
+    /**
+     * @var Model Reference to the model used for viewing (form only).
+     */
+    protected $viewModel;
+    /**
+     * @var string Relation has many (multi) or has one (single).
+     */
+    protected $viewMode;
+    /**
+     * @var string The title used for the manage popup.
+     */
+    protected $manageTitle;
+    /**
+     * @var string Management of relation as list, form, or pivot.
+     */
+    protected $manageMode;
+    /**
+     * @var string Force a certain view mode.
+     */
+    protected $forceViewMode;
+    /**
+     * @var string Force a certain manage mode.
+     */
+    protected $forceManageMode;
+    /**
+     * @var string The target that triggered an AJAX event (button, list)
+     */
+    protected $eventTarget;
+    /**
+     * @var int Primary id of an existing relation record.
+     */
+    protected $manageId;
+    /**
+     * @var int Foeign id of a selected pivot record.
+     */
+    protected $foreignId;
 
     /**
      * Behavior constructor
@@ -218,48 +187,27 @@ class RelationController extends ControllerBehavior
         $this->config = $this->originalConfig = $this->makeConfig($controller->relationConfig, $this->requiredConfig);
     }
 
-    /**
-     * Validates the supplied field and initializes the relation manager.
-     * @param string $field The relationship field.
-     * @return string The active field name.
-     */
-    protected function validateField($field = null)
+    public function onRelationButtonAdd()
     {
-        $field = $field ?: post(self::PARAM_FIELD);
+        $this->eventTarget = 'button-add';
 
-        if ($field && $field != $this->field) {
-            $this->initRelation($this->model, $field);
-        }
-
-        if (!$field && !$this->field) {
-            throw new ApplicationException(Lang::get('backend::lang.relation.missing_definition', compact('field')));
-        }
-
-        return $field ?: $this->field;
+        return $this->onRelationManageForm();
     }
 
-    /**
-     * Prepares the view data.
-     * @return void
-     */
-    public function prepareVars()
+    public function onRelationManageForm()
     {
-        $this->vars['relationManageId'] = $this->manageId;
-        $this->vars['relationLabel'] = $this->config->label ?: $this->field;
-        $this->vars['relationManageTitle'] = $this->manageTitle;
-        $this->vars['relationField'] = $this->field;
-        $this->vars['relationType'] = $this->relationType;
-        $this->vars['relationSearchWidget'] = $this->searchWidget;
-        $this->vars['relationToolbarWidget'] = $this->toolbarWidget;
-        $this->vars['relationManageMode'] = $this->manageMode;
-        $this->vars['relationManageWidget'] = $this->manageWidget;
-        $this->vars['relationToolbarButtons'] = $this->toolbarButtons;
-        $this->vars['relationViewMode'] = $this->viewMode;
-        $this->vars['relationViewWidget'] = $this->viewWidget;
-        $this->vars['relationViewModel'] = $this->viewModel;
-        $this->vars['relationPivotWidget'] = $this->pivotWidget;
-        $this->vars['relationSessionKey'] = $this->relationGetSessionKey();
-        $this->vars['relationExtraConfig'] = $this->extraConfig;
+        $this->beforeAjax();
+
+        if ($this->manageMode == 'pivot' && $this->manageId) {
+            return $this->onRelationManagePivotForm();
+        }
+
+        // The form should not share its session key with the parent
+        $this->vars['newSessionKey'] = str_random(40);
+
+        $view = 'manage_' . $this->manageMode;
+
+        return $this->relationMakePartial($view);
     }
 
     /**
@@ -282,6 +230,197 @@ class RelationController extends ControllerBehavior
     //
     // Interface
     //
+
+    public function onRelationManagePivotForm()
+    {
+        $this->beforeAjax();
+
+        $this->vars['foreignId'] = $this->foreignId ?: post('checked');
+
+        return $this->relationMakePartial('pivot_form');
+    }
+
+    public function onRelationButtonCreate()
+    {
+        $this->eventTarget = 'button-create';
+
+        return $this->onRelationManageForm();
+    }
+
+    public function onRelationButtonDelete()
+    {
+        return $this->onRelationManageDelete();
+    }
+
+    /**
+     * Delete an existing related model completely
+     */
+    public function onRelationManageDelete()
+    {
+        $this->beforeAjax();
+
+        /*
+         * Multiple (has many, belongs to many)
+         */
+        if ($this->viewMode == 'multi') {
+            if (($checkedIds = post('checked')) && is_array($checkedIds)) {
+                 foreach ($checkedIds as $relationId) {
+                    if (!$obj = $this->relationModel->find($relationId)) {
+                        continue;
+                    }
+
+                    $obj->delete();
+                }
+            }
+        }
+        /*
+         * Single (belongs to, has one)
+         */
+        elseif ($this->viewMode == 'single') {
+            $relatedModel = $this->viewModel;
+            if ($relatedModel->exists) {
+                $relatedModel->delete();
+            }
+
+            $this->viewWidget->setFormValues([]);
+            $this->viewModel = $this->relationModel;
+        }
+
+        return $this->relationRefresh();
+    }
+
+    /**
+     * Refreshes the relation container only, useful for returning in custom AJAX requests.
+     * @param  string $field Relation definition.
+     * @return array The relation element selector as the key, and the relation view contents are the value.
+     */
+    public function relationRefresh($field = null)
+    {
+        $field = $this->validateField($field);
+
+        $result = ['#'.$this->relationGetId('view') => $this->relationRenderView($field)];
+        if ($toolbar = $this->relationRenderToolbar($field)) {
+            $result['#'.$this->relationGetId('toolbar')] = $toolbar;
+        }
+
+        if ($eventResult = $this->controller->relationExtendRefreshResults($field)) {
+            $result = $eventResult + $result;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Renders the view only.
+     * @param string $field The relationship field.
+     * @return string Rendered HTML for the view.
+     */
+    public function relationRenderView($field = null)
+    {
+        return $this->relationRender($field, ['section' => 'view']);
+    }
+
+    /**
+     * Renders the relationship manager.
+     * @param string $field The relationship field.
+     * @param array $options
+     * @return string Rendered HTML for the relationship manager.
+     */
+    public function relationRender($field, $options = [])
+    {
+        /*
+         * Session key
+         */
+        if (is_string($options)) {
+            $options = ['sessionKey' => $options];
+        }
+
+        if (isset($options['sessionKey'])) {
+            $this->sessionKey = $options['sessionKey'];
+        }
+
+        /*
+         * Apply options and extra config
+         */
+        $allowConfig = ['readOnly', 'recordUrl', 'recordOnClick'];
+        $extraConfig = array_only($options, $allowConfig);
+        $this->extraConfig = $extraConfig;
+        $this->applyExtraConfig($extraConfig, $field);
+
+        /*
+         * Initialize
+         */
+        $this->validateField($field);
+        $this->prepareVars();
+
+        /*
+         * Determine the partial to use based on the supplied section option
+         */
+        $section = (isset($options['section'])) ? $options['section'] : null;
+        switch (strtolower($section)) {
+            case 'toolbar':
+                return $this->toolbarWidget ? $this->toolbarWidget->render() : null;
+
+            case 'view':
+                return $this->relationMakePartial('view');
+
+            default:
+                return $this->relationMakePartial('container');
+        }
+    }
+
+    /**
+     * Apply extra configuration
+     */
+    protected function applyExtraConfig($config, $field = null)
+    {
+        if (!$field) {
+            $field = $this->field;
+        }
+
+        if (!$config || !isset($this->originalConfig->{$field})) {
+            return;
+        }
+
+        if (
+            !is_array($config) &&
+            (!$config = @json_decode(@base64_decode($config), true))
+        ) {
+            return;
+        }
+
+        $parsedConfig = array_only($config, ['readOnly']);
+        $parsedConfig['view'] = array_only($config, ['recordUrl', 'recordOnClick']);
+
+        $this->originalConfig->{$field} = array_replace_recursive(
+            $this->originalConfig->{$field},
+            $parsedConfig
+        );
+    }
+
+    //
+    // Widgets
+    //
+
+    /**
+     * Validates the supplied field and initializes the relation manager.
+     * @param string $field The relationship field.
+     * @return string The active field name.
+     */
+    protected function validateField($field = null)
+    {
+        $field = $field ?: post(self::PARAM_FIELD);
+
+        if ($field && $field != $this->field) {
+            $this->initRelation($this->model, $field);
+        }
+
+        if (!$field && !$this->field) {
+            throw new ApplicationException(Lang::get('backend::lang.relation.missing_definition', compact('field')));
+        }
+
+        return $field ?: $this->field;
+    }
 
     /**
      * Prepare the widgets used by this behavior
@@ -388,153 +527,155 @@ class RelationController extends ControllerBehavior
     }
 
     /**
-     * Renders the relationship manager.
-     * @param string $field The relationship field.
-     * @param array $options
-     * @return string Rendered HTML for the relationship manager.
-     */
-    public function relationRender($field, $options = [])
-    {
-        /*
-         * Session key
-         */
-        if (is_string($options)) {
-            $options = ['sessionKey' => $options];
-        }
-
-        if (isset($options['sessionKey'])) {
-            $this->sessionKey = $options['sessionKey'];
-        }
-
-        /*
-         * Apply options and extra config
-         */
-        $allowConfig = ['readOnly', 'recordUrl', 'recordOnClick'];
-        $extraConfig = array_only($options, $allowConfig);
-        $this->extraConfig = $extraConfig;
-        $this->applyExtraConfig($extraConfig, $field);
-
-        /*
-         * Initialize
-         */
-        $this->validateField($field);
-        $this->prepareVars();
-
-        /*
-         * Determine the partial to use based on the supplied section option
-         */
-        $section = (isset($options['section'])) ? $options['section'] : null;
-        switch (strtolower($section)) {
-            case 'toolbar':
-                return $this->toolbarWidget ? $this->toolbarWidget->render() : null;
-
-            case 'view':
-                return $this->relationMakePartial('view');
-
-            default:
-                return $this->relationMakePartial('container');
-        }
-    }
-
-    /**
-     * Refreshes the relation container only, useful for returning in custom AJAX requests.
-     * @param  string $field Relation definition.
-     * @return array The relation element selector as the key, and the relation view contents are the value.
-     */
-    public function relationRefresh($field = null)
-    {
-        $field = $this->validateField($field);
-
-        $result = ['#'.$this->relationGetId('view') => $this->relationRenderView($field)];
-        if ($toolbar = $this->relationRenderToolbar($field)) {
-            $result['#'.$this->relationGetId('toolbar')] = $toolbar;
-        }
-
-        if ($eventResult = $this->controller->relationExtendRefreshResults($field)) {
-            $result = $eventResult + $result;
-        }
-
-        return $result;
-    }
-
-    /**
-     * Renders the toolbar only.
-     * @param string $field The relationship field.
-     * @return string Rendered HTML for the toolbar.
-     */
-    public function relationRenderToolbar($field = null)
-    {
-        return $this->relationRender($field, ['section' => 'toolbar']);
-    }
-
-    /**
-     * Renders the view only.
-     * @param string $field The relationship field.
-     * @return string Rendered HTML for the view.
-     */
-    public function relationRenderView($field = null)
-    {
-        return $this->relationRender($field, ['section' => 'view']);
-    }
-
-    /**
-     * Controller accessor for making partials within this behavior.
-     * @param string $partial
-     * @param array $params
-     * @return string Partial contents
-     */
-    public function relationMakePartial($partial, $params = [])
-    {
-        $contents = $this->controller->makePartial('relation_'.$partial, $params + $this->vars, false);
-        if (!$contents) {
-            $contents = $this->makePartial($partial, $params);
-        }
-
-        return $contents;
-    }
-
-    /**
-     * Returns a unique ID for this relation and field combination.
-     * @param string $suffix A suffix to use with the identifier.
+     * Determine the view mode based on the model relationship type.
      * @return string
      */
-    public function relationGetId($suffix = null)
+    protected function evalViewMode()
     {
-        $id = class_basename($this);
-        if ($this->field) {
-            $id .= '-' . $this->field;
+        if ($this->forceViewMode) {
+            return $this->forceViewMode;
         }
 
-        if ($suffix !== null) {
-            $id .= '-' . $suffix;
-        }
+        switch ($this->relationType) {
+            case 'hasMany':
+            case 'morphMany':
+            case 'morphToMany':
+            case 'morphedByMany':
+            case 'belongsToMany':
+                return 'multi';
 
-        return $this->controller->getId($id);
+            case 'hasOne':
+            case 'morphOne':
+            case 'belongsTo':
+                return 'single';
+        }
     }
 
     /**
-     * Returns the active session key.
+     * Determine the management mode based on the relation type and settings.
+     * @return string
      */
-    public function relationGetSessionKey($force = false)
+    protected function evalManageMode()
     {
-        if ($this->sessionKey && !$force) {
-            return $this->sessionKey;
+        if ($mode = post(self::PARAM_MODE)) {
+            return $mode;
         }
 
-        if (post('_relation_session_key')) {
-            return $this->sessionKey = post('_relation_session_key');
+        if ($this->forceManageMode) {
+            return $this->forceManageMode;
         }
 
-        if (post('_session_key')) {
-            return $this->sessionKey = post('_session_key');
+        switch ($this->eventTarget) {
+            case 'button-create':
+            case 'button-update':
+                return 'form';
+
+            case 'button-link':
+                return 'list';
         }
 
-        return $this->sessionKey = FormHelper::getSessionKey();
+        switch ($this->relationType) {
+            case 'belongsTo':
+                return 'list';
+
+            case 'morphToMany':
+            case 'morphedByMany':
+            case 'belongsToMany':
+                if (isset($this->config->pivot)) {
+                    return 'pivot';
+                }
+                elseif ($this->eventTarget == 'list') {
+                    return 'form';
+                }
+                else {
+                    return 'list';
+                }
+
+            case 'hasOne':
+            case 'morphOne':
+            case 'hasMany':
+            case 'morphMany':
+                if ($this->eventTarget == 'button-add') {
+                    return 'list';
+                }
+                else {
+                    return 'form';
+                }
+        }
+    }
+
+    /**
+     * Determine the management mode popup title.
+     * @return string
+     */
+    protected function evalManageTitle()
+    {
+        if ($customTitle = $this->getConfig('manage[title]')) {
+            return $customTitle;
+        }
+
+        switch ($this->manageMode) {
+            case 'pivot':
+            case 'list':
+                if ($this->eventTarget == 'button-link') {
+                    return 'backend::lang.relation.link_a_new';
+                }
+                else {
+                    return 'backend::lang.relation.add_a_new';
+                }
+            case 'form':
+                if ($this->readOnly) {
+                    return 'backend::lang.relation.preview_name';
+                }
+                elseif ($this->manageId) {
+                    return 'backend::lang.relation.update_name';
+                }
+                else {
+                    return 'backend::lang.relation.create_name';
+                }
+        }
     }
 
     //
-    // Widgets
+    // AJAX (Buttons)
     //
+
+    /**
+     * Determine the default buttons based on the model relationship type.
+     * @return string
+     */
+    protected function evalToolbarButtons()
+    {
+        $buttons = $this->getConfig('view[toolbarButtons]');
+
+        if ($buttons === false) {
+            return null;
+        }
+        elseif (is_string($buttons)) {
+            return array_map('trim', explode('|', $buttons));
+        }
+        elseif (is_array($buttons)) {
+            return $buttons;
+        }
+
+        if ($this->manageMode == 'pivot') {
+            return ['add', 'remove'];
+        }
+
+        switch ($this->relationType) {
+            case 'hasMany':
+            case 'morphMany':
+            case 'morphToMany':
+            case 'morphedByMany':
+            case 'belongsToMany':
+                return ['create', 'add', 'delete', 'remove'];
+
+            case 'hasOne':
+            case 'morphOne':
+            case 'belongsTo':
+                return ['create', 'update', 'link', 'delete', 'unlink'];
+        }
+    }
 
     protected function makeToolbarWidget()
     {
@@ -734,6 +875,94 @@ class RelationController extends ControllerBehavior
         return $widget;
     }
 
+    /**
+     * Returns the configuration for a mode (view, manage, pivot) for an
+     * expected type (list, form). Uses fallback configuration.
+     */
+    protected function makeConfigForMode($mode = 'view', $type = 'list', $throwException = true)
+    {
+        $config = null;
+
+        /*
+         * Look for $this->config->view['list']
+         */
+        if (
+            isset($this->config->{$mode}) &&
+            array_key_exists($type, $this->config->{$mode})
+        ) {
+            $config = $this->config->{$mode}[$type];
+        }
+        /*
+         * Look for $this->config->list
+         */
+        elseif (isset($this->config->{$type})) {
+            $config = $this->config->{$type};
+        }
+
+        /*
+         * Apply substitutes:
+         *
+         * - view.list => manage.list
+         */
+        if (!$config) {
+            if ($mode == 'manage' && $type == 'list') {
+                return $this->makeConfigForMode('view', $type);
+            }
+
+            if ($throwException) {
+                throw new ApplicationException('Missing configuration for '.$mode.'.'.$type.' in RelationController definition '.$this->field);
+            }
+            else {
+                return false;
+            }
+        }
+
+        return $this->makeConfig($config);
+    }
+
+    /**
+     * Returns a unique ID for this relation and field combination.
+     * @param string $suffix A suffix to use with the identifier.
+     * @return string
+     */
+    public function relationGetId($suffix = null)
+    {
+        $id = class_basename($this);
+        if ($this->field) {
+            $id .= '-' . $this->field;
+        }
+
+        if ($suffix !== null) {
+            $id .= '-' . $suffix;
+        }
+
+        return $this->controller->getId($id);
+    }
+
+    /**
+     * Returns the active session key.
+     */
+    public function relationGetSessionKey($force = false)
+    {
+        if ($this->sessionKey && !$force) {
+            return $this->sessionKey;
+        }
+
+        if (post('_relation_session_key')) {
+            return $this->sessionKey = post('_relation_session_key');
+        }
+
+        if (post('_session_key')) {
+            return $this->sessionKey = post('_session_key');
+        }
+
+        return $this->sessionKey = FormHelper::getSessionKey();
+    }
+
+    //
+    // AJAX (List events)
+    //
+
     protected function makeManageWidget()
     {
         $widget = null;
@@ -863,6 +1092,50 @@ class RelationController extends ControllerBehavior
         return $widget;
     }
 
+    /**
+     * Determine supplied form context.
+     */
+    protected function evalFormContext($mode = 'manage', $exists = false)
+    {
+        $config = isset($this->config->{$mode}) ? $this->config->{$mode} : [];
+
+        if ($context = array_get($config, 'context')) {
+            if (is_array($context)) {
+                $context = $exists
+                    ? array_get($context, 'update')
+                    : array_get($context, 'create');
+            }
+        }
+
+        if (!$context) {
+            $context = $exists ? 'update' : 'create';
+        }
+
+        return $context;
+    }
+
+    /**
+     * Returns the existing record IDs for the relation.
+     */
+    protected function findExistingRelationIds($checkIds = null)
+    {
+        $foreignKeyName = $this->relationModel->getQualifiedKeyName();
+
+        $results = $this->relationObject
+            ->getBaseQuery()
+            ->select($foreignKeyName);
+
+        if ($checkIds !== null && is_array($checkIds) && count($checkIds)) {
+            $results = $results->whereIn($foreignKeyName, $checkIds);
+        }
+
+        return $results->lists($foreignKeyName);
+    }
+
+    //
+    // AJAX
+    //
+
     protected function makePivotWidget()
     {
         $config = $this->makeConfigForMode('pivot', 'form');
@@ -909,27 +1182,54 @@ class RelationController extends ControllerBehavior
         return $widget;
     }
 
-    //
-    // AJAX (Buttons)
-    //
-
-    public function onRelationButtonAdd()
+    /**
+     * Prepares the view data.
+     * @return void
+     */
+    public function prepareVars()
     {
-        $this->eventTarget = 'button-add';
-
-        return $this->onRelationManageForm();
+        $this->vars['relationManageId'] = $this->manageId;
+        $this->vars['relationLabel'] = $this->config->label ?: $this->field;
+        $this->vars['relationManageTitle'] = $this->manageTitle;
+        $this->vars['relationField'] = $this->field;
+        $this->vars['relationType'] = $this->relationType;
+        $this->vars['relationSearchWidget'] = $this->searchWidget;
+        $this->vars['relationToolbarWidget'] = $this->toolbarWidget;
+        $this->vars['relationManageMode'] = $this->manageMode;
+        $this->vars['relationManageWidget'] = $this->manageWidget;
+        $this->vars['relationToolbarButtons'] = $this->toolbarButtons;
+        $this->vars['relationViewMode'] = $this->viewMode;
+        $this->vars['relationViewWidget'] = $this->viewWidget;
+        $this->vars['relationViewModel'] = $this->viewModel;
+        $this->vars['relationPivotWidget'] = $this->pivotWidget;
+        $this->vars['relationSessionKey'] = $this->relationGetSessionKey();
+        $this->vars['relationExtraConfig'] = $this->extraConfig;
     }
 
-    public function onRelationButtonCreate()
+    /**
+     * Controller accessor for making partials within this behavior.
+     * @param string $partial
+     * @param array $params
+     * @return string Partial contents
+     */
+    public function relationMakePartial($partial, $params = [])
     {
-        $this->eventTarget = 'button-create';
+        $contents = $this->controller->makePartial('relation_'.$partial, $params + $this->vars, false);
+        if (!$contents) {
+            $contents = $this->makePartial($partial, $params);
+        }
 
-        return $this->onRelationManageForm();
+        return $contents;
     }
 
-    public function onRelationButtonDelete()
+    /**
+     * Renders the toolbar only.
+     * @param string $field The relationship field.
+     * @return string Rendered HTML for the toolbar.
+     */
+    public function relationRenderToolbar($field = null)
     {
-        return $this->onRelationManageDelete();
+        return $this->relationRender($field, ['section' => 'toolbar']);
     }
 
     public function onRelationButtonLink()
@@ -944,6 +1244,56 @@ class RelationController extends ControllerBehavior
         return $this->onRelationManageRemove();
     }
 
+    /**
+     * Remove an existing related model from the primary model
+     */
+    public function onRelationManageRemove()
+    {
+        $this->beforeAjax();
+
+        $recordId = post('record_id');
+        $sessionKey = $this->deferredBinding ? $this->relationGetSessionKey() : null;
+        $relatedModel = $this->relationModel;
+
+        /*
+         * Remove
+         */
+        if ($this->viewMode == 'multi') {
+
+            $checkedIds = $recordId ? [$recordId] : post('checked');
+
+            if (is_array($checkedIds)) {
+                $foreignKeyName = $relatedModel->getKeyName();
+
+                $models = $relatedModel->whereIn($foreignKeyName, $checkedIds)->get();
+                foreach ($models as $model) {
+                    $this->relationObject->remove($model, $sessionKey);
+                }
+            }
+        }
+        /*
+         * Unlink
+         */
+        elseif ($this->viewMode == 'single') {
+            if ($this->relationType == 'belongsTo') {
+                $this->relationObject->dissociate();
+                $this->relationObject->getParent()->save();
+            }
+            elseif ($this->relationType == 'hasOne' || $this->relationType == 'morphOne') {
+                if ($obj = $relatedModel->find($recordId)) {
+                    $this->relationObject->remove($obj, $sessionKey);
+                }
+                elseif ($this->viewModel->exists) {
+                    $this->relationObject->remove($this->viewModel, $sessionKey);
+                }
+            }
+
+            $this->viewWidget->setFormValues([]);
+        }
+
+        return $this->relationRefresh();
+    }
+
     public function onRelationButtonRemove()
     {
         return $this->onRelationManageRemove();
@@ -956,13 +1306,71 @@ class RelationController extends ControllerBehavior
         return $this->onRelationManageForm();
     }
 
-    //
-    // AJAX (List events)
-    //
-
     public function onRelationClickManageList()
     {
         return $this->onRelationManageAdd();
+    }
+
+    //
+    // Overrides
+    //
+
+    /**
+     * Add an existing related model to the primary model
+     */
+    public function onRelationManageAdd()
+    {
+        $this->beforeAjax();
+
+        $recordId = post('record_id');
+        $sessionKey = $this->deferredBinding ? $this->relationGetSessionKey() : null;
+
+        /*
+         * Add
+         */
+        if ($this->viewMode == 'multi') {
+
+            $checkedIds = $recordId ? [$recordId] : post('checked');
+
+            if (is_array($checkedIds)) {
+                /*
+                 * Remove existing relations from the array
+                 */
+                $existingIds = $this->findExistingRelationIds($checkedIds);
+                $checkedIds = array_diff($checkedIds, $existingIds);
+                $foreignKeyName = $this->relationModel->getKeyName();
+
+                $models = $this->relationModel->whereIn($foreignKeyName, $checkedIds)->get();
+                foreach ($models as $model) {
+                    $this->relationObject->add($model, $sessionKey);
+                }
+            }
+
+        }
+        /*
+         * Link
+         */
+        elseif ($this->viewMode == 'single') {
+            if ($recordId && ($model = $this->relationModel->find($recordId))) {
+
+                $this->relationObject->add($model, $sessionKey);
+                $this->viewWidget->setFormValues($model->attributes);
+
+                /*
+                 * Belongs to relations won't save when using add() so
+                 * it should occur if the conditions are right.
+                 */
+                if (!$this->deferredBinding && $this->relationType == 'belongsTo') {
+                    $parentModel = $this->relationObject->getParent();
+                    if ($parentModel->exists) {
+                        $parentModel->save();
+                    }
+                }
+
+            }
+        }
+
+        return $this->relationRefresh();
     }
 
     public function onRelationClickManageListPivot()
@@ -974,26 +1382,6 @@ class RelationController extends ControllerBehavior
     {
         $this->eventTarget = 'list';
         return $this->onRelationManageForm();
-    }
-
-    //
-    // AJAX
-    //
-
-    public function onRelationManageForm()
-    {
-        $this->beforeAjax();
-
-        if ($this->manageMode == 'pivot' && $this->manageId) {
-            return $this->onRelationManagePivotForm();
-        }
-
-        // The form should not share its session key with the parent
-        $this->vars['newSessionKey'] = str_random(40);
-
-        $view = 'manage_' . $this->manageMode;
-
-        return $this->relationMakePartial($view);
     }
 
     /**
@@ -1080,150 +1468,9 @@ class RelationController extends ControllerBehavior
         return $this->relationRefresh();
     }
 
-    /**
-     * Delete an existing related model completely
-     */
-    public function onRelationManageDelete()
-    {
-        $this->beforeAjax();
-
-        /*
-         * Multiple (has many, belongs to many)
-         */
-        if ($this->viewMode == 'multi') {
-            if (($checkedIds = post('checked')) && is_array($checkedIds)) {
-                 foreach ($checkedIds as $relationId) {
-                    if (!$obj = $this->relationModel->find($relationId)) {
-                        continue;
-                    }
-
-                    $obj->delete();
-                }
-            }
-        }
-        /*
-         * Single (belongs to, has one)
-         */
-        elseif ($this->viewMode == 'single') {
-            $relatedModel = $this->viewModel;
-            if ($relatedModel->exists) {
-                $relatedModel->delete();
-            }
-
-            $this->viewWidget->setFormValues([]);
-            $this->viewModel = $this->relationModel;
-        }
-
-        return $this->relationRefresh();
-    }
-
-    /**
-     * Add an existing related model to the primary model
-     */
-    public function onRelationManageAdd()
-    {
-        $this->beforeAjax();
-
-        $recordId = post('record_id');
-        $sessionKey = $this->deferredBinding ? $this->relationGetSessionKey() : null;
-
-        /*
-         * Add
-         */
-        if ($this->viewMode == 'multi') {
-
-            $checkedIds = $recordId ? [$recordId] : post('checked');
-
-            if (is_array($checkedIds)) {
-                /*
-                 * Remove existing relations from the array
-                 */
-                $existingIds = $this->findExistingRelationIds($checkedIds);
-                $checkedIds = array_diff($checkedIds, $existingIds);
-                $foreignKeyName = $this->relationModel->getKeyName();
-
-                $models = $this->relationModel->whereIn($foreignKeyName, $checkedIds)->get();
-                foreach ($models as $model) {
-                    $this->relationObject->add($model, $sessionKey);
-                }
-            }
-
-        }
-        /*
-         * Link
-         */
-        elseif ($this->viewMode == 'single') {
-            if ($recordId && ($model = $this->relationModel->find($recordId))) {
-
-                $this->relationObject->add($model, $sessionKey);
-                $this->viewWidget->setFormValues($model->attributes);
-
-                /*
-                 * Belongs to relations won't save when using add() so
-                 * it should occur if the conditions are right.
-                 */
-                if (!$this->deferredBinding && $this->relationType == 'belongsTo') {
-                    $parentModel = $this->relationObject->getParent();
-                    if ($parentModel->exists) {
-                        $parentModel->save();
-                    }
-                }
-
-            }
-        }
-
-        return $this->relationRefresh();
-    }
-
-    /**
-     * Remove an existing related model from the primary model
-     */
-    public function onRelationManageRemove()
-    {
-        $this->beforeAjax();
-
-        $recordId = post('record_id');
-        $sessionKey = $this->deferredBinding ? $this->relationGetSessionKey() : null;
-        $relatedModel = $this->relationModel;
-
-        /*
-         * Remove
-         */
-        if ($this->viewMode == 'multi') {
-
-            $checkedIds = $recordId ? [$recordId] : post('checked');
-
-            if (is_array($checkedIds)) {
-                $foreignKeyName = $relatedModel->getKeyName();
-
-                $models = $relatedModel->whereIn($foreignKeyName, $checkedIds)->get();
-                foreach ($models as $model) {
-                    $this->relationObject->remove($model, $sessionKey);
-                }
-            }
-        }
-        /*
-         * Unlink
-         */
-        elseif ($this->viewMode == 'single') {
-            if ($this->relationType == 'belongsTo') {
-                $this->relationObject->dissociate();
-                $this->relationObject->getParent()->save();
-            }
-            elseif ($this->relationType == 'hasOne' || $this->relationType == 'morphOne') {
-                if ($obj = $relatedModel->find($recordId)) {
-                    $this->relationObject->remove($obj, $sessionKey);
-                }
-                elseif ($this->viewModel->exists) {
-                    $this->relationObject->remove($this->viewModel, $sessionKey);
-                }
-            }
-
-            $this->viewWidget->setFormValues([]);
-        }
-
-        return $this->relationRefresh();
-    }
+    //
+    // Helpers
+    //
 
     /**
      * Add multiple items using a single pivot form.
@@ -1231,15 +1478,6 @@ class RelationController extends ControllerBehavior
     public function onRelationManageAddPivot()
     {
         return $this->onRelationManagePivotForm();
-    }
-
-    public function onRelationManagePivotForm()
-    {
-        $this->beforeAjax();
-
-        $this->vars['foreignId'] = $this->foreignId ?: post('checked');
-
-        return $this->relationMakePartial('pivot_form');
     }
 
     public function onRelationManagePivotCreate()
@@ -1289,10 +1527,6 @@ class RelationController extends ControllerBehavior
 
         return ['#'.$this->relationGetId('view') => $this->relationRenderView()];
     }
-
-    //
-    // Overrides
-    //
 
     /**
      * Provides an opportunity to manipulate the field configuration.
@@ -1346,270 +1580,5 @@ class RelationController extends ControllerBehavior
      */
     public function relationExtendRefreshResults($field)
     {
-    }
-
-    //
-    // Helpers
-    //
-
-    /**
-     * Returns the existing record IDs for the relation.
-     */
-    protected function findExistingRelationIds($checkIds = null)
-    {
-        $foreignKeyName = $this->relationModel->getQualifiedKeyName();
-
-        $results = $this->relationObject
-            ->getBaseQuery()
-            ->select($foreignKeyName);
-
-        if ($checkIds !== null && is_array($checkIds) && count($checkIds)) {
-            $results = $results->whereIn($foreignKeyName, $checkIds);
-        }
-
-        return $results->lists($foreignKeyName);
-    }
-
-    /**
-     * Determine the default buttons based on the model relationship type.
-     * @return string
-     */
-    protected function evalToolbarButtons()
-    {
-        $buttons = $this->getConfig('view[toolbarButtons]');
-
-        if ($buttons === false) {
-            return null;
-        }
-        elseif (is_string($buttons)) {
-            return array_map('trim', explode('|', $buttons));
-        }
-        elseif (is_array($buttons)) {
-            return $buttons;
-        }
-
-        if ($this->manageMode == 'pivot') {
-            return ['add', 'remove'];
-        }
-
-        switch ($this->relationType) {
-            case 'hasMany':
-            case 'morphMany':
-            case 'morphToMany':
-            case 'morphedByMany':
-            case 'belongsToMany':
-                return ['create', 'add', 'delete', 'remove'];
-
-            case 'hasOne':
-            case 'morphOne':
-            case 'belongsTo':
-                return ['create', 'update', 'link', 'delete', 'unlink'];
-        }
-    }
-
-    /**
-     * Determine the view mode based on the model relationship type.
-     * @return string
-     */
-    protected function evalViewMode()
-    {
-        if ($this->forceViewMode) {
-            return $this->forceViewMode;
-        }
-
-        switch ($this->relationType) {
-            case 'hasMany':
-            case 'morphMany':
-            case 'morphToMany':
-            case 'morphedByMany':
-            case 'belongsToMany':
-                return 'multi';
-
-            case 'hasOne':
-            case 'morphOne':
-            case 'belongsTo':
-                return 'single';
-        }
-    }
-
-    /**
-     * Determine the management mode popup title.
-     * @return string
-     */
-    protected function evalManageTitle()
-    {
-        if ($customTitle = $this->getConfig('manage[title]')) {
-            return $customTitle;
-        }
-
-        switch ($this->manageMode) {
-            case 'pivot':
-            case 'list':
-                if ($this->eventTarget == 'button-link') {
-                    return 'backend::lang.relation.link_a_new';
-                }
-                else {
-                    return 'backend::lang.relation.add_a_new';
-                }
-            case 'form':
-                if ($this->readOnly) {
-                    return 'backend::lang.relation.preview_name';
-                }
-                elseif ($this->manageId) {
-                    return 'backend::lang.relation.update_name';
-                }
-                else {
-                    return 'backend::lang.relation.create_name';
-                }
-        }
-    }
-
-    /**
-     * Determine the management mode based on the relation type and settings.
-     * @return string
-     */
-    protected function evalManageMode()
-    {
-        if ($mode = post(self::PARAM_MODE)) {
-            return $mode;
-        }
-
-        if ($this->forceManageMode) {
-            return $this->forceManageMode;
-        }
-
-        switch ($this->eventTarget) {
-            case 'button-create':
-            case 'button-update':
-                return 'form';
-
-            case 'button-link':
-                return 'list';
-        }
-
-        switch ($this->relationType) {
-            case 'belongsTo':
-                return 'list';
-
-            case 'morphToMany':
-            case 'morphedByMany':
-            case 'belongsToMany':
-                if (isset($this->config->pivot)) {
-                    return 'pivot';
-                }
-                elseif ($this->eventTarget == 'list') {
-                    return 'form';
-                }
-                else {
-                    return 'list';
-                }
-
-            case 'hasOne':
-            case 'morphOne':
-            case 'hasMany':
-            case 'morphMany':
-                if ($this->eventTarget == 'button-add') {
-                    return 'list';
-                }
-                else {
-                    return 'form';
-                }
-        }
-    }
-
-    /**
-     * Determine supplied form context.
-     */
-    protected function evalFormContext($mode = 'manage', $exists = false)
-    {
-        $config = isset($this->config->{$mode}) ? $this->config->{$mode} : [];
-
-        if ($context = array_get($config, 'context')) {
-            if (is_array($context)) {
-                $context = $exists
-                    ? array_get($context, 'update')
-                    : array_get($context, 'create');
-            }
-        }
-
-        if (!$context) {
-            $context = $exists ? 'update' : 'create';
-        }
-
-        return $context;
-    }
-
-    /**
-     * Apply extra configuration
-     */
-    protected function applyExtraConfig($config, $field = null)
-    {
-        if (!$field) {
-            $field = $this->field;
-        }
-
-        if (!$config || !isset($this->originalConfig->{$field})) {
-            return;
-        }
-
-        if (
-            !is_array($config) &&
-            (!$config = @json_decode(@base64_decode($config), true))
-        ) {
-            return;
-        }
-
-        $parsedConfig = array_only($config, ['readOnly']);
-        $parsedConfig['view'] = array_only($config, ['recordUrl', 'recordOnClick']);
-
-        $this->originalConfig->{$field} = array_replace_recursive(
-            $this->originalConfig->{$field},
-            $parsedConfig
-        );
-    }
-
-    /**
-     * Returns the configuration for a mode (view, manage, pivot) for an
-     * expected type (list, form). Uses fallback configuration.
-     */
-    protected function makeConfigForMode($mode = 'view', $type = 'list', $throwException = true)
-    {
-        $config = null;
-
-        /*
-         * Look for $this->config->view['list']
-         */
-        if (
-            isset($this->config->{$mode}) &&
-            array_key_exists($type, $this->config->{$mode})
-        ) {
-            $config = $this->config->{$mode}[$type];
-        }
-        /*
-         * Look for $this->config->list
-         */
-        elseif (isset($this->config->{$type})) {
-            $config = $this->config->{$type};
-        }
-
-        /*
-         * Apply substitutes:
-         *
-         * - view.list => manage.list
-         */
-        if (!$config) {
-            if ($mode == 'manage' && $type == 'list') {
-                return $this->makeConfigForMode('view', $type);
-            }
-
-            if ($throwException) {
-                throw new ApplicationException('Missing configuration for '.$mode.'.'.$type.' in RelationController definition '.$this->field);
-            }
-            else {
-                return false;
-            }
-        }
-
-        return $this->makeConfig($config);
     }
 }

@@ -49,14 +49,6 @@ class DateTimeTzType extends Type
     /**
      * {@inheritdoc}
      */
-    public function getName()
-    {
-        return Type::DATETIMETZ;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function getSQLDeclaration(array $fieldDeclaration, AbstractPlatform $platform)
     {
         return $platform->getDateTimeTzTypeDeclarationSQL($fieldDeclaration);
@@ -86,5 +78,13 @@ class DateTimeTzType extends Type
         }
 
         return $val;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getName()
+    {
+        return Type::DATETIMETZ;
     }
 }

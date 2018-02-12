@@ -35,6 +35,13 @@ abstract class BasePhpFormulaLoader implements FormulaLoaderInterface
         }
     }
 
+    /**
+     * Returns an array of prototypical calls and options.
+     *
+     * @return array Prototypes and options
+     */
+    abstract protected function registerPrototypes();
+
     public function addPrototype($prototype, array $options = array())
     {
         $tokens = token_get_all('<?php '.$prototype);
@@ -100,6 +107,11 @@ abstract class BasePhpFormulaLoader implements FormulaLoaderInterface
         return $formulae;
     }
 
+    protected static function tokenToString($token)
+    {
+        return is_array($token) ? $token[1] : $token;
+    }
+
     private function processCall($call, array $protoOptions = array())
     {
         $tmp = FilesystemUtils::createTemporaryFile('php_formula_loader');
@@ -135,23 +147,11 @@ abstract class BasePhpFormulaLoader implements FormulaLoaderInterface
     }
 
     /**
-     * Returns an array of prototypical calls and options.
-     *
-     * @return array Prototypes and options
-     */
-    abstract protected function registerPrototypes();
-
-    /**
      * Returns setup code for the reflection scriptlet.
      *
      * @return string Some PHP setup code
      */
     abstract protected function registerSetupCode();
-
-    protected static function tokenToString($token)
-    {
-        return is_array($token) ? $token[1] : $token;
-    }
 
     protected static function argumentToArray($argument)
     {

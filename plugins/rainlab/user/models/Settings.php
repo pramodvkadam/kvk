@@ -6,22 +6,19 @@ use RainLab\User\Models\User as UserModel;
 
 class Settings extends Model
 {
+    const ACTIVATE_AUTO = 'auto';
+    const ACTIVATE_USER = 'user';
+    const ACTIVATE_ADMIN = 'admin';
+    const LOGIN_EMAIL = 'email';
+    const LOGIN_USERNAME = 'username';
     /**
      * @var array Behaviors implemented by this model.
      */
     public $implement = [
         \System\Behaviors\SettingsModel::class
     ];
-
     public $settingsCode = 'user_settings';
     public $settingsFields = 'fields.yaml';
-
-    const ACTIVATE_AUTO = 'auto';
-    const ACTIVATE_USER = 'user';
-    const ACTIVATE_ADMIN = 'admin';
-
-    const LOGIN_EMAIL = 'email';
-    const LOGIN_USERNAME = 'username';
 
     public function initSettingsData()
     {

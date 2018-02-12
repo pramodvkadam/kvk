@@ -45,41 +45,6 @@ class Less_Tree_Selector extends Less_Tree{
 		$this->CacheElements();
 	}
 
-    public function accept($visitor) {
-		$this->elements = $visitor->visitArray($this->elements);
-		$this->extendList = $visitor->visitArray($this->extendList);
-		if( $this->condition ){
-			$this->condition = $visitor->visitObj($this->condition);
-		}
-
-		if( $visitor instanceof Less_Visitor_extendFinder ){
-			$this->CacheElements();
-		}
-	}
-
-    public function createDerived( $elements, $extendList = null, $evaldCondition = null ){
-		$newSelector = new Less_Tree_Selector( $elements, ($extendList ? $extendList : $this->extendList), null, $this->index, $this->currentFileInfo, $this->isReferenced);
-		$newSelector->evaldCondition = $evaldCondition ? $evaldCondition : $this->evaldCondition;
-		return $newSelector;
-	}
-
-
-	public function match( $other ){
-
-		if( !$other->_oelements || ($this->elements_len < $other->_oelements_len) ){
-			return 0;
-		}
-
-		for( $i = 0; $i < $other->_oelements_len; $i++ ){
-			if( $this->elements[$i]->value !== $other->_oelements[$i]) {
-				return 0;
-			}
-		}
-
-		return $other->_oelements_len; // return number of matched elements
-	}
-
-
 	public function CacheElements(){
 
 		$this->_oelements = array();
@@ -111,6 +76,33 @@ class Less_Tree_Selector extends Less_Tree{
 		}
 	}
 
+    public function accept($visitor) {
+		$this->elements = $visitor->visitArray($this->elements);
+		$this->extendList = $visitor->visitArray($this->extendList);
+		if( $this->condition ){
+			$this->condition = $visitor->visitObj($this->condition);
+		}
+
+		if( $visitor instanceof Less_Visitor_extendFinder ){
+			$this->CacheElements();
+		}
+	}
+
+	public function match( $other ){
+
+		if( !$other->_oelements || ($this->elements_len < $other->_oelements_len) ){
+			return 0;
+		}
+
+		for( $i = 0; $i < $other->_oelements_len; $i++ ){
+			if( $this->elements[$i]->value !== $other->_oelements[$i]) {
+				return 0;
+			}
+		}
+
+		return $other->_oelements_len; // return number of matched elements
+	}
+
 	public function isJustParentSelector(){
 		return !$this->mediaEmpty &&
 			count($this->elements) === 1 &&
@@ -138,6 +130,11 @@ class Less_Tree_Selector extends Less_Tree{
 		return $this->createDerived( $elements, $extendList, $evaldCondition );
 	}
 
+    public function createDerived( $elements, $extendList = null, $evaldCondition = null ){
+		$newSelector = new Less_Tree_Selector( $elements, ($extendList ? $extendList : $this->extendList), null, $this->index, $this->currentFileInfo, $this->isReferenced);
+		$newSelector->evaldCondition = $evaldCondition ? $evaldCondition : $this->evaldCondition;
+		return $newSelector;
+	}
 
 	/**
 	 * @see Less_Tree::genCSS

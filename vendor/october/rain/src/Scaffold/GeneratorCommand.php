@@ -65,75 +65,6 @@ abstract class GeneratorCommand extends Command
     }
 
     /**
-     * Prepare variables for stubs.
-     *
-     * return @array
-     */
-    abstract protected function prepareVars();
-
-    /**
-     * Make all stubs.
-     *
-     * @return void
-     */
-    public function makeStubs()
-    {
-        $stubs = array_keys($this->stubs);
-
-        foreach ($stubs as $stub) {
-            $this->makeStub($stub);
-        }
-    }
-
-    /**
-     * Make a single stub.
-     *
-     * @param string $stubName The source filename for the stub.
-     */
-    public function makeStub($stubName)
-    {
-        if (!isset($this->stubs[$stubName])) {
-            return;
-        }
-
-        $sourceFile = $this->getSourcePath() . '/' . $stubName;
-        $destinationFile = $this->getDestinationPath() . '/' . $this->stubs[$stubName];
-        $destinationContent = $this->files->get($sourceFile);
-
-        /*
-         * Parse each variable in to the destination content and path
-         */
-        foreach ($this->vars as $key => $var) {
-            $destinationContent = str_replace('{{' . $key . '}}', $var, $destinationContent);
-            $destinationFile = str_replace('{{' . $key . '}}', $var, $destinationFile);
-        }
-
-        $this->makeDirectory($destinationFile);
-
-        /*
-         * Make sure this file does not already exist
-         */
-        if ($this->files->exists($destinationFile) && !$this->option('force')) {
-            throw new Exception('Stop everything!!! This file already exists: ' . $destinationFile);
-        }
-
-        $this->files->put($destinationFile, $destinationContent);
-    }
-
-    /**
-     * Build the directory for the class if necessary.
-     *
-     * @param  string  $path
-     * @return string
-     */
-    protected function makeDirectory($path)
-    {
-        if (! $this->files->isDirectory(dirname($path))) {
-            $this->files->makeDirectory(dirname($path), 0777, true, true);
-        }
-    }
-
-    /**
      * Converts all variables to available modifier and case formats.
      * Syntax is CASE_MODIFIER_KEY, eg: lower_plural_xxx
      *
@@ -198,19 +129,59 @@ abstract class GeneratorCommand extends Command
     }
 
     /**
-     * Get the plugin path from the input.
+     * Prepare variables for stubs.
      *
-     * @return string
+     * return @array
      */
-    protected function getDestinationPath()
+    abstract protected function prepareVars();
+
+    /**
+     * Make all stubs.
+     *
+     * @return void
+     */
+    public function makeStubs()
     {
-        $plugin = $this->getPluginInput();
+        $stubs = array_keys($this->stubs);
 
-        $parts = explode('.', $plugin);
-        $name = array_pop($parts);
-        $author = array_pop($parts);
+        foreach ($stubs as $stub) {
+            $this->makeStub($stub);
+        }
+    }
 
-        return plugins_path(strtolower($author) . '/' . strtolower($name));
+    /**
+     * Make a single stub.
+     *
+     * @param string $stubName The source filename for the stub.
+     */
+    public function makeStub($stubName)
+    {
+        if (!isset($this->stubs[$stubName])) {
+            return;
+        }
+
+        $sourceFile = $this->getSourcePath() . '/' . $stubName;
+        $destinationFile = $this->getDestinationPath() . '/' . $this->stubs[$stubName];
+        $destinationContent = $this->files->get($sourceFile);
+
+        /*
+         * Parse each variable in to the destination content and path
+         */
+        foreach ($this->vars as $key => $var) {
+            $destinationContent = str_replace('{{' . $key . '}}', $var, $destinationContent);
+            $destinationFile = str_replace('{{' . $key . '}}', $var, $destinationFile);
+        }
+
+        $this->makeDirectory($destinationFile);
+
+        /*
+         * Make sure this file does not already exist
+         */
+        if ($this->files->exists($destinationFile) && !$this->option('force')) {
+            throw new Exception('Stop everything!!! This file already exists: ' . $destinationFile);
+        }
+
+        $this->files->put($destinationFile, $destinationContent);
     }
 
     /**
@@ -227,6 +198,22 @@ abstract class GeneratorCommand extends Command
     }
 
     /**
+     * Get the plugin path from the input.
+     *
+     * @return string
+     */
+    protected function getDestinationPath()
+    {
+        $plugin = $this->getPluginInput();
+
+        $parts = explode('.', $plugin);
+        $name = array_pop($parts);
+        $author = array_pop($parts);
+
+        return plugins_path(strtolower($author) . '/' . strtolower($name));
+    }
+
+    /**
      * Get the desired plugin name from the input.
      *
      * @return string
@@ -234,6 +221,19 @@ abstract class GeneratorCommand extends Command
     protected function getPluginInput()
     {
         return $this->argument('plugin');
+    }
+
+    /**
+     * Build the directory for the class if necessary.
+     *
+     * @param  string  $path
+     * @return string
+     */
+    protected function makeDirectory($path)
+    {
+        if (! $this->files->isDirectory(dirname($path))) {
+            $this->files->makeDirectory(dirname($path), 0777, true, true);
+        }
     }
 
     /**

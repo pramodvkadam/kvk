@@ -123,6 +123,28 @@ class OctoberMirror extends Command
         $this->output->writeln('<info>Mirror complete!</info>');
     }
 
+    protected function getDestinationPath()
+    {
+        if ($this->destinationPath !== null) {
+            return $this->destinationPath;
+        }
+
+        $destPath = $this->argument('destination');
+        if (realpath($destPath) === false) {
+            $destPath = base_path() . '/' . $destPath;
+        }
+
+        if (!File::isDirectory($destPath)) {
+            File::makeDirectory($destPath, 0755, true);
+        }
+
+        $destPath = realpath($destPath);
+
+        $this->output->writeln(sprintf('<info>Destination: %s</info>', $destPath));
+
+        return $this->destinationPath = $destPath;
+    }
+
     protected function mirrorFile($file)
     {
         $this->output->writeln(sprintf('<info> - Mirroring: %s</info>', $file));
@@ -136,6 +158,35 @@ class OctoberMirror extends Command
         }
 
         $this->mirror($src, $dest);
+    }
+
+    protected function mirror($src, $dest)
+    {
+        if ($this->option('relative')) {
+            $src = $this->getRelativePath($dest, $src);
+
+            if (strpos($src, '../') === 0) {
+                $src = rtrim(substr($src, 3), '/');
+            }
+        }
+
+        symlink($src, $dest);
+    }
+
+    protected function getRelativePath($from, $to)
+    {
+        $from = str_replace('\\', '/', $from);
+        $to = str_replace('\\', '/', $to);
+
+        $dir = explode('/', is_file($from) ? dirname($from) : rtrim($from, '/'));
+        $file = explode('/', $to);
+
+        while ($dir && $file && ($dir[0] == $file[0])) {
+            array_shift($dir);
+            array_shift($file);
+        }
+
+        return str_repeat('../', count($dir)) . implode('/', $file);
     }
 
     protected function mirrorDirectory($directory)
@@ -174,57 +225,6 @@ class OctoberMirror extends Command
         foreach (File::directories($startDir) as $directory) {
             $this->mirrorWildcard($start.basename($directory).$end);
         }
-    }
-
-    protected function mirror($src, $dest)
-    {
-        if ($this->option('relative')) {
-            $src = $this->getRelativePath($dest, $src);
-
-            if (strpos($src, '../') === 0) {
-                $src = rtrim(substr($src, 3), '/');
-            }
-        }
-
-        symlink($src, $dest);
-    }
-
-    protected function getDestinationPath()
-    {
-        if ($this->destinationPath !== null) {
-            return $this->destinationPath;
-        }
-
-        $destPath = $this->argument('destination');
-        if (realpath($destPath) === false) {
-            $destPath = base_path() . '/' . $destPath;
-        }
-
-        if (!File::isDirectory($destPath)) {
-            File::makeDirectory($destPath, 0755, true);
-        }
-
-        $destPath = realpath($destPath);
-
-        $this->output->writeln(sprintf('<info>Destination: %s</info>', $destPath));
-
-        return $this->destinationPath = $destPath;
-    }
-
-    protected function getRelativePath($from, $to)
-    {
-        $from = str_replace('\\', '/', $from);
-        $to = str_replace('\\', '/', $to);
-
-        $dir = explode('/', is_file($from) ? dirname($from) : rtrim($from, '/'));
-        $file = explode('/', $to);
-
-        while ($dir && $file && ($dir[0] == $file[0])) {
-            array_shift($dir);
-            array_shift($file);
-        }
-
-        return str_repeat('../', count($dir)) . implode('/', $file);
     }
 
     /**

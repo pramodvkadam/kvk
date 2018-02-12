@@ -22,25 +22,7 @@ class MailBrandSetting extends Model
     use \System\Traits\ViewMaker;
     use \October\Rain\Database\Traits\Validation;
 
-    /**
-     * @var array Behaviors implemented by this model.
-     */
-    public $implement = [
-        \System\Behaviors\SettingsModel::class
-    ];
-
-    /**
-     * @var string Unique code
-     */
-    public $settingsCode = 'system_mail_brand_settings';
-
-    /**
-     * @var mixed Settings form field defitions
-     */
-    public $settingsFields = 'fields.yaml';
-
     const CACHE_KEY = 'system::mailbrand.custom_css';
-
     const WHITE_COLOR = '#fff';
     const BODY_BG = '#f5f8fa';
     const PRIMARY_BG = '#3498db';
@@ -53,38 +35,25 @@ class MailBrandSetting extends Model
     const FOOTER_COLOR = '#aeaeae';
     const BORDER_COLOR = '#edeff2';
     const PROMOTION_BORDER_COLOR = '#9ba2ab';
-
+    /**
+     * @var array Behaviors implemented by this model.
+     */
+    public $implement = [
+        \System\Behaviors\SettingsModel::class
+    ];
+    /**
+     * @var string Unique code
+     */
+    public $settingsCode = 'system_mail_brand_settings';
+    /**
+     * @var mixed Settings form field defitions
+     */
+    public $settingsFields = 'fields.yaml';
     /**
      * Validation rules
      */
     public $rules = [
     ];
-
-    /**
-     * Initialize the seed data for this model. This only executes when the
-     * model is first created or reset to default.
-     * @return void
-     */
-    public function initSettingsData()
-    {
-        $config = App::make('config');
-
-        $vars = static::getCssVars();
-
-        foreach ($vars as $var => $default) {
-            $this->{$var} = $config->get('brand.mail.'.Str::studly($var), $default);
-        }
-    }
-
-    public function afterSave()
-    {
-        $this->resetCache();
-    }
-
-    public function resetCache()
-    {
-        Cache::forget(self::CACHE_KEY);
-    }
 
     public static function renderCss()
     {
@@ -101,6 +70,52 @@ class MailBrandSetting extends Model
         }
 
         return $customCss;
+    }
+
+    public static function compileCss()
+    {
+        $parser = new Less_Parser(['compress' => true]);
+        $basePath = base_path('modules/system/models/mailbrandsetting');
+
+        $parser->ModifyVars(static::makeCssVars());
+
+        $parser->parse(FileHelper::get($basePath . '/custom.less'));
+
+        $css = $parser->getCss();
+
+        return $css;
+    }
+
+    protected static function makeCssVars()
+    {
+        $vars = static::getCssVars();
+
+        $result = [];
+
+        foreach ($vars as $var => $default) {
+            // panel_bg -> panel-bg
+            $cssVar = str_replace('_', '-', $var);
+
+            $result[$cssVar] = self::get($var, $default);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Initialize the seed data for this model. This only executes when the
+     * model is first created or reset to default.
+     * @return void
+     */
+    public function initSettingsData()
+    {
+        $config = App::make('config');
+
+        $vars = static::getCssVars();
+
+        foreach ($vars as $var => $default) {
+            $this->{$var} = $config->get('brand.mail.'.Str::studly($var), $default);
+        }
     }
 
     protected static function getCssVars()
@@ -129,33 +144,13 @@ class MailBrandSetting extends Model
         return $vars;
     }
 
-    protected static function makeCssVars()
+    public function afterSave()
     {
-        $vars = static::getCssVars();
-
-        $result = [];
-
-        foreach ($vars as $var => $default) {
-            // panel_bg -> panel-bg
-            $cssVar = str_replace('_', '-', $var);
-
-            $result[$cssVar] = self::get($var, $default);
-        }
-
-        return $result;
+        $this->resetCache();
     }
 
-    public static function compileCss()
+    public function resetCache()
     {
-        $parser = new Less_Parser(['compress' => true]);
-        $basePath = base_path('modules/system/models/mailbrandsetting');
-
-        $parser->ModifyVars(static::makeCssVars());
-
-        $parser->parse(FileHelper::get($basePath . '/custom.less'));
-
-        $css = $parser->getCss();
-
-        return $css;
+        Cache::forget(self::CACHE_KEY);
     }
 }

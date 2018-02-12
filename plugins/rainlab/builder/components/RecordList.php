@@ -295,6 +295,24 @@ class RecordList extends ComponentBase
         return lcfirst(substr($scopeMethod, 5));
     }
 
+    protected function sort($model)
+    {
+        $sortColumn = trim($this->property('sortColumn'));
+        if (!strlen($sortColumn)) {
+            return $model;
+        }
+
+        $sortDirection = trim($this->property('sortDirection'));
+
+        if ($sortDirection !== 'desc') {
+            $sortDirection = 'asc';
+        }
+
+        // Note - no further validation of the sort column
+        // value is performed here, relying to the ORM sanitizing.
+        return $model->orderBy($sortColumn, $sortDirection);
+    }
+
     protected function paginate($model)
     {
         $recordsPerPage = trim($this->property('recordsPerPage'));
@@ -313,23 +331,5 @@ class RecordList extends ComponentBase
         }
 
         return $model->paginate($recordsPerPage, $pageNumber);
-    }
-
-    protected function sort($model)
-    {
-        $sortColumn = trim($this->property('sortColumn'));
-        if (!strlen($sortColumn)) {
-            return $model;
-        }
-
-        $sortDirection = trim($this->property('sortDirection'));
-
-        if ($sortDirection !== 'desc') {
-            $sortDirection = 'asc';
-        }
-
-        // Note - no further validation of the sort column
-        // value is performed here, relying to the ORM sanitizing.
-        return $model->orderBy($sortColumn, $sortDirection);
     }
 }

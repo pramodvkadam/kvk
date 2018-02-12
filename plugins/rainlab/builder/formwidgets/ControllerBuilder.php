@@ -61,15 +61,6 @@ class ControllerBuilder extends FormWidgetBase
     // Methods for the internal use
     //
 
-    protected function getBehaviorDesignTimeProvider($providerClass)
-    {
-        if (array_key_exists($providerClass, $this->designTimeProviders)) {
-            return $this->designTimeProviders[$providerClass];
-        }
-
-        return $this->designTimeProviders[$providerClass] = new $providerClass($this->controller);
-    }
-
     protected function getPropertyValue($properties, $property)
     {
         if (array_key_exists($property, $properties)) {
@@ -113,5 +104,14 @@ class ControllerBuilder extends FormWidgetBase
        $provider = $this->getBehaviorDesignTimeProvider($behaviorInfo['designTimeProvider']);
 
        return $provider->renderBehaviorBody($behaviorClass, $behaviorConfig, $this);
+    }
+
+    protected function getBehaviorDesignTimeProvider($providerClass)
+    {
+        if (array_key_exists($providerClass, $this->designTimeProviders)) {
+            return $this->designTimeProviders[$providerClass];
+        }
+
+        return $this->designTimeProviders[$providerClass] = new $providerClass($this->controller);
     }
 }

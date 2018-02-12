@@ -14,10 +14,9 @@ use October\Rain\Router\Helper as RouterHelper;
 abstract class Skin
 {
     /**
-     * Returns information about this skin, including name and description.
+     * @var Self Cache of the active skin.
      */
-    abstract public function skinDetails();
-
+    private static $skinCache;
     /**
      * @var string The absolute path to this skin.
      */
@@ -39,11 +38,6 @@ abstract class Skin
     public $defaultPublicSkinPath;
 
     /**
-     * @var Self Cache of the active skin.
-     */
-    private static $skinCache;
-
-    /**
      * Constructor.
      */
     public function __construct()
@@ -63,6 +57,25 @@ abstract class Skin
         $this->publicSkinPath = File::localToPublic($this->skinPath);
         $this->defaultPublicSkinPath = File::localToPublic($this->defaultSkinPath);
     }
+
+    /**
+     * Returns the active skin.
+     */
+    public static function getActive()
+    {
+        if (self::$skinCache !== null) {
+            return self::$skinCache;
+        }
+
+        $skinClass = Config::get('cms.backendSkin');
+        $skinObject = new $skinClass();
+        return self::$skinCache = $skinObject;
+    }
+
+    /**
+     * Returns information about this skin, including name and description.
+     */
+    abstract public function skinDetails();
 
     /**
      * Looks up a path to a skin-based file, if it doesn't exist, the default path is used.
@@ -94,19 +107,5 @@ abstract class Skin
     public function getLayoutPaths()
     {
         return [$this->skinPath.'/layouts', $this->defaultSkinPath.'/layouts'];
-    }
-
-    /**
-     * Returns the active skin.
-     */
-    public static function getActive()
-    {
-        if (self::$skinCache !== null) {
-            return self::$skinCache;
-        }
-
-        $skinClass = Config::get('cms.backendSkin');
-        $skinObject = new $skinClass();
-        return self::$skinCache = $skinObject;
     }
 }

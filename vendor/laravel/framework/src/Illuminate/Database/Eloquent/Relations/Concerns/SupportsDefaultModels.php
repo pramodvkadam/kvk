@@ -16,14 +16,6 @@ trait SupportsDefaultModels
     protected $withDefault;
 
     /**
-     * Make a new related instance for the given model.
-     *
-     * @param  \Illuminate\Database\Eloquent\Model  $parent
-     * @return \Illuminate\Database\Eloquent\Model
-     */
-    abstract protected function newRelatedInstanceFor(Model $parent);
-
-    /**
      * Return a new model instance in case the relationship does not exist.
      *
      * @param  \Closure|array|bool  $callback
@@ -35,6 +27,14 @@ trait SupportsDefaultModels
 
         return $this;
     }
+
+    /**
+     * Make a new related instance for the given model.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $parent
+     * @return \Illuminate\Database\Eloquent\Model
+     */
+    abstract protected function newRelatedInstanceFor(Model $parent);
 
     /**
      * Get the default value for this relation.

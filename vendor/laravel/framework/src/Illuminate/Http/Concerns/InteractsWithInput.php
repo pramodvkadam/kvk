@@ -23,6 +23,23 @@ trait InteractsWithInput
     }
 
     /**
+     * Retrieve a parameter item from a given source.
+     *
+     * @param  string  $source
+     * @param  string  $key
+     * @param  string|array|null  $default
+     * @return string|array
+     */
+    protected function retrieveItem($source, $key, $default)
+    {
+        if (is_null($key)) {
+            return $this->$source->all();
+        }
+
+        return $this->$source->get($key, $default);
+    }
+
+    /**
      * Determine if a header is set on the request.
      *
      * @param  string  $key
@@ -92,6 +109,76 @@ trait InteractsWithInput
     }
 
     /**
+     * Get all of the input and files for the request.
+     *
+     * @param  array|mixed  $keys
+     * @return array
+     */
+    public function all($keys = null)
+    {
+        $input = array_replace_recursive($this->input(), $this->allFiles());
+
+        if (! $keys) {
+            return $input;
+        }
+
+        $results = [];
+
+        foreach (is_array($keys) ? $keys : func_get_args() as $key) {
+            Arr::set($results, $key, Arr::get($input, $key));
+        }
+
+        return $results;
+    }
+
+    /**
+     * Retrieve an input item from the request.
+     *
+     * @param  string  $key
+     * @param  string|array|null  $default
+     * @return string|array
+     */
+    public function input($key = null, $default = null)
+    {
+        return data_get(
+            $this->getInputSource()->all() + $this->query->all(), $key, $default
+        );
+    }
+
+    /**
+     * Get an array of all of the files on the request.
+     *
+     * @return array
+     */
+    public function allFiles()
+    {
+        $files = $this->files->all();
+
+        return $this->convertedFiles
+                    ? $this->convertedFiles
+                    : $this->convertedFiles = $this->convertUploadedFiles($files);
+    }
+
+    /**
+     * Convert the given array of Symfony UploadedFiles to custom Laravel UploadedFiles.
+     *
+     * @param  array  $files
+     * @return array
+     */
+    protected function convertUploadedFiles(array $files)
+    {
+        return array_map(function ($file) {
+            if (is_null($file) || (is_array($file) && empty(array_filter($file)))) {
+                return $file;
+            }
+
+            return is_array($file)
+                        ? $this->convertUploadedFiles($file)
+                        : UploadedFile::createFromBase($file);
+        }, $files);
+    }
+
+    /**
      * Determine if the request contains any of the given inputs.
      *
      * @param  dynamic  $key
@@ -150,43 +237,6 @@ trait InteractsWithInput
     public function keys()
     {
         return array_merge(array_keys($this->input()), $this->files->keys());
-    }
-
-    /**
-     * Get all of the input and files for the request.
-     *
-     * @param  array|mixed  $keys
-     * @return array
-     */
-    public function all($keys = null)
-    {
-        $input = array_replace_recursive($this->input(), $this->allFiles());
-
-        if (! $keys) {
-            return $input;
-        }
-
-        $results = [];
-
-        foreach (is_array($keys) ? $keys : func_get_args() as $key) {
-            Arr::set($results, $key, Arr::get($input, $key));
-        }
-
-        return $results;
-    }
-
-    /**
-     * Retrieve an input item from the request.
-     *
-     * @param  string  $key
-     * @param  string|array|null  $default
-     * @return string|array
-     */
-    public function input($key = null, $default = null)
-    {
-        return data_get(
-            $this->getInputSource()->all() + $this->query->all(), $key, $default
-        );
     }
 
     /**
@@ -280,39 +330,6 @@ trait InteractsWithInput
     }
 
     /**
-     * Get an array of all of the files on the request.
-     *
-     * @return array
-     */
-    public function allFiles()
-    {
-        $files = $this->files->all();
-
-        return $this->convertedFiles
-                    ? $this->convertedFiles
-                    : $this->convertedFiles = $this->convertUploadedFiles($files);
-    }
-
-    /**
-     * Convert the given array of Symfony UploadedFiles to custom Laravel UploadedFiles.
-     *
-     * @param  array  $files
-     * @return array
-     */
-    protected function convertUploadedFiles(array $files)
-    {
-        return array_map(function ($file) {
-            if (is_null($file) || (is_array($file) && empty(array_filter($file)))) {
-                return $file;
-            }
-
-            return is_array($file)
-                        ? $this->convertUploadedFiles($file)
-                        : UploadedFile::createFromBase($file);
-        }, $files);
-    }
-
-    /**
      * Determine if the uploaded data contains a file.
      *
      * @param  string  $key
@@ -334,17 +351,6 @@ trait InteractsWithInput
     }
 
     /**
-     * Check that the given file is a valid file instance.
-     *
-     * @param  mixed  $file
-     * @return bool
-     */
-    protected function isValidFile($file)
-    {
-        return $file instanceof SplFileInfo && $file->getPath() !== '';
-    }
-
-    /**
      * Retrieve a file from the request.
      *
      * @param  string  $key
@@ -357,19 +363,13 @@ trait InteractsWithInput
     }
 
     /**
-     * Retrieve a parameter item from a given source.
+     * Check that the given file is a valid file instance.
      *
-     * @param  string  $source
-     * @param  string  $key
-     * @param  string|array|null  $default
-     * @return string|array
+     * @param  mixed  $file
+     * @return bool
      */
-    protected function retrieveItem($source, $key, $default)
+    protected function isValidFile($file)
     {
-        if (is_null($key)) {
-            return $this->$source->all();
-        }
-
-        return $this->$source->get($key, $default);
+        return $file instanceof SplFileInfo && $file->getPath() !== '';
     }
 }

@@ -38,6 +38,16 @@ class ColumnConsistencyValidator
     private $detect_columns_count = false;
 
     /**
+     * Column count getter
+     *
+     * @return int
+     */
+    public function getColumnsCount()
+    {
+        return $this->columns_count;
+    }
+
+    /**
      * Set Inserted row column count
      *
      * @param int $value
@@ -52,16 +62,6 @@ class ColumnConsistencyValidator
         }
         $this->detect_columns_count = false;
         $this->columns_count = $value;
-    }
-
-    /**
-     * Column count getter
-     *
-     * @return int
-     */
-    public function getColumnsCount()
-    {
-        return $this->columns_count;
     }
 
     /**

@@ -100,14 +100,6 @@ abstract class AbstractCsv implements JsonSerializable, IteratorAggregate
     }
 
     /**
-     * The destructor
-     */
-    public function __destruct()
-    {
-        $this->path = null;
-    }
-
-    /**
      * Return a new {@link AbstractCsv} from a SplFileObject
      *
      * @param SplFileObject $file
@@ -198,6 +190,26 @@ abstract class AbstractCsv implements JsonSerializable, IteratorAggregate
     }
 
     /**
+     * The destructor
+     */
+    public function __destruct()
+    {
+        $this->path = null;
+    }
+
+    /**
+     * Return a new {@link Writer} instance from a {@link AbstractCsv} object
+     *
+     * @param string $open_mode the file open mode flag
+     *
+     * @return Writer
+     */
+    public function newWriter($open_mode = 'r+')
+    {
+        return $this->newInstance(Writer::class, $open_mode);
+    }
+
+    /**
      * Return a new {@link AbstractCsv} instance from another {@link AbstractCsv} object
      *
      * @param string $class     the class to be instantiated
@@ -217,18 +229,6 @@ abstract class AbstractCsv implements JsonSerializable, IteratorAggregate
         $csv->newline = $this->newline;
 
         return $csv;
-    }
-
-    /**
-     * Return a new {@link Writer} instance from a {@link AbstractCsv} object
-     *
-     * @param string $open_mode the file open mode flag
-     *
-     * @return Writer
-     */
-    public function newWriter($open_mode = 'r+')
-    {
-        return $this->newInstance(Writer::class, $open_mode);
     }
 
     /**

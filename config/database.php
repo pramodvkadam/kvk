@@ -58,7 +58,7 @@ return [
             'port'      => 3306,
             'database'  => 'atma',
             'username'  => 'root',
-            'password'  => '123456',
+            'password'  => 'S2b3.nk!',
             'charset'   => 'utf8',
             'collation' => 'utf8_unicode_ci',
             'prefix'    => '',

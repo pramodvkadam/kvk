@@ -55,11 +55,6 @@ class ControllerGenerator
         }
     }
 
-    public function setTemplateVariable($var, $value)
-    {
-        $this->templateVars[$var] = $value;
-    }
-
     protected function validateBehaviorViewTemplates()
     {
         if (!$this->sourceModel->behaviors) {
@@ -214,9 +209,33 @@ class ControllerGenerator
         $this->templateVars['behaviorConfigVars'] = $this->configTemplateProperties;
     }
 
-    protected function getTemplatePath($template)
+    protected function generateControllerFile()
     {
-        return __DIR__.'/controllergenerator/templates/'.$template;
+        $templateParts = [];
+        $code = $this->parseTemplate($this->getTemplatePath('controller-config-vars.php.tpl'));
+        if (strlen($code)) {
+            $templateParts[] = $code;
+        }
+
+        $code = $this->parseTemplate($this->getTemplatePath('controller-permissions.php.tpl'));
+        if (strlen($code)) {
+            $templateParts[] = $code;
+        }
+
+        if (count($templateParts)) {
+            $templateParts = "\n".implode("\n", $templateParts);
+        }
+        else {
+            $templateParts = "";
+        }
+
+        $code = $this->parseTemplate($this->getTemplatePath('controller.php.tpl'), [
+            'templateParts' => $templateParts
+        ]);
+
+        $controlerFilePath = $this->sourceModel->getControllerFilePath();
+
+        $this->writeFile($controlerFilePath, $code);
     }
 
     protected function parseTemplate($templatePath, $vars = [])
@@ -227,6 +246,11 @@ class ControllerGenerator
         $code = Twig::parse($template, $vars);
 
         return $code;
+    }
+
+    protected function getTemplatePath($template)
+    {
+        return __DIR__.'/controllergenerator/templates/'.$template;
     }
 
     protected function writeFile($path, $data)
@@ -248,51 +272,6 @@ class ControllerGenerator
 
         @File::chmod($path);
         $this->filesGenerated[] = $path;
-    }
-
-    protected function rollback()
-    {
-        foreach ($this->filesGenerated as $path) {
-            @unlink($path);
-        }
-    }
-
-    protected function generateControllerFile()
-    {
-        $templateParts = [];
-        $code = $this->parseTemplate($this->getTemplatePath('controller-config-vars.php.tpl'));
-        if (strlen($code)) {
-            $templateParts[] = $code;
-        }
-
-        $code = $this->parseTemplate($this->getTemplatePath('controller-permissions.php.tpl'));
-        if (strlen($code)) {
-            $templateParts[] = $code;
-        }
-
-        if (count($templateParts)) {
-            $templateParts = "\n".implode("\n", $templateParts);
-        } 
-        else {
-            $templateParts = "";
-        }
-
-        $code = $this->parseTemplate($this->getTemplatePath('controller.php.tpl'), [
-            'templateParts' => $templateParts
-        ]);
-
-        $controlerFilePath = $this->sourceModel->getControllerFilePath();
-
-        $this->writeFile($controlerFilePath, $code);
-    }
-
-    protected function getBehaviorDesignTimeProvider($providerClass)
-    {
-        if (array_key_exists($providerClass, $this->designTimeProviders)) {
-            return $this->designTimeProviders[$providerClass];
-        }
-
-        return $this->designTimeProviders[$providerClass] = new $providerClass(null, []);
     }
 
     protected function generateConfigFiles()
@@ -330,6 +309,15 @@ class ControllerGenerator
         }
     }
 
+    protected function getBehaviorDesignTimeProvider($providerClass)
+    {
+        if (array_key_exists($providerClass, $this->designTimeProviders)) {
+            return $this->designTimeProviders[$providerClass];
+        }
+
+        return $this->designTimeProviders[$providerClass] = new $providerClass(null, []);
+    }
+
     protected function generateViews()
     {
         foreach ($this->templateFiles as $templatePath=>$destPath) {
@@ -337,5 +325,17 @@ class ControllerGenerator
 
             $this->writeFile($destPath, $code);
         }
+    }
+
+    protected function rollback()
+    {
+        foreach ($this->filesGenerated as $path) {
+            @unlink($path);
+        }
+    }
+
+    public function setTemplateVariable($var, $value)
+    {
+        $this->templateVars[$var] = $value;
     }
 }

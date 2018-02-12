@@ -211,6 +211,17 @@ class Plugin extends PluginBase
         });
     }
 
+    public static function clearCache()
+    {
+        $theme = Theme::getEditTheme();
+
+        $router = new Router($theme);
+        $router->clearCache();
+
+        StaticPage::clearMenuCache($theme);
+        SnippetManager::clearCache($theme);
+    }
+
     /**
      * Register new Twig variables
      * @return array
@@ -222,16 +233,5 @@ class Plugin extends PluginBase
                 'staticPage' => ['RainLab\Pages\Classes\Page', 'url']
             ]
         ];
-    }
-
-    public static function clearCache()
-    {
-        $theme = Theme::getEditTheme();
-
-        $router = new Router($theme);
-        $router->clearCache();
-
-        StaticPage::clearMenuCache($theme);
-        SnippetManager::clearCache($theme);
     }
 }

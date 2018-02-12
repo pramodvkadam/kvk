@@ -47,6 +47,11 @@ class FileBagTest extends TestCase
         $this->assertEquals($file, $bag->get('file'));
     }
 
+    protected function createTempFile()
+    {
+        return tempnam(sys_get_temp_dir().'/form_test', 'FormTest');
+    }
+
     public function testShouldSetEmptyUploadedFilesToNull()
     {
         $bag = new FileBag(array('file' => array(
@@ -152,11 +157,6 @@ class FileBagTest extends TestCase
 
         $files = $bag->all();
         $this->assertEquals($file, $files['image']['file']);
-    }
-
-    protected function createTempFile()
-    {
-        return tempnam(sys_get_temp_dir().'/form_test', 'FormTest');
     }
 
     protected function setUp()

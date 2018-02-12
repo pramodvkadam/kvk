@@ -173,59 +173,6 @@ final class DriverManager
     }
 
     /**
-     * Returns the list of supported drivers.
-     *
-     * @return array
-     */
-    public static function getAvailableDrivers()
-    {
-        return array_keys(self::$_driverMap);
-    }
-
-    /**
-     * Checks the list of parameters.
-     *
-     * @param array $params The list of parameters.
-     *
-     * @return void
-     *
-     * @throws \Doctrine\DBAL\DBALException
-     */
-    private static function _checkParams(array $params)
-    {
-        // check existence of mandatory parameters
-
-        // driver
-        if ( ! isset($params['driver']) && ! isset($params['driverClass'])) {
-            throw DBALException::driverRequired();
-        }
-
-        // check validity of parameters
-
-        // driver
-        if (isset($params['driver']) && ! isset(self::$_driverMap[$params['driver']])) {
-            throw DBALException::unknownDriver($params['driver'], array_keys(self::$_driverMap));
-        }
-
-        if (isset($params['driverClass']) && ! in_array('Doctrine\DBAL\Driver', class_implements($params['driverClass'], true))) {
-            throw DBALException::invalidDriverClass($params['driverClass']);
-        }
-    }
-
-    /**
-     * Normalizes the given connection URL path.
-     *
-     * @param string $urlPath
-     *
-     * @return string The normalized connection URL path
-     */
-    private static function normalizeDatabaseUrlPath($urlPath)
-    {
-        // Trim leading slash from URL path.
-        return substr($urlPath, 1);
-    }
-
-    /**
      * Extracts parts from a database URL, if present, and returns an
      * updated list of parameters.
      *
@@ -284,6 +231,46 @@ final class DriverManager
     }
 
     /**
+     * Parses the scheme part from given connection URL and resolves the given connection parameters.
+     *
+     * @param array $url    The connection URL parts to evaluate.
+     * @param array $params The connection parameters to resolve.
+     *
+     * @return array The resolved connection parameters.
+     *
+     * @throws DBALException if parsing failed or resolution is not possible.
+     */
+    private static function parseDatabaseUrlScheme(array $url, array $params)
+    {
+        if (isset($url['scheme'])) {
+            // The requested driver from the URL scheme takes precedence
+            // over the default custom driver from the connection parameters (if any).
+            unset($params['driverClass']);
+
+            // URL schemes must not contain underscores, but dashes are ok
+            $driver = str_replace('-', '_', $url['scheme']);
+
+            // The requested driver from the URL scheme takes precedence
+            // over the default driver from the connection parameters (if any).
+            $params['driver'] = isset(self::$driverSchemeAliases[$driver])
+                // use alias like "postgres", else we just let checkParams decide later
+                // if the driver exists (for literal "pdo-pgsql" etc)
+                ? self::$driverSchemeAliases[$driver]
+                : $driver;
+
+            return $params;
+        }
+
+        // If a schemeless connection URL is given, we require a default driver or default custom driver
+        // as connection parameter.
+        if (! isset($params['driverClass']) && ! isset($params['driver'])) {
+            throw DBALException::driverRequired($params['url']);
+        }
+
+        return $params;
+    }
+
+    /**
      * Parses the given connection URL and resolves the given connection parameters.
      *
      * Assumes that the connection URL scheme is already parsed and resolved into the given connection parameters
@@ -318,24 +305,16 @@ final class DriverManager
     }
 
     /**
-     * Parses the query part of the given connection URL and resolves the given connection parameters.
+     * Normalizes the given connection URL path.
      *
-     * @param array $url    The connection URL parts to evaluate.
-     * @param array $params The connection parameters to resolve.
+     * @param string $urlPath
      *
-     * @return array The resolved connection parameters.
+     * @return string The normalized connection URL path
      */
-    private static function parseDatabaseUrlQuery(array $url, array $params)
+    private static function normalizeDatabaseUrlPath($urlPath)
     {
-        if (! isset($url['query'])) {
-            return $params;
-        }
-
-        $query = array();
-
-        parse_str($url['query'], $query); // simply ingest query as extra params, e.g. charset or sslmode
-
-        return array_merge($params, $query); // parse_str wipes existing array elements
+        // Trim leading slash from URL path.
+        return substr($urlPath, 1);
     }
 
     /**
@@ -383,42 +362,63 @@ final class DriverManager
     }
 
     /**
-     * Parses the scheme part from given connection URL and resolves the given connection parameters.
+     * Parses the query part of the given connection URL and resolves the given connection parameters.
      *
      * @param array $url    The connection URL parts to evaluate.
      * @param array $params The connection parameters to resolve.
      *
      * @return array The resolved connection parameters.
-     *
-     * @throws DBALException if parsing failed or resolution is not possible.
      */
-    private static function parseDatabaseUrlScheme(array $url, array $params)
+    private static function parseDatabaseUrlQuery(array $url, array $params)
     {
-        if (isset($url['scheme'])) {
-            // The requested driver from the URL scheme takes precedence
-            // over the default custom driver from the connection parameters (if any).
-            unset($params['driverClass']);
-
-            // URL schemes must not contain underscores, but dashes are ok
-            $driver = str_replace('-', '_', $url['scheme']);
-
-            // The requested driver from the URL scheme takes precedence
-            // over the default driver from the connection parameters (if any).
-            $params['driver'] = isset(self::$driverSchemeAliases[$driver])
-                // use alias like "postgres", else we just let checkParams decide later
-                // if the driver exists (for literal "pdo-pgsql" etc)
-                ? self::$driverSchemeAliases[$driver]
-                : $driver;
-
+        if (! isset($url['query'])) {
             return $params;
         }
 
-        // If a schemeless connection URL is given, we require a default driver or default custom driver
-        // as connection parameter.
-        if (! isset($params['driverClass']) && ! isset($params['driver'])) {
-            throw DBALException::driverRequired($params['url']);
+        $query = array();
+
+        parse_str($url['query'], $query); // simply ingest query as extra params, e.g. charset or sslmode
+
+        return array_merge($params, $query); // parse_str wipes existing array elements
+    }
+
+    /**
+     * Checks the list of parameters.
+     *
+     * @param array $params The list of parameters.
+     *
+     * @return void
+     *
+     * @throws \Doctrine\DBAL\DBALException
+     */
+    private static function _checkParams(array $params)
+    {
+        // check existence of mandatory parameters
+
+        // driver
+        if ( ! isset($params['driver']) && ! isset($params['driverClass'])) {
+            throw DBALException::driverRequired();
         }
 
-        return $params;
+        // check validity of parameters
+
+        // driver
+        if (isset($params['driver']) && ! isset(self::$_driverMap[$params['driver']])) {
+            throw DBALException::unknownDriver($params['driver'], array_keys(self::$_driverMap));
+        }
+
+        if (isset($params['driverClass']) && ! in_array('Doctrine\DBAL\Driver', class_implements($params['driverClass'], true))) {
+            throw DBALException::invalidDriverClass($params['driverClass']);
+        }
+    }
+
+    /**
+     * Returns the list of supported drivers.
+     *
+     * @return array
+     */
+    public static function getAvailableDrivers()
+    {
+        return array_keys(self::$_driverMap);
     }
 }

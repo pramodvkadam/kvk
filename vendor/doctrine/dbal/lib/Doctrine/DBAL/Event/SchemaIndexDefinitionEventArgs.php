@@ -66,6 +66,14 @@ class SchemaIndexDefinitionEventArgs extends SchemaEventArgs
     }
 
     /**
+     * @return \Doctrine\DBAL\Schema\Index|null
+     */
+    public function getIndex()
+    {
+        return $this->_index;
+    }
+
+    /**
      * Allows to clear the index which means the index will be excluded from tables index list.
      *
      * @param null|\Doctrine\DBAL\Schema\Index $index
@@ -77,14 +85,6 @@ class SchemaIndexDefinitionEventArgs extends SchemaEventArgs
         $this->_index = $index;
 
         return $this;
-    }
-
-    /**
-     * @return \Doctrine\DBAL\Schema\Index|null
-     */
-    public function getIndex()
-    {
-        return $this->_index;
     }
 
     /**

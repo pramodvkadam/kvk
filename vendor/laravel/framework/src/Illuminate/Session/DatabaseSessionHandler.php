@@ -86,40 +86,6 @@ class DatabaseSessionHandler implements SessionHandlerInterface, ExistenceAwareI
     /**
      * {@inheritdoc}
      */
-    public function read($sessionId)
-    {
-        $session = (object) $this->getQuery()->find($sessionId);
-
-        if ($this->expired($session)) {
-            $this->exists = true;
-
-            return '';
-        }
-
-        if (isset($session->payload)) {
-            $this->exists = true;
-
-            return base64_decode($session->payload);
-        }
-
-        return '';
-    }
-
-    /**
-     * Determine if the session is expired.
-     *
-     * @param  \stdClass  $session
-     * @return bool
-     */
-    protected function expired($session)
-    {
-        return isset($session->last_activity) &&
-            $session->last_activity < Carbon::now()->subMinutes($this->minutes)->getTimestamp();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function write($sessionId, $data)
     {
         $payload = $this->getDefaultPayload($data);
@@ -135,34 +101,6 @@ class DatabaseSessionHandler implements SessionHandlerInterface, ExistenceAwareI
         }
 
         return $this->exists = true;
-    }
-
-    /**
-     * Perform an insert operation on the session ID.
-     *
-     * @param  string  $sessionId
-     * @param  string  $payload
-     * @return bool|null
-     */
-    protected function performInsert($sessionId, $payload)
-    {
-        try {
-            return $this->getQuery()->insert(Arr::set($payload, 'id', $sessionId));
-        } catch (QueryException $e) {
-            $this->performUpdate($sessionId, $payload);
-        }
-    }
-
-    /**
-     * Perform an update operation on the session ID.
-     *
-     * @param  string  $sessionId
-     * @param  string  $payload
-     * @return int
-     */
-    protected function performUpdate($sessionId, $payload)
-    {
-        return $this->getQuery()->where('id', $sessionId)->update($payload);
     }
 
     /**
@@ -186,31 +124,6 @@ class DatabaseSessionHandler implements SessionHandlerInterface, ExistenceAwareI
             $this->addUserInformation($payload)
                  ->addRequestInformation($payload);
         });
-    }
-
-    /**
-     * Add the user information to the session payload.
-     *
-     * @param  array  $payload
-     * @return $this
-     */
-    protected function addUserInformation(&$payload)
-    {
-        if ($this->container->bound(Guard::class)) {
-            $payload['user_id'] = $this->userId();
-        }
-
-        return $this;
-    }
-
-    /**
-     * Get the currently authenticated user's ID.
-     *
-     * @return mixed
-     */
-    protected function userId()
-    {
-        return $this->container->make(Guard::class)->id();
     }
 
     /**
@@ -252,6 +165,103 @@ class DatabaseSessionHandler implements SessionHandlerInterface, ExistenceAwareI
     }
 
     /**
+     * Add the user information to the session payload.
+     *
+     * @param  array  $payload
+     * @return $this
+     */
+    protected function addUserInformation(&$payload)
+    {
+        if ($this->container->bound(Guard::class)) {
+            $payload['user_id'] = $this->userId();
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get the currently authenticated user's ID.
+     *
+     * @return mixed
+     */
+    protected function userId()
+    {
+        return $this->container->make(Guard::class)->id();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function read($sessionId)
+    {
+        $session = (object) $this->getQuery()->find($sessionId);
+
+        if ($this->expired($session)) {
+            $this->exists = true;
+
+            return '';
+        }
+
+        if (isset($session->payload)) {
+            $this->exists = true;
+
+            return base64_decode($session->payload);
+        }
+
+        return '';
+    }
+
+    /**
+     * Get a fresh query builder instance for the table.
+     *
+     * @return \Illuminate\Database\Query\Builder
+     */
+    protected function getQuery()
+    {
+        return $this->connection->table($this->table);
+    }
+
+    /**
+     * Determine if the session is expired.
+     *
+     * @param  \stdClass  $session
+     * @return bool
+     */
+    protected function expired($session)
+    {
+        return isset($session->last_activity) &&
+            $session->last_activity < Carbon::now()->subMinutes($this->minutes)->getTimestamp();
+    }
+
+    /**
+     * Perform an update operation on the session ID.
+     *
+     * @param  string  $sessionId
+     * @param  string  $payload
+     * @return int
+     */
+    protected function performUpdate($sessionId, $payload)
+    {
+        return $this->getQuery()->where('id', $sessionId)->update($payload);
+    }
+
+    /**
+     * Perform an insert operation on the session ID.
+     *
+     * @param  string  $sessionId
+     * @param  string  $payload
+     * @return bool|null
+     */
+    protected function performInsert($sessionId, $payload)
+    {
+        try {
+            return $this->getQuery()->insert(Arr::set($payload, 'id', $sessionId));
+        } catch (QueryException $e) {
+            $this->performUpdate($sessionId, $payload);
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function destroy($sessionId)
@@ -267,16 +277,6 @@ class DatabaseSessionHandler implements SessionHandlerInterface, ExistenceAwareI
     public function gc($lifetime)
     {
         $this->getQuery()->where('last_activity', '<=', $this->currentTime() - $lifetime)->delete();
-    }
-
-    /**
-     * Get a fresh query builder instance for the table.
-     *
-     * @return \Illuminate\Database\Query\Builder
-     */
-    protected function getQuery()
-    {
-        return $this->connection->table($this->table);
     }
 
     /**

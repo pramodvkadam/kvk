@@ -11,21 +11,6 @@ class PredisCacheTest extends CacheTest
 {
     private $client;
 
-    protected function setUp()
-    {
-        if (!class_exists('Predis\Client')) {
-            $this->markTestSkipped('Predis\Client is missing. Make sure to "composer install" to have all dev dependencies.');
-        }
-
-        $this->client = new Client();
-
-        try {
-            $this->client->connect();
-        } catch (ConnectionException $e) {
-            $this->markTestSkipped('Cannot connect to Redis because of: ' . $e);
-        }
-    }
-
     public function testHitMissesStatsAreProvided()
     {
         $cache = $this->_getCacheDriver();
@@ -83,5 +68,20 @@ class PredisCacheTest extends CacheTest
         $predisClient = $this->getMock('Predis\\ClientInterface');
 
         $this->assertInstanceOf('Doctrine\\Common\\Cache\\PredisCache', new PredisCache($predisClient));
+    }
+
+    protected function setUp()
+    {
+        if (!class_exists('Predis\Client')) {
+            $this->markTestSkipped('Predis\Client is missing. Make sure to "composer install" to have all dev dependencies.');
+        }
+
+        $this->client = new Client();
+
+        try {
+            $this->client->connect();
+        } catch (ConnectionException $e) {
+            $this->markTestSkipped('Cannot connect to Redis because of: ' . $e);
+        }
     }
 }

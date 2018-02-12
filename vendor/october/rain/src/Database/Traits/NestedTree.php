@@ -143,6 +143,28 @@ trait NestedTree
     }
 
     /**
+     * Get parent column name.
+     * @return string
+     */
+    public function getParentColumnName()
+    {
+        return defined('static::PARENT_ID') ? static::PARENT_ID : 'parent_id';
+    }
+
+    /**
+     * Get value of the model parent_id column.
+     * @return int
+     */
+    public function getParentId()
+    {
+        return $this->getAttribute($this->getParentColumnName());
+    }
+
+    //
+    // Alignment
+    //
+
+    /**
      * If the parent identifier is dirty, realign the nesting.
      * @return void
      */
@@ -156,6 +178,316 @@ trait NestedTree
         elseif ($parentId !== false) {
             $this->makeChildOf($parentId);
         }
+    }
+
+    /**
+     * Make this model a root node.
+     * @return \October\Rain\Database\Model
+     */
+    public function makeRoot()
+    {
+        return $this->moveAfter($this->getRoot());
+    }
+
+    /**
+     * Move to the model to after (right) a specified node.
+     * @return \October\Rain\Database\Model
+     */
+    public function moveAfter($node)
+    {
+        return $this->moveTo($node, 'right');
+    }
+
+    /**
+     * Handler for all node alignments.
+     * @param mixed  $target
+     * @param string $position
+     * @return \October\Rain\Database\Model
+     */
+    protected function moveTo($target, $position)
+    {
+        /*
+         * Validate target
+         */
+        if ($target instanceof \October\Rain\Database\Model) {
+            $target->reload();
+        }
+        else {
+            $target = $this->newQuery()->find($target);
+        }
+        /*
+         * Validate move
+         */
+        if (!$this->validateMove($this, $target, $position)) {
+            return $this;
+        }
+        /*
+         * Perform move
+         */
+        $this->getConnection()->transaction(function() use ($target, $position) {
+            $this->performMove($this, $target, $position);
+        });
+
+        /*
+         * Reapply alignments
+         */
+        $target->reload();
+        $this->setDepth();
+
+        foreach ($this->newQuery()->allChildren()->get() as $descendant) {
+            $descendant->save();
+        }
+
+        $this->reload();
+        return $this;
+    }
+
+    /**
+     * Validates a proposed move and returns true if changes are needed.
+     * @return void
+     */
+    protected function validateMove($node, $target, $position)
+    {
+        if (!$node->exists) {
+            throw new Exception('A new node cannot be moved.');
+        }
+
+        if (!in_array($position, ['child', 'left', 'right'])) {
+            throw new Exception(sprintf(
+                'Position should be either child, left, right. Supplied position is "%s".', $position
+            ));
+        }
+
+        if ($target === null) {
+            if ($position == 'left' || $position == 'right') {
+                throw new Exception(sprintf(
+                    'Cannot resolve target node. This node cannot move any further to the %s.', $position
+                ));
+            }
+            else {
+                throw new Exception('Cannot resolve target node.');
+            }
+        }
+
+        if ($node == $target) {
+            throw new Exception('A node cannot be moved to itself.');
+        }
+
+        if ($target->isInsideSubtree($node)) {
+            throw new Exception('A node cannot be moved to a descendant of itself.');
+        }
+
+        return !(
+            $this->getPrimaryBoundary($node, $target, $position) == $node->getRight() ||
+            $this->getPrimaryBoundary($node, $target, $position) == $node->getLeft()
+        );
+    }
+
+    /**
+     * Calculates the boundary.
+     * @return int
+     */
+    protected function getPrimaryBoundary($node, $target, $position)
+    {
+        $primaryBoundary = null;
+        switch ($position) {
+            case 'child':
+                $primaryBoundary = $target->getRight();
+                break;
+
+            case 'left':
+                $primaryBoundary = $target->getLeft();
+                break;
+
+            case 'right':
+                $primaryBoundary = $target->getRight() + 1;
+                break;
+        }
+
+        return ($primaryBoundary > $node->getRight())
+            ? $primaryBoundary - 1
+            : $primaryBoundary;
+    }
+
+    //
+    // Checkers
+    //
+
+    /**
+     * Executes the SQL query associated with the update of the indexes affected
+     * by the move operation.
+     * @return int
+     */
+    protected function performMove($node, $target, $position)
+    {
+        list($a, $b, $c, $d) = $this->getSortedBoundaries($node, $target, $position);
+
+        $connection = $node->getConnection();
+        $grammar = $connection->getQueryGrammar();
+        $pdo = $connection->getPdo();
+
+        $parentId = ($position == 'child')
+            ? $target->getKey()
+            : $target->getParentId();
+
+        if ($parentId === null) {
+            $parentId = 'NULL';
+        }
+        else {
+            $parentId = $pdo->quote($parentId);
+        }
+
+        $currentId = $pdo->quote($node->getKey());
+        $leftColumn = $node->getLeftColumnName();
+        $rightColumn = $node->getRightColumnName();
+        $parentColumn = $node->getParentColumnName();
+        $wrappedLeft = $grammar->wrap($leftColumn);
+        $wrappedRight = $grammar->wrap($rightColumn);
+        $wrappedParent = $grammar->wrap($parentColumn);
+        $wrappedId = DbDongle::cast($grammar->wrap($node->getKeyName()), 'TEXT');
+
+        $leftSql = "CASE
+            WHEN $wrappedLeft BETWEEN $a AND $b THEN $wrappedLeft + $d - $b
+            WHEN $wrappedLeft BETWEEN $c AND $d THEN $wrappedLeft + $a - $c
+            ELSE $wrappedLeft END";
+
+        $rightSql = "CASE
+            WHEN $wrappedRight BETWEEN $a AND $b THEN $wrappedRight + $d - $b
+            WHEN $wrappedRight BETWEEN $c AND $d THEN $wrappedRight + $a - $c
+            ELSE $wrappedRight END";
+
+        $parentSql = "CASE
+            WHEN $wrappedId = $currentId THEN $parentId
+            ELSE $wrappedParent END";
+
+        $result = $node->newQuery()
+            ->where(function($query) use ($leftColumn, $rightColumn, $a, $d) {
+                $query
+                    ->whereBetween($leftColumn, [$a, $d])
+                    ->orWhereBetween($rightColumn, [$a, $d])
+                ;
+            })
+            ->update([
+                $leftColumn => $connection->raw($leftSql),
+                $rightColumn => $connection->raw($rightSql),
+                $parentColumn => $connection->raw($parentSql)
+            ])
+        ;
+
+        return $result;
+    }
+
+    /**
+     * Calculates a sorted boundaries array.
+     * @return array
+     */
+    protected function getSortedBoundaries($node, $target, $position)
+    {
+        $boundaries = [
+            $node->getLeft(),
+            $node->getRight(),
+            $this->getPrimaryBoundary($node, $target, $position),
+            $this->getOtherBoundary($node, $target, $position)
+        ];
+
+        sort($boundaries);
+
+        return $boundaries;
+    }
+
+    /**
+     * Calculates the other boundary.
+     * @return int
+     */
+    protected function getOtherBoundary($node, $target, $position)
+    {
+        return ($this->getPrimaryBoundary($node, $target, $position) > $node->getRight())
+            ? $node->getRight() + 1
+            : $node->getLeft() - 1;
+    }
+
+    /**
+     * Sets the depth attribute
+     * @return \October\Rain\Database\Model
+     */
+    public function setDepth()
+    {
+        $this->getConnection()->transaction(function() {
+            $this->reload();
+
+            $level = $this->getLevel();
+
+            $this->newQuery()
+                ->where($this->getKeyName(), '=', $this->getKey())
+                ->update([$this->getDepthColumnName() => $level])
+            ;
+
+            $this->setAttribute($this->getDepthColumnName(), $level);
+        });
+
+        return $this;
+    }
+
+    /**
+     * Returns the level of this node in the tree.
+     * Root level is 0.
+     * @return int
+     */
+    public function getLevel()
+    {
+        if ($this->getParentId() === null)
+            return 0;
+
+        return $this->newQuery()->parents()->count();
+    }
+
+    //
+    // Scopes
+    //
+
+    /**
+     * Get depth column name.
+     * @return string
+     */
+    public function getDepthColumnName()
+    {
+        return defined('static::NEST_DEPTH') ? static::NEST_DEPTH : 'nest_depth';
+    }
+
+    /**
+     * Returns the root node starting from the current node.
+     * @return \October\Rain\Database\Model
+     */
+    public function getRoot()
+    {
+        if ($this->exists) {
+            return $this->newQuery()->parents(true)
+                ->where(function($query){
+                    $query->whereNull($this->getParentColumnName());
+                    $query->orWhere($this->getParentColumnName(), 0);
+                })
+                ->first()
+            ;
+        }
+        else {
+            $parentId = $this->getParentId();
+
+            if ($parentId !== null && ($currentParent = $this->newQuery()->find($parentId))) {
+                return $currentParent->getRoot();
+            }
+            else {
+                return $this;
+            }
+        }
+    }
+
+    /**
+     * Make model node a child of specified node.
+     * @return \October\Rain\Database\Model
+     */
+    public function makeChildOf($node)
+    {
+        return $this->moveTo($node, 'child');
     }
 
     /**
@@ -202,26 +534,40 @@ trait NestedTree
         });
     }
 
-    //
-    // Alignment
-    //
-
     /**
-     * Make this model a root node.
-     * @return \October\Rain\Database\Model
+     * Get value of the right column.
+     * @return int
      */
-    public function makeRoot()
+    public function getRight()
     {
-        return $this->moveAfter($this->getRoot());
+        return $this->getAttribute($this->getRightColumnName());
     }
 
     /**
-     * Make model node a child of specified node.
-     * @return \October\Rain\Database\Model
+     * Get right column name.
+     * @return string
      */
-    public function makeChildOf($node)
+    public function getRightColumnName()
     {
-        return $this->moveTo($node, 'child');
+        return defined('static::NEST_RIGHT') ? static::NEST_RIGHT : 'nest_right';
+    }
+
+    /**
+     * Get value of the left column.
+     * @return int
+     */
+    public function getLeft()
+    {
+        return $this->getAttribute($this->getLeftColumnName());
+    }
+
+    /**
+     * Get left column name.
+     * @return string
+     */
+    public function getLeftColumnName()
+    {
+        return defined('static::NEST_LEFT') ? static::NEST_LEFT : 'nest_left';
     }
 
     /**
@@ -234,6 +580,19 @@ trait NestedTree
     }
 
     /**
+     * Move to the model to before (left) specified node.
+     * @return \October\Rain\Database\Model
+     */
+    public function moveBefore($node)
+    {
+        return $this->moveTo($node, 'left');
+    }
+
+    //
+    // Getters
+    //
+
+    /**
      * Find the right sibling and move to the right of it.
      * @return \October\Rain\Database\Model
      */
@@ -243,26 +602,13 @@ trait NestedTree
     }
 
     /**
-     * Move to the model to before (left) specified node.
-     * @return \October\Rain\Database\Model
+     * Returns true if this is a child node.
+     * @return boolean
      */
-    public function moveBefore($node)
+    public function isChild()
     {
-        return $this->moveTo($node, 'left');
+        return !$this->isRoot();
     }
-
-    /**
-     * Move to the model to after (right) a specified node.
-     * @return \October\Rain\Database\Model
-     */
-    public function moveAfter($node)
-    {
-        return $this->moveTo($node, 'right');
-    }
-
-    //
-    // Checkers
-    //
 
     /**
      * Returns true if this is a root node.
@@ -271,15 +617,6 @@ trait NestedTree
     public function isRoot()
     {
         return $this->getParentId() === null;
-    }
-
-    /**
-     * Returns true if this is a child node.
-     * @return boolean
-     */
-    public function isChild()
-    {
-        return !$this->isRoot();
     }
 
     /**
@@ -317,9 +654,14 @@ trait NestedTree
         return ($this->getLeft() > $other->getLeft() && $this->getLeft() < $other->getRight());
     }
 
-    //
-    // Scopes
-    //
+    /**
+     * Extracts current node (self) from current query expression.
+     * @return \Illuminate\Database\Query\Builder
+     */
+    public function scopeWithoutSelf($query)
+    {
+        return $this->scopeWithoutNode($query, $this);
+    }
 
     /**
      * Query scope which extracts a certain node object from the current query expression.
@@ -328,15 +670,6 @@ trait NestedTree
     public function scopeWithoutNode($query, $node)
     {
         return $query->where($node->getKeyName(), '!=', $node->getKey());
-    }
-
-    /**
-     * Extracts current node (self) from current query expression.
-     * @return \Illuminate\Database\Query\Builder
-     */
-    public function scopeWithoutSelf($query)
-    {
-        return $this->scopeWithoutNode($query, $this);
     }
 
     /**
@@ -405,6 +738,24 @@ trait NestedTree
     }
 
     /**
+     * Get fully qualified right column name.
+     * @return string
+     */
+    public function getQualifiedRightColumnName()
+    {
+        return $this->getTable() . '.' . $this->getRightColumnName();
+    }
+
+    /**
+     * Get fully qualified left column name.
+     * @return string
+     */
+    public function getQualifiedLeftColumnName()
+    {
+        return $this->getTable() . '.' . $this->getLeftColumnName();
+    }
+
+    /**
      * Returns a list of all root nodes, without eager loading
      * @return \October\Rain\Database\Collection
      */
@@ -418,6 +769,10 @@ trait NestedTree
             ->get()
         ;
     }
+
+    //
+    // Setters
+    //
 
     /**
      * Non chaining scope, returns an eager loaded hierarchy tree. Children are
@@ -465,7 +820,7 @@ trait NestedTree
     }
 
     //
-    // Getters
+    // Column getters
     //
 
     /**
@@ -475,33 +830,6 @@ trait NestedTree
     public function getAll($columns = ['*'])
     {
         return $this->newQuery()->get($columns);
-    }
-
-    /**
-     * Returns the root node starting from the current node.
-     * @return \October\Rain\Database\Model
-     */
-    public function getRoot()
-    {
-        if ($this->exists) {
-            return $this->newQuery()->parents(true)
-                ->where(function($query){
-                    $query->whereNull($this->getParentColumnName());
-                    $query->orWhere($this->getParentColumnName(), 0);
-                })
-                ->first()
-            ;
-        }
-        else {
-            $parentId = $this->getParentId();
-
-            if ($parentId !== null && ($currentParent = $this->newQuery()->find($parentId))) {
-                return $currentParent->getRoot();
-            }
-            else {
-                return $this;
-            }
-        }
     }
 
     /**
@@ -603,6 +931,10 @@ trait NestedTree
         return $this->newQuery()->siblings(true)->get();
     }
 
+    //
+    // Moving
+    //
+
     /**
      * Returns all final nodes without children.
      * @return \October\Rain\Database\Collection
@@ -613,51 +945,12 @@ trait NestedTree
     }
 
     /**
-     * Returns the level of this node in the tree.
-     * Root level is 0.
-     * @return int
-     */
-    public function getLevel()
-    {
-        if ($this->getParentId() === null)
-            return 0;
-
-        return $this->newQuery()->parents()->count();
-    }
-
-    /**
      * Returns number of all children below it.
      * @return int
      */
     public function getChildCount()
     {
         return ($this->getRight() - $this->getLeft() - 1) / 2;
-    }
-
-    //
-    // Setters
-    //
-
-    /**
-     * Sets the depth attribute
-     * @return \October\Rain\Database\Model
-     */
-    public function setDepth()
-    {
-        $this->getConnection()->transaction(function() {
-            $this->reload();
-
-            $level = $this->getLevel();
-
-            $this->newQuery()
-                ->where($this->getKeyName(), '=', $this->getKey())
-                ->update([$this->getDepthColumnName() => $level])
-            ;
-
-            $this->setAttribute($this->getDepthColumnName(), $level);
-        });
-
-        return $this;
     }
 
     /**
@@ -682,19 +975,6 @@ trait NestedTree
         $this->setAttribute($this->getRightColumnName(), $maxRight + 2);
     }
 
-    //
-    // Column getters
-    //
-
-    /**
-     * Get parent column name.
-     * @return string
-     */
-    public function getParentColumnName()
-    {
-        return defined('static::PARENT_ID') ? static::PARENT_ID : 'parent_id';
-    }
-
     /**
      * Get fully qualified parent column name.
      * @return string
@@ -702,78 +982,6 @@ trait NestedTree
     public function getQualifiedParentColumnName()
     {
         return $this->getTable(). '.' .$this->getParentColumnName();
-    }
-
-    /**
-     * Get value of the model parent_id column.
-     * @return int
-     */
-    public function getParentId()
-    {
-        return $this->getAttribute($this->getParentColumnName());
-    }
-
-    /**
-     * Get left column name.
-     * @return string
-     */
-    public function getLeftColumnName()
-    {
-        return defined('static::NEST_LEFT') ? static::NEST_LEFT : 'nest_left';
-    }
-
-    /**
-     * Get fully qualified left column name.
-     * @return string
-     */
-    public function getQualifiedLeftColumnName()
-    {
-        return $this->getTable() . '.' . $this->getLeftColumnName();
-    }
-
-    /**
-     * Get value of the left column.
-     * @return int
-     */
-    public function getLeft()
-    {
-        return $this->getAttribute($this->getLeftColumnName());
-    }
-
-    /**
-     * Get right column name.
-     * @return string
-     */
-    public function getRightColumnName()
-    {
-        return defined('static::NEST_RIGHT') ? static::NEST_RIGHT : 'nest_right';
-    }
-
-    /**
-     * Get fully qualified right column name.
-     * @return string
-     */
-    public function getQualifiedRightColumnName()
-    {
-        return $this->getTable() . '.' . $this->getRightColumnName();
-    }
-
-    /**
-     * Get value of the right column.
-     * @return int
-     */
-    public function getRight()
-    {
-        return $this->getAttribute($this->getRightColumnName());
-    }
-
-    /**
-     * Get depth column name.
-     * @return string
-     */
-    public function getDepthColumnName()
-    {
-        return defined('static::NEST_DEPTH') ? static::NEST_DEPTH : 'nest_depth';
     }
 
     /**
@@ -792,214 +1000,6 @@ trait NestedTree
     public function getDepth()
     {
         return $this->getAttribute($this->getDepthColumnName());
-    }
-
-    //
-    // Moving
-    //
-
-    /**
-     * Handler for all node alignments.
-     * @param mixed  $target
-     * @param string $position
-     * @return \October\Rain\Database\Model
-     */
-    protected function moveTo($target, $position)
-    {
-        /*
-         * Validate target
-         */
-        if ($target instanceof \October\Rain\Database\Model) {
-            $target->reload();
-        }
-        else {
-            $target = $this->newQuery()->find($target);
-        }
-        /*
-         * Validate move
-         */
-        if (!$this->validateMove($this, $target, $position)) {
-            return $this;
-        }
-        /*
-         * Perform move
-         */
-        $this->getConnection()->transaction(function() use ($target, $position) {
-            $this->performMove($this, $target, $position);
-        });
-
-        /*
-         * Reapply alignments
-         */
-        $target->reload();
-        $this->setDepth();
-
-        foreach ($this->newQuery()->allChildren()->get() as $descendant) {
-            $descendant->save();
-        }
-
-        $this->reload();
-        return $this;
-    }
-
-    /**
-     * Executes the SQL query associated with the update of the indexes affected
-     * by the move operation.
-     * @return int
-     */
-    protected function performMove($node, $target, $position)
-    {
-        list($a, $b, $c, $d) = $this->getSortedBoundaries($node, $target, $position);
-
-        $connection = $node->getConnection();
-        $grammar = $connection->getQueryGrammar();
-        $pdo = $connection->getPdo();
-
-        $parentId = ($position == 'child')
-            ? $target->getKey()
-            : $target->getParentId();
-
-        if ($parentId === null) {
-            $parentId = 'NULL';
-        }
-        else {
-            $parentId = $pdo->quote($parentId);
-        }
-
-        $currentId = $pdo->quote($node->getKey());
-        $leftColumn = $node->getLeftColumnName();
-        $rightColumn = $node->getRightColumnName();
-        $parentColumn = $node->getParentColumnName();
-        $wrappedLeft = $grammar->wrap($leftColumn);
-        $wrappedRight = $grammar->wrap($rightColumn);
-        $wrappedParent = $grammar->wrap($parentColumn);
-        $wrappedId = DbDongle::cast($grammar->wrap($node->getKeyName()), 'TEXT');
-
-        $leftSql = "CASE
-            WHEN $wrappedLeft BETWEEN $a AND $b THEN $wrappedLeft + $d - $b
-            WHEN $wrappedLeft BETWEEN $c AND $d THEN $wrappedLeft + $a - $c
-            ELSE $wrappedLeft END";
-
-        $rightSql = "CASE
-            WHEN $wrappedRight BETWEEN $a AND $b THEN $wrappedRight + $d - $b
-            WHEN $wrappedRight BETWEEN $c AND $d THEN $wrappedRight + $a - $c
-            ELSE $wrappedRight END";
-
-        $parentSql = "CASE
-            WHEN $wrappedId = $currentId THEN $parentId
-            ELSE $wrappedParent END";
-
-        $result = $node->newQuery()
-            ->where(function($query) use ($leftColumn, $rightColumn, $a, $d) {
-                $query
-                    ->whereBetween($leftColumn, [$a, $d])
-                    ->orWhereBetween($rightColumn, [$a, $d])
-                ;
-            })
-            ->update([
-                $leftColumn => $connection->raw($leftSql),
-                $rightColumn => $connection->raw($rightSql),
-                $parentColumn => $connection->raw($parentSql)
-            ])
-        ;
-
-        return $result;
-    }
-
-    /**
-     * Validates a proposed move and returns true if changes are needed.
-     * @return void
-     */
-    protected function validateMove($node, $target, $position)
-    {
-        if (!$node->exists) {
-            throw new Exception('A new node cannot be moved.');
-        }
-
-        if (!in_array($position, ['child', 'left', 'right'])) {
-            throw new Exception(sprintf(
-                'Position should be either child, left, right. Supplied position is "%s".', $position
-            ));
-        }
-
-        if ($target === null) {
-            if ($position == 'left' || $position == 'right') {
-                throw new Exception(sprintf(
-                    'Cannot resolve target node. This node cannot move any further to the %s.', $position
-                ));
-            }
-            else {
-                throw new Exception('Cannot resolve target node.');
-            }
-        }
-
-        if ($node == $target) {
-            throw new Exception('A node cannot be moved to itself.');
-        }
-
-        if ($target->isInsideSubtree($node)) {
-            throw new Exception('A node cannot be moved to a descendant of itself.');
-        }
-
-        return !(
-            $this->getPrimaryBoundary($node, $target, $position) == $node->getRight() ||
-            $this->getPrimaryBoundary($node, $target, $position) == $node->getLeft()
-        );
-    }
-
-    /**
-     * Calculates the boundary.
-     * @return int
-     */
-    protected function getPrimaryBoundary($node, $target, $position)
-    {
-        $primaryBoundary = null;
-        switch ($position) {
-            case 'child':
-                $primaryBoundary = $target->getRight();
-                break;
-
-            case 'left':
-                $primaryBoundary = $target->getLeft();
-                break;
-
-            case 'right':
-                $primaryBoundary = $target->getRight() + 1;
-                break;
-        }
-
-        return ($primaryBoundary > $node->getRight())
-            ? $primaryBoundary - 1
-            : $primaryBoundary;
-    }
-
-    /**
-     * Calculates the other boundary.
-     * @return int
-     */
-    protected function getOtherBoundary($node, $target, $position)
-    {
-        return ($this->getPrimaryBoundary($node, $target, $position) > $node->getRight())
-            ? $node->getRight() + 1
-            : $node->getLeft() - 1;
-    }
-
-    /**
-     * Calculates a sorted boundaries array.
-     * @return array
-     */
-    protected function getSortedBoundaries($node, $target, $position)
-    {
-        $boundaries = [
-            $node->getLeft(),
-            $node->getRight(),
-            $this->getPrimaryBoundary($node, $target, $position),
-            $this->getOtherBoundary($node, $target, $position)
-        ];
-
-        sort($boundaries);
-
-        return $boundaries;
     }
 
     /**

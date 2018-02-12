@@ -85,6 +85,34 @@ class StaticPage extends ComponentBase
         }
     }
 
+    /**
+     * Find foreign view bag values and add them to
+     * the component and page vars.
+     */
+    protected function defineExtraData()
+    {
+        $standardProperties = [
+            'title',
+            'url',
+            'layout',
+            'is_hidden',
+            'navigation_hidden',
+            'meta_title',
+            'meta_description'
+        ];
+
+        $extraData = array_diff_key(
+            $this->pageObject->viewBag,
+            array_flip($standardProperties)
+        );
+
+        foreach ($extraData as $key => $value) {
+            $this->page[$key] = $value;
+        }
+
+        return $extraData;
+    }
+
     public function page()
     {
         return $this->pageObject;
@@ -116,34 +144,6 @@ class StaticPage extends ComponentBase
         }
 
         $this->contentCached = '';
-    }
-
-    /**
-     * Find foreign view bag values and add them to
-     * the component and page vars.
-     */
-    protected function defineExtraData()
-    {
-        $standardProperties = [
-            'title',
-            'url',
-            'layout',
-            'is_hidden',
-            'navigation_hidden',
-            'meta_title',
-            'meta_description'
-        ];
-
-        $extraData = array_diff_key(
-            $this->pageObject->viewBag,
-            array_flip($standardProperties)
-        );
-
-        foreach ($extraData as $key => $value) {
-            $this->page[$key] = $value;
-        }
-
-        return $extraData;
     }
 
     /**

@@ -19,16 +19,6 @@ abstract class Connection
     protected $client;
 
     /**
-     * Subscribe to a set of given channels for messages.
-     *
-     * @param  array|string  $channels
-     * @param  \Closure  $callback
-     * @param  string  $method
-     * @return void
-     */
-    abstract public function createSubscription($channels, Closure $callback, $method = 'subscribe');
-
-    /**
      * Funnel a callback for a maximum number of simultaneous executions.
      *
      * @param  string  $name
@@ -73,6 +63,16 @@ abstract class Connection
     }
 
     /**
+     * Subscribe to a set of given channels for messages.
+     *
+     * @param  array|string  $channels
+     * @param  \Closure  $callback
+     * @param  string  $method
+     * @return void
+     */
+    abstract public function createSubscription($channels, Closure $callback, $method = 'subscribe');
+
+    /**
      * Subscribe to a set of given channels with wildcards.
      *
      * @param  array|string  $channels
@@ -85,18 +85,6 @@ abstract class Connection
     }
 
     /**
-     * Run a command against the Redis database.
-     *
-     * @param  string  $method
-     * @param  array   $parameters
-     * @return mixed
-     */
-    public function command($method, array $parameters = [])
-    {
-        return $this->client->{$method}(...$parameters);
-    }
-
-    /**
      * Pass other method calls down to the underlying client.
      *
      * @param  string  $method
@@ -106,5 +94,17 @@ abstract class Connection
     public function __call($method, $parameters)
     {
         return $this->command($method, $parameters);
+    }
+
+    /**
+     * Run a command against the Redis database.
+     *
+     * @param  string  $method
+     * @param  array   $parameters
+     * @return mixed
+     */
+    public function command($method, array $parameters = [])
+    {
+        return $this->client->{$method}(...$parameters);
     }
 }

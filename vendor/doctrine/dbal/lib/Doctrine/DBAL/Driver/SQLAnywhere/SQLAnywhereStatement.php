@@ -91,44 +91,6 @@ class SQLAnywhereStatement implements IteratorAggregate, Statement
      *
      * @throws SQLAnywhereException
      */
-    public function bindParam($column, &$variable, $type = null, $length = null)
-    {
-        switch ($type) {
-            case PDO::PARAM_INT:
-            case PDO::PARAM_BOOL:
-                $type = 'i';
-                break;
-            case PDO::PARAM_LOB:
-                $type = 'b';
-                break;
-            case PDO::PARAM_NULL:
-            case PDO::PARAM_STR:
-                $type = 's';
-                break;
-            default:
-                throw new SQLAnywhereException('Unknown type: ' . $type);
-        }
-
-        if ( ! sasql_stmt_bind_param_ex($this->stmt, $column - 1, $variable, $type, $variable === null)) {
-            throw SQLAnywhereException::fromSQLAnywhereError($this->conn, $this->stmt);
-        }
-
-        return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function bindValue($param, $value, $type = null)
-    {
-        return $this->bindParam($param, $value, $type);
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @throws SQLAnywhereException
-     */
     public function closeCursor()
     {
         if (!sasql_stmt_reset($this->stmt)) {
@@ -190,46 +152,48 @@ class SQLAnywhereStatement implements IteratorAggregate, Statement
 
     /**
      * {@inheritdoc}
+     */
+    public function bindValue($param, $value, $type = null)
+    {
+        return $this->bindParam($param, $value, $type);
+    }
+
+    /**
+     * {@inheritdoc}
      *
      * @throws SQLAnywhereException
      */
-    public function fetch($fetchMode = null)
+    public function bindParam($column, &$variable, $type = null, $length = null)
     {
-        if ( ! is_resource($this->result)) {
-            return false;
-        }
-
-        $fetchMode = $fetchMode ?: $this->defaultFetchMode;
-
-        switch ($fetchMode) {
-            case PDO::FETCH_ASSOC:
-                return sasql_fetch_assoc($this->result);
-            case PDO::FETCH_BOTH:
-                return sasql_fetch_array($this->result, SASQL_BOTH);
-            case PDO::FETCH_CLASS:
-                $className = $this->defaultFetchClass;
-                $ctorArgs  = $this->defaultFetchClassCtorArgs;
-
-                if (func_num_args() >= 2) {
-                    $args      = func_get_args();
-                    $className = $args[1];
-                    $ctorArgs  = isset($args[2]) ? $args[2] : array();
-                }
-
-                $result = sasql_fetch_object($this->result);
-
-                if ($result instanceof \stdClass) {
-                    $result = $this->castObject($result, $className, $ctorArgs);
-                }
-
-                return $result;
-            case PDO::FETCH_NUM:
-                return sasql_fetch_row($this->result);
-            case PDO::FETCH_OBJ:
-                return sasql_fetch_object($this->result);
+        switch ($type) {
+            case PDO::PARAM_INT:
+            case PDO::PARAM_BOOL:
+                $type = 'i';
+                break;
+            case PDO::PARAM_LOB:
+                $type = 'b';
+                break;
+            case PDO::PARAM_NULL:
+            case PDO::PARAM_STR:
+                $type = 's';
+                break;
             default:
-                throw new SQLAnywhereException('Fetch mode is not supported: ' . $fetchMode);
+                throw new SQLAnywhereException('Unknown type: ' . $type);
         }
+
+        if ( ! sasql_stmt_bind_param_ex($this->stmt, $column - 1, $variable, $type, $variable === null)) {
+            throw SQLAnywhereException::fromSQLAnywhereError($this->conn, $this->stmt);
+        }
+
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getIterator()
+    {
+        return new \ArrayIterator($this->fetchAll());
     }
 
     /**
@@ -275,28 +239,46 @@ class SQLAnywhereStatement implements IteratorAggregate, Statement
 
     /**
      * {@inheritdoc}
+     *
+     * @throws SQLAnywhereException
      */
-    public function getIterator()
+    public function fetch($fetchMode = null)
     {
-        return new \ArrayIterator($this->fetchAll());
-    }
+        if ( ! is_resource($this->result)) {
+            return false;
+        }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function rowCount()
-    {
-        return sasql_stmt_affected_rows($this->stmt);
-    }
+        $fetchMode = $fetchMode ?: $this->defaultFetchMode;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function setFetchMode($fetchMode, $arg2 = null, $arg3 = null)
-    {
-        $this->defaultFetchMode          = $fetchMode;
-        $this->defaultFetchClass         = $arg2 ? $arg2 : $this->defaultFetchClass;
-        $this->defaultFetchClassCtorArgs = $arg3 ? (array) $arg3 : $this->defaultFetchClassCtorArgs;
+        switch ($fetchMode) {
+            case PDO::FETCH_ASSOC:
+                return sasql_fetch_assoc($this->result);
+            case PDO::FETCH_BOTH:
+                return sasql_fetch_array($this->result, SASQL_BOTH);
+            case PDO::FETCH_CLASS:
+                $className = $this->defaultFetchClass;
+                $ctorArgs  = $this->defaultFetchClassCtorArgs;
+
+                if (func_num_args() >= 2) {
+                    $args      = func_get_args();
+                    $className = $args[1];
+                    $ctorArgs  = isset($args[2]) ? $args[2] : array();
+                }
+
+                $result = sasql_fetch_object($this->result);
+
+                if ($result instanceof \stdClass) {
+                    $result = $this->castObject($result, $className, $ctorArgs);
+                }
+
+                return $result;
+            case PDO::FETCH_NUM:
+                return sasql_fetch_row($this->result);
+            case PDO::FETCH_OBJ:
+                return sasql_fetch_object($this->result);
+            default:
+                throw new SQLAnywhereException('Fetch mode is not supported: ' . $fetchMode);
+        }
     }
 
     /**
@@ -343,5 +325,23 @@ class SQLAnywhereStatement implements IteratorAggregate, Statement
         }
 
         return $destinationClass;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function rowCount()
+    {
+        return sasql_stmt_affected_rows($this->stmt);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setFetchMode($fetchMode, $arg2 = null, $arg3 = null)
+    {
+        $this->defaultFetchMode          = $fetchMode;
+        $this->defaultFetchClass         = $arg2 ? $arg2 : $this->defaultFetchClass;
+        $this->defaultFetchClassCtorArgs = $arg3 ? (array) $arg3 : $this->defaultFetchClassCtorArgs;
     }
 }

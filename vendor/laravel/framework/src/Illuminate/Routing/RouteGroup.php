@@ -31,6 +31,22 @@ class RouteGroup
     }
 
     /**
+     * Format the "as" clause of the new group attributes.
+     *
+     * @param  array  $new
+     * @param  array  $old
+     * @return array
+     */
+    protected static function formatAs($new, $old)
+    {
+        if (isset($old['as'])) {
+            $new['as'] = $old['as'].($new['as'] ?? '');
+        }
+
+        return $new;
+    }
+
+    /**
      * Format the namespace for the new group attributes.
      *
      * @param  array  $new
@@ -75,21 +91,5 @@ class RouteGroup
             $old['where'] ?? [],
             $new['where'] ?? []
         );
-    }
-
-    /**
-     * Format the "as" clause of the new group attributes.
-     *
-     * @param  array  $new
-     * @param  array  $old
-     * @return array
-     */
-    protected static function formatAs($new, $old)
-    {
-        if (isset($old['as'])) {
-            $new['as'] = $old['as'].($new['as'] ?? '');
-        }
-
-        return $new;
     }
 }

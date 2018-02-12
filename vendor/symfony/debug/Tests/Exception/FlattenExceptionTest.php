@@ -259,6 +259,11 @@ class FlattenExceptionTest extends TestCase
         $this->assertTrue(is_nan($array[$i++][1]));
     }
 
+    private function createException($foo)
+    {
+        return new \Exception();
+    }
+
     public function testRecursionInArguments()
     {
         $a = array('foo', array(2, &$a));
@@ -292,10 +297,5 @@ class FlattenExceptionTest extends TestCase
 
         $this->assertContains('*SKIPPED over 10000 entries*', $serializeTrace);
         $this->assertNotContains('*value1*', $serializeTrace);
-    }
-
-    private function createException($foo)
-    {
-        return new \Exception();
     }
 }

@@ -14,22 +14,6 @@ class NavigationManager
 {
     use \October\Rain\Support\Traits\Singleton;
 
-    /**
-     * @var array Cache of registration callbacks.
-     */
-    protected $callbacks = [];
-
-    /**
-     * @var array List of registered items.
-     */
-    protected $items;
-
-    protected $contextSidenavPartials = [];
-
-    protected $contextOwner;
-    protected $contextMainMenuItemCode;
-    protected $contextSideMenuItemCode;
-
     protected static $mainItemDefaults = [
         'code'        => null,
         'label'       => null,
@@ -40,7 +24,6 @@ class NavigationManager
         'order'       => 500,
         'sideMenu'    => []
     ];
-
     protected static $sideItemDefaults = [
         'code'        => null,
         'label'       => null,
@@ -53,18 +36,118 @@ class NavigationManager
         'attributes'  => [],
         'permissions' => []
     ];
-
+    /**
+     * @var array Cache of registration callbacks.
+     */
+    protected $callbacks = [];
+    /**
+     * @var array List of registered items.
+     */
+    protected $items;
+    protected $contextSidenavPartials = [];
+    protected $contextOwner;
+    protected $contextMainMenuItemCode;
+    protected $contextSideMenuItemCode;
     /**
      * @var System\Classes\PluginManager
      */
     protected $pluginManager;
 
     /**
-     * Initialize this singleton.
+     * Registers a callback function that defines menu items.
+     * The callback function should register menu items by calling the manager's
+     * `registerMenuItems` method. The manager instance is passed to the callback
+     * function as an argument. Usage:
+     *
+     *     BackendMenu::registerCallback(function($manager){
+     *         $manager->registerMenuItems([...]);
+     *     });
+     *
+     * @param callable $callback A callable function.
      */
-    protected function init()
+    public function registerCallback(callable $callback)
     {
-        $this->pluginManager = PluginManager::instance();
+        $this->callbacks[] = $callback;
+    }
+
+    /**
+     * Removes a single main menu item
+     */
+    public function removeMainMenuItem($owner, $code)
+    {
+        $itemKey = $this->makeItemKey($owner, $code);
+        unset($this->items[$itemKey]);
+    }
+
+    /**
+     * Internal method to make a unique key for an item.
+     * @param  object $item
+     * @return string
+     */
+    protected function makeItemKey($owner, $code)
+    {
+        return strtoupper($owner).'.'.strtoupper($code);
+    }
+
+    /**
+     * Removes a single main menu item
+     */
+    public function removeSideMenuItem($owner, $code, $sideCode)
+    {
+        $itemKey = $this->makeItemKey($owner, $code);
+        if (!isset($this->items[$itemKey])) {
+            return false;
+        }
+
+        $mainItem = $this->items[$itemKey];
+        unset($mainItem->sideMenu[$sideCode]);
+    }
+
+    /**
+     * Returns a list of side menu items for the currently active main menu item.
+     * The currently active main menu item is set with the setContext methods.
+     */
+    public function listSideMenuItems($owner = null, $code = null)
+    {
+        $activeItem = null;
+
+        if (!is_null($owner) && !is_null($code)) {
+            $activeItem = @$this->items[$this->makeItemKey($owner, $code)];
+        } else {
+            foreach ($this->listMainMenuItems() as $item) {
+                if ($this->isMainMenuItemActive($item)) {
+                    $activeItem = $item;
+                    break;
+                }
+            }
+        }
+
+        if (!$activeItem) {
+            return [];
+        }
+
+        $items = $activeItem->sideMenu;
+
+        foreach ($items as $item) {
+            if ($item->counter !== null && is_callable($item->counter)) {
+                $item->counter = call_user_func($item->counter, $item);
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * Returns a list of the main menu items.
+     * @return array
+     */
+    public function listMainMenuItems()
+    {
+        if ($this->items === null) {
+            $this->loadItems();
+        }
+
+        return $this->items;
     }
 
     /**
@@ -141,23 +224,6 @@ class NavigationManager
     }
 
     /**
-     * Registers a callback function that defines menu items.
-     * The callback function should register menu items by calling the manager's
-     * `registerMenuItems` method. The manager instance is passed to the callback
-     * function as an argument. Usage:
-     *
-     *     BackendMenu::registerCallback(function($manager){
-     *         $manager->registerMenuItems([...]);
-     *     });
-     *
-     * @param callable $callback A callable function.
-     */
-    public function registerCallback(callable $callback)
-    {
-        $this->callbacks[] = $callback;
-    }
-
-    /**
      * Registers the back-end menu items.
      * The argument is an array of the main menu items. The array keys represent the
      * menu item codes, specific for the plugin/module. Each element in the
@@ -230,15 +296,6 @@ class NavigationManager
     }
 
     /**
-     * Removes a single main menu item
-     */
-    public function removeMainMenuItem($owner, $code)
-    {
-        $itemKey = $this->makeItemKey($owner, $code);
-        unset($this->items[$itemKey]);
-    }
-
-    /**
      * Dynamically add an array of side menu items
      * @param string $owner
      * @param string $code
@@ -283,64 +340,36 @@ class NavigationManager
     }
 
     /**
-     * Removes a single main menu item
+     * Removes menu items from an array if the supplied user lacks permission.
+     * @param User $user A user object
+     * @param array $items A collection of menu items
+     * @return array The filtered menu items
      */
-    public function removeSideMenuItem($owner, $code, $sideCode)
+    protected function filterItemPermissions($user, array $items)
     {
-        $itemKey = $this->makeItemKey($owner, $code);
-        if (!isset($this->items[$itemKey])) {
-            return false;
+        if (!$user) {
+            return $items;
         }
 
-        $mainItem = $this->items[$itemKey];
-        unset($mainItem->sideMenu[$sideCode]);
-    }
-
-    /**
-     * Returns a list of the main menu items.
-     * @return array
-     */
-    public function listMainMenuItems()
-    {
-        if ($this->items === null) {
-            $this->loadItems();
-        }
-
-        return $this->items;
-    }
-
-    /**
-     * Returns a list of side menu items for the currently active main menu item.
-     * The currently active main menu item is set with the setContext methods.
-     */
-    public function listSideMenuItems($owner = null, $code = null)
-    {
-        $activeItem = null;
-
-        if (!is_null($owner) && !is_null($code)) {
-            $activeItem = @$this->items[$this->makeItemKey($owner, $code)];
-        } else {
-            foreach ($this->listMainMenuItems() as $item) {
-                if ($this->isMainMenuItemActive($item)) {
-                    $activeItem = $item;
-                    break;
-                }
+        $items = array_filter($items, function ($item) use ($user) {
+            if (!$item->permissions || !count($item->permissions)) {
+                return true;
             }
-        }
 
-        if (!$activeItem) {
-            return [];
-        }
-
-        $items = $activeItem->sideMenu;
-
-        foreach ($items as $item) {
-            if ($item->counter !== null && is_callable($item->counter)) {
-                $item->counter = call_user_func($item->counter, $item);
-            }
-        }
+            return $user->hasAnyAccess($item->permissions);
+        });
 
         return $items;
+    }
+
+    /**
+     * Determines if a main menu item is active.
+     * @param mixed $item Specifies the item object.
+     * @return boolean Returns true if the menu item is active.
+     */
+    public function isMainMenuItemActive($item)
+    {
+        return $this->contextOwner == $item->owner && $this->contextMainMenuItemCode == $item->code;
     }
 
     /**
@@ -377,6 +406,16 @@ class NavigationManager
     }
 
     /**
+     * Specifies a code of the side menu item in the current navigation context.
+     * If the code is set to TRUE, the first item will be flagged as active.
+     * @param string $sideMenuItemCode Specifies the side menu item code
+     */
+    public function setContextSideMenu($sideMenuItemCode)
+    {
+        $this->contextSideMenuItemCode = $sideMenuItemCode;
+    }
+
+    /**
      * Returns information about the current navigation context.
      * @return mixed Returns an object with the following fields:
      * - mainMenuCode
@@ -390,26 +429,6 @@ class NavigationManager
             'sideMenuCode' => $this->contextSideMenuItemCode,
             'owner' => $this->contextOwner
         ];
-    }
-
-    /**
-     * Specifies a code of the side menu item in the current navigation context.
-     * If the code is set to TRUE, the first item will be flagged as active.
-     * @param string $sideMenuItemCode Specifies the side menu item code
-     */
-    public function setContextSideMenu($sideMenuItemCode)
-    {
-        $this->contextSideMenuItemCode = $sideMenuItemCode;
-    }
-
-    /**
-     * Determines if a main menu item is active.
-     * @param mixed $item Specifies the item object.
-     * @return boolean Returns true if the menu item is active.
-     */
-    public function isMainMenuItemActive($item)
-    {
-        return $this->contextOwner == $item->owner && $this->contextMainMenuItemCode == $item->code;
     }
 
     /**
@@ -472,35 +491,10 @@ class NavigationManager
     }
 
     /**
-     * Removes menu items from an array if the supplied user lacks permission.
-     * @param User $user A user object
-     * @param array $items A collection of menu items
-     * @return array The filtered menu items
+     * Initialize this singleton.
      */
-    protected function filterItemPermissions($user, array $items)
+    protected function init()
     {
-        if (!$user) {
-            return $items;
-        }
-
-        $items = array_filter($items, function ($item) use ($user) {
-            if (!$item->permissions || !count($item->permissions)) {
-                return true;
-            }
-
-            return $user->hasAnyAccess($item->permissions);
-        });
-
-        return $items;
-    }
-
-    /**
-     * Internal method to make a unique key for an item.
-     * @param  object $item
-     * @return string
-     */
-    protected function makeItemKey($owner, $code)
-    {
-        return strtoupper($owner).'.'.strtoupper($code);
+        $this->pluginManager = PluginManager::instance();
     }
 }

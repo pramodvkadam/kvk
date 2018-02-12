@@ -15,24 +15,21 @@ use Backend;
 class PluginBase extends ServiceProviderBase
 {
     /**
-     * @var boolean
-     */
-    protected $loadedYamlConfiguration = false;
-
-    /**
      * @var array Plugin dependencies
      */
     public $require = [];
-
     /**
      * @var boolean Determine if this plugin should have elevated privileges.
      */
     public $elevated = false;
-
     /**
      * @var boolean Determine if this plugin should be loaded (false) or not (true).
      */
     public $disabled = false;
+    /**
+     * @var boolean
+     */
+    protected $loadedYamlConfiguration = false;
 
     /**
      * Returns information about this plugin, including plugin name and developer name.
@@ -55,6 +52,40 @@ class PluginBase extends ServiceProviderBase
         }
 
         return $configuration['plugin'];
+    }
+
+    /**
+     * Read configuration from YAML file
+     *
+     * @param string|null $exceptionMessage
+     * @return array|bool
+     * @throws SystemException
+     */
+    protected function getConfigurationFromYaml($exceptionMessage = null)
+    {
+        if ($this->loadedYamlConfiguration !== false) {
+            return $this->loadedYamlConfiguration;
+        }
+
+        $reflection = new ReflectionClass(get_class($this));
+        $yamlFilePath = dirname($reflection->getFileName()).'/plugin.yaml';
+
+        if (!file_exists($yamlFilePath)) {
+            if ($exceptionMessage) {
+                throw new SystemException($exceptionMessage);
+            }
+            else {
+                $this->loadedYamlConfiguration = [];
+            }
+        }
+        else {
+            $this->loadedYamlConfiguration = Yaml::parse(file_get_contents($yamlFilePath));
+            if (!is_array($this->loadedYamlConfiguration)) {
+                throw new SystemException(sprintf('Invalid format of the plugin configuration file: %s. The file should define an array.', $yamlFilePath));
+            }
+        }
+
+        return $this->loadedYamlConfiguration;
     }
 
     /**
@@ -234,39 +265,5 @@ class PluginBase extends ServiceProviderBase
         });
 
         $this->commands($key);
-    }
-
-    /**
-     * Read configuration from YAML file
-     *
-     * @param string|null $exceptionMessage
-     * @return array|bool
-     * @throws SystemException
-     */
-    protected function getConfigurationFromYaml($exceptionMessage = null)
-    {
-        if ($this->loadedYamlConfiguration !== false) {
-            return $this->loadedYamlConfiguration;
-        }
-
-        $reflection = new ReflectionClass(get_class($this));
-        $yamlFilePath = dirname($reflection->getFileName()).'/plugin.yaml';
-
-        if (!file_exists($yamlFilePath)) {
-            if ($exceptionMessage) {
-                throw new SystemException($exceptionMessage);
-            }
-            else {
-                $this->loadedYamlConfiguration = [];
-            }
-        }
-        else {
-            $this->loadedYamlConfiguration = Yaml::parse(file_get_contents($yamlFilePath));
-            if (!is_array($this->loadedYamlConfiguration)) {
-                throw new SystemException(sprintf('Invalid format of the plugin configuration file: %s. The file should define an array.', $yamlFilePath));
-            }
-        }
-
-        return $this->loadedYamlConfiguration;
     }
 }

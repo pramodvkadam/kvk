@@ -75,6 +75,22 @@ class SlackHandler extends SocketHandler
         return $this->slackRecord;
     }
 
+    public function setFormatter(FormatterInterface $formatter)
+    {
+        parent::setFormatter($formatter);
+        $this->slackRecord->setFormatter($formatter);
+
+        return $this;
+    }
+
+    public function getFormatter()
+    {
+        $formatter = parent::getFormatter();
+        $this->slackRecord->setFormatter($formatter);
+
+        return $formatter;
+    }
+
     /**
      * {@inheritdoc}
      *
@@ -195,21 +211,5 @@ class SlackHandler extends SocketHandler
         );
 
         return $this->slackRecord->stringify($fields);
-    }
-
-    public function setFormatter(FormatterInterface $formatter)
-    {
-        parent::setFormatter($formatter);
-        $this->slackRecord->setFormatter($formatter);
-
-        return $this;
-    }
-
-    public function getFormatter()
-    {
-        $formatter = parent::getFormatter();
-        $this->slackRecord->setFormatter($formatter);
-
-        return $formatter;
     }
 }

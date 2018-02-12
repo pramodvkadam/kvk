@@ -180,6 +180,27 @@ class RouteCollection implements Countable, IteratorAggregate
     }
 
     /**
+     * Get routes from the collection by method.
+     *
+     * @param  string|null  $method
+     * @return array
+     */
+    public function get($method = null)
+    {
+        return is_null($method) ? $this->getRoutes() : Arr::get($this->routes, $method, []);
+    }
+
+    /**
+     * Get all of the routes in the collection.
+     *
+     * @return array
+     */
+    public function getRoutes()
+    {
+        return array_values($this->allRoutes);
+    }
+
+    /**
      * Determine if a route in the array matches the request.
      *
      * @param  array  $routes
@@ -256,17 +277,6 @@ class RouteCollection implements Countable, IteratorAggregate
     }
 
     /**
-     * Get routes from the collection by method.
-     *
-     * @param  string|null  $method
-     * @return array
-     */
-    public function get($method = null)
-    {
-        return is_null($method) ? $this->getRoutes() : Arr::get($this->routes, $method, []);
-    }
-
-    /**
      * Determine if the route collection contains a given named route.
      *
      * @param  string  $name
@@ -297,16 +307,6 @@ class RouteCollection implements Countable, IteratorAggregate
     public function getByAction($action)
     {
         return $this->actionList[$action] ?? null;
-    }
-
-    /**
-     * Get all of the routes in the collection.
-     *
-     * @return array
-     */
-    public function getRoutes()
-    {
-        return array_values($this->allRoutes);
     }
 
     /**

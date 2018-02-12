@@ -39,50 +39,6 @@ class Debug extends Formatter
     /**
      * {@inheritdoc}
      */
-    protected function indentStr()
-    {
-        return str_repeat('  ', $this->indentLevel);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function blockLines(OutputBlock $block)
-    {
-        $indent = $this->indentStr();
-
-        if (empty($block->lines)) {
-            echo "{$indent}block->lines: []\n";
-
-            return;
-        }
-
-        foreach ($block->lines as $index => $line) {
-            echo "{$indent}block->lines[{$index}]: $line\n";
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function blockSelectors(OutputBlock $block)
-    {
-        $indent = $this->indentStr();
-
-        if (empty($block->selectors)) {
-            echo "{$indent}block->selectors: []\n";
-
-            return;
-        }
-
-        foreach ($block->selectors as $index => $selector) {
-            echo "{$indent}block->selectors[{$index}]: $selector\n";
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     protected function blockChildren(OutputBlock $block)
     {
         $indent = $this->indentStr();
@@ -115,5 +71,49 @@ class Debug extends Formatter
         $this->blockSelectors($block);
         $this->blockLines($block);
         $this->blockChildren($block);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function blockSelectors(OutputBlock $block)
+    {
+        $indent = $this->indentStr();
+
+        if (empty($block->selectors)) {
+            echo "{$indent}block->selectors: []\n";
+
+            return;
+        }
+
+        foreach ($block->selectors as $index => $selector) {
+            echo "{$indent}block->selectors[{$index}]: $selector\n";
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function blockLines(OutputBlock $block)
+    {
+        $indent = $this->indentStr();
+
+        if (empty($block->lines)) {
+            echo "{$indent}block->lines: []\n";
+
+            return;
+        }
+
+        foreach ($block->lines as $index => $line) {
+            echo "{$indent}block->lines[{$index}]: $line\n";
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function indentStr()
+    {
+        return str_repeat('  ', $this->indentLevel);
     }
 }

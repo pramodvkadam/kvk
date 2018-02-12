@@ -17,97 +17,51 @@ class EditorSetting extends Model
     use \System\Traits\ViewMaker;
     use \October\Rain\Database\Traits\Validation;
 
+    const CACHE_KEY = 'backend::editor.custom_css';
     /**
      * @var array Behaviors implemented by this model.
      */
     public $implement = [
         \System\Behaviors\SettingsModel::class
     ];
-
     /**
      * @var string Unique code
      */
     public $settingsCode = 'backend_editor_settings';
-
     /**
      * @var mixed Settings form field defitions
      */
     public $settingsFields = 'fields.yaml';
-
-    const CACHE_KEY = 'backend::editor.custom_css';
-
+    /**
+     * Validation rules
+     */
+    public $rules = [];
     protected $defaultHtmlAllowEmptyTags = 'textarea, a, iframe, object, video, style, script';
-
     protected $defaultHtmlAllowTags = 'a, abbr, address, area, article, aside, audio, b, base, bdi, bdo, blockquote, br, button, canvas, caption, cite, code, col, colgroup, datalist, dd, del, details, dfn, dialog, div, dl, dt, em, embed, fieldset, figcaption, figure, footer, form, h1, h2, h3, h4, h5, h6, header, hgroup, hr, i, iframe, img, input, ins, kbd, keygen, label, legend, li, link, main, map, mark, menu, menuitem, meter, nav, noscript, object, ol, optgroup, option, output, p, param, pre, progress, queue, rp, rt, ruby, s, samp, script, style, section, select, small, source, span, strike, strong, sub, summary, sup, table, tbody, td, textarea, tfoot, th, thead, time, title, tr, track, u, ul, var, video, wbr';
-
     protected $defaultHtmlNoWrapTags = 'figure, script, style';
-
     protected $defaultHtmlRemoveTags = 'script, style';
-
     protected $defaultHtmlStyleImage = [
         'oc-img-rounded' => 'Rounded',
         'oc-img-bordered' => 'Bordered',
     ];
-
     protected $defaultHtmlStyleLink = [
         'oc-link-green' => 'Green',
         'oc-link-strong' => 'Strong',
     ];
-
     protected $defaultHtmlStyleParagraph = [
         'oc-text-bordered' => 'Bordered',
         'oc-text-gray' => 'Gray',
         'oc-text-spaced' => 'Spaced',
         'oc-text-uppercase' => 'Uppercase',
     ];
-
     protected $defaultHtmlStyleTable = [
         'oc-dashed-borders' => 'Dashed Borders',
         'oc-alternate-rows' => 'Alternate Rows',
     ];
-
     protected $defaultHtmlStyleTableCell = [
         'oc-cell-highlighted' => 'Highlighted',
         'oc-cell-thick-border' => 'Thick Border',
     ];
-
-    /**
-     * Validation rules
-     */
-    public $rules = [];
-
-    /**
-     * Initialize the seed data for this model. This only executes when the
-     * model is first created or reset to default.
-     * @return void
-     */
-    public function initSettingsData()
-    {
-        $this->html_allow_empty_tags = $this->defaultHtmlAllowEmptyTags;
-        $this->html_allow_tags = $this->defaultHtmlAllowTags;
-        $this->html_no_wrap_tags = $this->defaultHtmlNoWrapTags;
-        $this->html_remove_tags = $this->defaultHtmlRemoveTags;
-        $this->html_custom_styles = File::get(base_path().'/modules/backend/models/editorsetting/default_styles.less');
-        $this->html_style_image = $this->makeStylesForTable($this->defaultHtmlStyleImage);
-        $this->html_style_link = $this->makeStylesForTable($this->defaultHtmlStyleLink);
-        $this->html_style_paragraph = $this->makeStylesForTable($this->defaultHtmlStyleParagraph);
-        $this->html_style_table = $this->makeStylesForTable($this->defaultHtmlStyleTable);
-        $this->html_style_table_cell = $this->makeStylesForTable($this->defaultHtmlStyleTableCell);
-    }
-
-    public function afterSave()
-    {
-        Cache::forget(self::CACHE_KEY);
-    }
-
-    protected function makeStylesForTable($arr)
-    {
-        $count = 0;
-
-        return array_build($arr, function ($key, $value) use (&$count) {
-            return [$count++, ['class_label' => $value, 'class_name' => $key]];
-        });
-    }
 
     /**
      * Same as getConfigured but uses special style structure.
@@ -145,13 +99,6 @@ class EditorSetting extends Model
         return $value != $defaultValue ? $value : $default;
     }
 
-    public function getDefaultValue($attribute)
-    {
-        $property = 'default'.studly_case($attribute);
-
-        return $this->$property;
-    }
-
     public static function renderCss()
     {
         if (Cache::has(self::CACHE_KEY)) {
@@ -182,5 +129,45 @@ class EditorSetting extends Model
         $css = $parser->getCss();
 
         return $css;
+    }
+
+    /**
+     * Initialize the seed data for this model. This only executes when the
+     * model is first created or reset to default.
+     * @return void
+     */
+    public function initSettingsData()
+    {
+        $this->html_allow_empty_tags = $this->defaultHtmlAllowEmptyTags;
+        $this->html_allow_tags = $this->defaultHtmlAllowTags;
+        $this->html_no_wrap_tags = $this->defaultHtmlNoWrapTags;
+        $this->html_remove_tags = $this->defaultHtmlRemoveTags;
+        $this->html_custom_styles = File::get(base_path().'/modules/backend/models/editorsetting/default_styles.less');
+        $this->html_style_image = $this->makeStylesForTable($this->defaultHtmlStyleImage);
+        $this->html_style_link = $this->makeStylesForTable($this->defaultHtmlStyleLink);
+        $this->html_style_paragraph = $this->makeStylesForTable($this->defaultHtmlStyleParagraph);
+        $this->html_style_table = $this->makeStylesForTable($this->defaultHtmlStyleTable);
+        $this->html_style_table_cell = $this->makeStylesForTable($this->defaultHtmlStyleTableCell);
+    }
+
+    protected function makeStylesForTable($arr)
+    {
+        $count = 0;
+
+        return array_build($arr, function ($key, $value) use (&$count) {
+            return [$count++, ['class_label' => $value, 'class_name' => $key]];
+        });
+    }
+
+    public function afterSave()
+    {
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    public function getDefaultValue($attribute)
+    {
+        $property = 'default'.studly_case($attribute);
+
+        return $this->$property;
     }
 }

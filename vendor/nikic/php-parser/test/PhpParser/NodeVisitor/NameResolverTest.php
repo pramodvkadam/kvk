@@ -10,10 +10,6 @@ use PhpParser\Node\Stmt;
 
 class NameResolverTest extends \PHPUnit_Framework_TestCase
 {
-    private function canonicalize($string) {
-        return str_replace("\r\n", "\n", $string);
-    }
-
     /**
      * @covers PhpParser\NodeVisitor\NameResolver
      */
@@ -177,6 +173,10 @@ EOC;
             $this->canonicalize($expectedCode),
             $prettyPrinter->prettyPrint($stmts)
         );
+    }
+
+    private function canonicalize($string) {
+        return str_replace("\r\n", "\n", $string);
     }
 
     /**

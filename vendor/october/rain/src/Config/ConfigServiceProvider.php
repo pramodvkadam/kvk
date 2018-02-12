@@ -23,15 +23,6 @@ class ConfigServiceProvider extends ServiceProvider
     }
 
     /**
-     * Get the services provided by the provider.
-     * @return array
-     */
-    public function provides()
-    {
-        return ['config'];
-    }
-
-    /**
      * Get the configuration loader instance.
      *
      * @return \October\Rain\Config\LoaderInterface
@@ -39,6 +30,15 @@ class ConfigServiceProvider extends ServiceProvider
     public function getConfigLoader()
     {
         return new FileLoader(new Filesystem, $this->app['path'].'/config');
+    }
+
+    /**
+     * Get the services provided by the provider.
+     * @return array
+     */
+    public function provides()
+    {
+        return ['config'];
     }
 
 }

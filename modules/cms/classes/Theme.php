@@ -26,16 +26,8 @@ use Exception;
  */
 class Theme
 {
-    /**
-     * @var string Specifies the theme directory name.
-     */
-    protected $dirName;
-
-    /**
-     * @var mixed Keeps the cached configuration file values.
-     */
-    protected $configCache = null;
-
+    const ACTIVE_KEY = 'cms::theme.active';
+    const EDIT_KEY = 'cms::theme.edit';
     /**
      * @var mixed Active theme cache in memory
      */
@@ -45,53 +37,109 @@ class Theme
      * @var mixed Edit theme cache in memory
      */
     protected static $editThemeCache = false;
-
-    const ACTIVE_KEY = 'cms::theme.active';
-    const EDIT_KEY = 'cms::theme.edit';
+    /**
+     * @var string Specifies the theme directory name.
+     */
+    protected $dirName;
+    /**
+     * @var mixed Keeps the cached configuration file values.
+     */
+    protected $configCache = null;
 
     /**
-     * Loads the theme.
-     * @return self
+     * Sets the active theme.
+     * The active theme code is stored in the database and overrides the configuration cms.activeTheme parameter.
+     * @param string $code Specifies the  active theme code.
      */
-    public static function load($dirName)
+    public static function setActiveTheme($code)
     {
-        $theme = new static;
-        $theme->setDirName($dirName);
-        $theme->registerHalyconDatasource();
+        self::resetCache();
 
-        return $theme;
+        Parameter::set(self::ACTIVE_KEY, $code);
+
+        Event::fire('cms.theme.setActiveTheme', compact('code'));
     }
 
     /**
-     * Returns the absolute theme path.
-     * @param  string $dirName Optional theme directory. Defaults to $this->getDirName()
-     * @return string
-     */
-    public function getPath($dirName = null)
-    {
-        if (!$dirName) {
-            $dirName = $this->getDirName();
-        }
-
-        return themes_path().'/'.$dirName;
-    }
-
-    /**
-     * Sets the theme directory name.
+     * Resets any memory or cache involved with the active or edit theme.
      * @return void
      */
-    public function setDirName($dirName)
+    public static function resetCache()
     {
-        $this->dirName = $dirName;
+        self::$activeThemeCache = false;
+        self::$editThemeCache = false;
+
+        Cache::forget(self::ACTIVE_KEY);
+        Cache::forget(self::EDIT_KEY);
     }
 
     /**
-     * Returns the theme directory name.
+     * Returns the edit theme.
+     * @return \Cms\Classes\Theme Returns the loaded theme object.
+     */
+    public static function getEditTheme()
+    {
+        if (self::$editThemeCache !== false) {
+            return self::$editThemeCache;
+        }
+
+        $theme = static::load(static::getEditThemeCode());
+
+        if (!File::isDirectory($theme->getPath())) {
+            return self::$editThemeCache = null;
+        }
+
+        return self::$editThemeCache = $theme;
+    }
+
+    /**
+     * Returns the edit theme code.
+     * By default the edit theme is loaded from the cms.editTheme parameter,
+     * but this behavior can be overridden by the cms.theme.getEditTheme event listeners.
+     * If the edit theme is not defined in the configuration file, the active theme
+     * is returned.
      * @return string
      */
-    public function getDirName()
+    public static function getEditThemeCode()
     {
-        return $this->dirName;
+        $editTheme = Config::get('cms.editTheme');
+        if (!$editTheme) {
+            $editTheme = static::getActiveThemeCode();
+        }
+
+        $apiResult = Event::fire('cms.theme.getEditTheme', [], true);
+        if ($apiResult !== null) {
+            $editTheme = $apiResult;
+        }
+
+        if (!strlen($editTheme)) {
+            throw new SystemException(Lang::get('cms::lang.theme.edit.not_set'));
+        }
+
+        return $editTheme;
+    }
+
+    /**
+     * Returns a list of all themes.
+     * @return array Returns an array of the Theme objects.
+     */
+    public static function all()
+    {
+        $it = new DirectoryIterator(themes_path());
+        $it->rewind();
+
+        $result = [];
+        foreach ($it as $fileinfo) {
+            if (!$fileinfo->isDir() || $fileinfo->isDot()) {
+                continue;
+            }
+
+            $theme = static::load($fileinfo->getFilename());
+
+            $result[] = $theme;
+        }
+
+        return $result;
     }
 
     /**
@@ -105,16 +153,21 @@ class Theme
     }
 
     /**
-     * Determines if a theme with given directory name exists
-     * @param string $dirName The theme directory
-     * @return bool
+     * Returns the theme directory name.
+     * @return string
      */
-    public static function exists($dirName)
+    public function getDirName()
     {
-        $theme = static::load($dirName);
-        $path = $theme->getPath();
+        return $this->dirName;
+    }
 
-        return File::isDirectory($path);
+    /**
+     * Sets the theme directory name.
+     * @return void
+     */
+    public function setDirName($dirName)
+    {
+        $this->dirName = $dirName;
     }
 
     /**
@@ -136,6 +189,67 @@ class Theme
         $activeTheme = self::getActiveTheme();
 
         return $activeTheme && $activeTheme->getDirName() == $this->getDirName();
+    }
+
+    /**
+     * Returns the active theme object.
+     * @return \Cms\Classes\Theme Returns the loaded theme object.
+     * If the theme doesn't exist, returns null.
+     */
+    public static function getActiveTheme()
+    {
+        if (self::$activeThemeCache !== false) {
+            return self::$activeThemeCache;
+        }
+
+        $theme = static::load(static::getActiveThemeCode());
+
+        if (!File::isDirectory($theme->getPath())) {
+            return self::$activeThemeCache = null;
+        }
+
+        return self::$activeThemeCache = $theme;
+    }
+
+    /**
+     * Loads the theme.
+     * @return self
+     */
+    public static function load($dirName)
+    {
+        $theme = new static;
+        $theme->setDirName($dirName);
+        $theme->registerHalyconDatasource();
+
+        return $theme;
+    }
+
+    /**
+     * Ensures this theme is registered as a Halcyon them datasource.
+     * @return void
+     */
+    public function registerHalyconDatasource()
+    {
+        $resolver = App::make('halcyon');
+
+        if (!$resolver->hasDatasource($this->dirName)) {
+            $datasource = new FileDatasource($this->getPath(), App::make('files'));
+            $resolver->addDatasource($this->dirName, $datasource);
+        }
+    }
+
+    /**
+     * Returns the absolute theme path.
+     * @param  string $dirName Optional theme directory. Defaults to $this->getDirName()
+     * @return string
+     */
+    public function getPath($dirName = null)
+    {
+        if (!$dirName) {
+            $dirName = $this->getDirName();
+        }
+
+        return themes_path().'/'.$dirName;
     }
 
     /**
@@ -193,138 +307,17 @@ class Theme
         return $activeTheme;
     }
 
-
     /**
-     * Returns the active theme object.
-     * @return \Cms\Classes\Theme Returns the loaded theme object.
-     * If the theme doesn't exist, returns null.
+     * Determines if a theme with given directory name exists
+     * @param string $dirName The theme directory
+     * @return bool
      */
-    public static function getActiveTheme()
+    public static function exists($dirName)
     {
-        if (self::$activeThemeCache !== false) {
-            return self::$activeThemeCache;
-        }
+        $theme = static::load($dirName);
+        $path = $theme->getPath();
 
-        $theme = static::load(static::getActiveThemeCode());
-
-        if (!File::isDirectory($theme->getPath())) {
-            return self::$activeThemeCache = null;
-        }
-
-        return self::$activeThemeCache = $theme;
-    }
-
-    /**
-     * Sets the active theme.
-     * The active theme code is stored in the database and overrides the configuration cms.activeTheme parameter.
-     * @param string $code Specifies the  active theme code.
-     */
-    public static function setActiveTheme($code)
-    {
-        self::resetCache();
-
-        Parameter::set(self::ACTIVE_KEY, $code);
-
-        Event::fire('cms.theme.setActiveTheme', compact('code'));
-    }
-
-    /**
-     * Returns the edit theme code.
-     * By default the edit theme is loaded from the cms.editTheme parameter,
-     * but this behavior can be overridden by the cms.theme.getEditTheme event listeners.
-     * If the edit theme is not defined in the configuration file, the active theme
-     * is returned.
-     * @return string
-     */
-    public static function getEditThemeCode()
-    {
-        $editTheme = Config::get('cms.editTheme');
-        if (!$editTheme) {
-            $editTheme = static::getActiveThemeCode();
-        }
-
-        $apiResult = Event::fire('cms.theme.getEditTheme', [], true);
-        if ($apiResult !== null) {
-            $editTheme = $apiResult;
-        }
-
-        if (!strlen($editTheme)) {
-            throw new SystemException(Lang::get('cms::lang.theme.edit.not_set'));
-        }
-
-        return $editTheme;
-    }
-
-    /**
-     * Returns the edit theme.
-     * @return \Cms\Classes\Theme Returns the loaded theme object.
-     */
-    public static function getEditTheme()
-    {
-        if (self::$editThemeCache !== false) {
-            return self::$editThemeCache;
-        }
-
-        $theme = static::load(static::getEditThemeCode());
-
-        if (!File::isDirectory($theme->getPath())) {
-            return self::$editThemeCache = null;
-        }
-
-        return self::$editThemeCache = $theme;
-    }
-
-    /**
-     * Returns a list of all themes.
-     * @return array Returns an array of the Theme objects.
-     */
-    public static function all()
-    {
-        $it = new DirectoryIterator(themes_path());
-        $it->rewind();
-
-        $result = [];
-        foreach ($it as $fileinfo) {
-            if (!$fileinfo->isDir() || $fileinfo->isDot()) {
-                continue;
-            }
-
-            $theme = static::load($fileinfo->getFilename());
-
-            $result[] = $theme;
-        }
-
-        return $result;
-    }
-
-    /**
-     * Reads the theme.yaml file and returns the theme configuration values.
-     * @return array Returns the parsed configuration file values.
-     */
-    public function getConfig()
-    {
-        if ($this->configCache !== null) {
-            return $this->configCache;
-        }
-
-        $path = $this->getPath().'/theme.yaml';
-        if (!File::exists($path)) {
-            return $this->configCache = [];
-        }
-
-        return $this->configCache = Yaml::parseFile($path);
-    }
-
-    /**
-     * Returns a value from the theme configuration file by its name.
-     * @param string $name Specifies the configuration parameter name.
-     * @param mixed $default Specifies the default value to return in case if the parameter
-     *                       doesn't exist in the configuration file.
-     * @return mixed Returns the parameter value or a default value
-     */
-    public function getConfigValue($name, $default = null)
-    {
-        return array_get($this->getConfig(), $name, $default);
+        return File::isDirectory($path);
     }
 
     /**
@@ -355,6 +348,24 @@ class Theme
         }
 
         return (array) $result;
+    }
+
+    /**
+     * Reads the theme.yaml file and returns the theme configuration values.
+     * @return array Returns the parsed configuration file values.
+     */
+    public function getConfig()
+    {
+        if ($this->configCache !== null) {
+            return $this->configCache;
+        }
+
+        $path = $this->getPath().'/theme.yaml';
+        if (!File::exists($path)) {
+            return $this->configCache = [];
+        }
+
+        return $this->configCache = Yaml::parseFile($path);
     }
 
     /**
@@ -396,16 +407,30 @@ class Theme
     }
 
     /**
-     * Resets any memory or cache involved with the active or edit theme.
+     * Returns a value from the theme configuration file by its name.
+     * @param string $name Specifies the configuration parameter name.
+     * @param mixed $default Specifies the default value to return in case if the parameter
+     *                       doesn't exist in the configuration file.
+     * @return mixed Returns the parameter value or a default value
+     */
+    public function getConfigValue($name, $default = null)
+    {
+        return array_get($this->getConfig(), $name, $default);
+    }
+
+    /**
+     * Implements the getter functionality.
+     * @param  string  $name
      * @return void
      */
-    public static function resetCache()
+    public function __get($name)
     {
-        self::$activeThemeCache = false;
-        self::$editThemeCache = false;
+        if ($this->hasCustomData()) {
+            $theme = $this->getCustomData();
+            return $theme->{$name};
+        }
 
-        Cache::forget(self::ACTIVE_KEY);
-        Cache::forget(self::EDIT_KEY);
+        return null;
     }
 
     /**
@@ -424,35 +449,6 @@ class Theme
     public function getCustomData()
     {
         return ThemeData::forTheme($this);
-    }
-
-    /**
-     * Ensures this theme is registered as a Halcyon them datasource.
-     * @return void
-     */
-    public function registerHalyconDatasource()
-    {
-        $resolver = App::make('halcyon');
-
-        if (!$resolver->hasDatasource($this->dirName)) {
-            $datasource = new FileDatasource($this->getPath(), App::make('files'));
-            $resolver->addDatasource($this->dirName, $datasource);
-        }
-    }
-
-    /**
-     * Implements the getter functionality.
-     * @param  string  $name
-     * @return void
-     */
-    public function __get($name)
-    {
-        if ($this->hasCustomData()) {
-            $theme = $this->getCustomData();
-            return $theme->{$name};
-        }
-
-        return null;
     }
 
     /**

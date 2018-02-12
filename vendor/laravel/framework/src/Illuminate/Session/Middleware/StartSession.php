@@ -75,17 +75,13 @@ class StartSession
     }
 
     /**
-     * Perform any final actions for the request lifecycle.
+     * Determine if a session driver has been configured.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Symfony\Component\HttpFoundation\Response  $response
-     * @return void
+     * @return bool
      */
-    public function terminate($request, $response)
+    protected function sessionConfigured()
     {
-        if ($this->sessionHandled && $this->sessionConfigured() && ! $this->usingCookieSessions()) {
-            $this->manager->driver()->save();
-        }
+        return ! is_null($this->manager->getSessionConfig()['driver'] ?? null);
     }
 
     /**
@@ -146,6 +142,16 @@ class StartSession
     }
 
     /**
+     * Get the session lifetime in seconds.
+     *
+     * @return int
+     */
+    protected function getSessionLifetimeInSeconds()
+    {
+        return ($this->manager->getSessionConfig()['lifetime'] ?? null) * 60;
+    }
+
+    /**
      * Store the current URL for the request if necessary.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -182,35 +188,17 @@ class StartSession
     }
 
     /**
-     * Get the session lifetime in seconds.
-     *
-     * @return int
-     */
-    protected function getSessionLifetimeInSeconds()
-    {
-        return ($this->manager->getSessionConfig()['lifetime'] ?? null) * 60;
-    }
-
-    /**
-     * Get the cookie lifetime in seconds.
-     *
-     * @return \DateTimeInterface
-     */
-    protected function getCookieExpirationDate()
-    {
-        $config = $this->manager->getSessionConfig();
-
-        return $config['expire_on_close'] ? 0 : Carbon::now()->addMinutes($config['lifetime']);
-    }
-
-    /**
-     * Determine if a session driver has been configured.
+     * Determine if the session is using cookie sessions.
      *
      * @return bool
      */
-    protected function sessionConfigured()
+    protected function usingCookieSessions()
     {
-        return ! is_null($this->manager->getSessionConfig()['driver'] ?? null);
+        if ($this->sessionConfigured()) {
+            return $this->manager->driver()->getHandler() instanceof CookieSessionHandler;
+        }
+
+        return false;
     }
 
     /**
@@ -227,16 +215,28 @@ class StartSession
     }
 
     /**
-     * Determine if the session is using cookie sessions.
+     * Get the cookie lifetime in seconds.
      *
-     * @return bool
+     * @return \DateTimeInterface
      */
-    protected function usingCookieSessions()
+    protected function getCookieExpirationDate()
     {
-        if ($this->sessionConfigured()) {
-            return $this->manager->driver()->getHandler() instanceof CookieSessionHandler;
-        }
+        $config = $this->manager->getSessionConfig();
 
-        return false;
+        return $config['expire_on_close'] ? 0 : Carbon::now()->addMinutes($config['lifetime']);
+    }
+
+    /**
+     * Perform any final actions for the request lifecycle.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Symfony\Component\HttpFoundation\Response  $response
+     * @return void
+     */
+    public function terminate($request, $response)
+    {
+        if ($this->sessionHandled && $this->sessionConfigured() && ! $this->usingCookieSessions()) {
+            $this->manager->driver()->save();
+        }
     }
 }

@@ -46,23 +46,6 @@ trait ManagesStacks
     }
 
     /**
-     * Stop injecting content into a push section.
-     *
-     * @return string
-     * @throws \InvalidArgumentException
-     */
-    public function stopPush()
-    {
-        if (empty($this->pushStack)) {
-            throw new InvalidArgumentException('Cannot end a push stack without first starting one.');
-        }
-
-        return tap(array_pop($this->pushStack), function ($last) {
-            $this->extendPush($last, ob_get_clean());
-        });
-    }
-
-    /**
      * Append content to a given push section.
      *
      * @param  string  $section
@@ -80,6 +63,23 @@ trait ManagesStacks
         } else {
             $this->pushes[$section][$this->renderCount] .= $content;
         }
+    }
+
+    /**
+     * Stop injecting content into a push section.
+     *
+     * @return string
+     * @throws \InvalidArgumentException
+     */
+    public function stopPush()
+    {
+        if (empty($this->pushStack)) {
+            throw new InvalidArgumentException('Cannot end a push stack without first starting one.');
+        }
+
+        return tap(array_pop($this->pushStack), function ($last) {
+            $this->extendPush($last, ob_get_clean());
+        });
     }
 
     /**
@@ -101,23 +101,6 @@ trait ManagesStacks
     }
 
     /**
-     * Stop prepending content into a push section.
-     *
-     * @return string
-     * @throws \InvalidArgumentException
-     */
-    public function stopPrepend()
-    {
-        if (empty($this->pushStack)) {
-            throw new InvalidArgumentException('Cannot end a prepend operation without first starting one.');
-        }
-
-        return tap(array_pop($this->pushStack), function ($last) {
-            $this->extendPrepend($last, ob_get_clean());
-        });
-    }
-
-    /**
      * Prepend content to a given stack.
      *
      * @param  string  $section
@@ -135,6 +118,23 @@ trait ManagesStacks
         } else {
             $this->prepends[$section][$this->renderCount] = $content.$this->prepends[$section][$this->renderCount];
         }
+    }
+
+    /**
+     * Stop prepending content into a push section.
+     *
+     * @return string
+     * @throws \InvalidArgumentException
+     */
+    public function stopPrepend()
+    {
+        if (empty($this->pushStack)) {
+            throw new InvalidArgumentException('Cannot end a prepend operation without first starting one.');
+        }
+
+        return tap(array_pop($this->pushStack), function ($last) {
+            $this->extendPrepend($last, ob_get_clean());
+        });
     }
 
     /**

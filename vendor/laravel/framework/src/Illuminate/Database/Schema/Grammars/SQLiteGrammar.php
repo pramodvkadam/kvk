@@ -348,6 +348,94 @@ class SQLiteGrammar extends Grammar
     }
 
     /**
+     * Create the column definition for a spatial Geometry type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    public function typeGeometry(Fluent $column)
+    {
+        return 'geometry';
+    }
+
+    /**
+     * Create the column definition for a spatial Point type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    public function typePoint(Fluent $column)
+    {
+        return 'point';
+    }
+
+    /**
+     * Create the column definition for a spatial LineString type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    public function typeLineString(Fluent $column)
+    {
+        return 'linestring';
+    }
+
+    /**
+     * Create the column definition for a spatial Polygon type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    public function typePolygon(Fluent $column)
+    {
+        return 'polygon';
+    }
+
+    /**
+     * Create the column definition for a spatial GeometryCollection type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    public function typeGeometryCollection(Fluent $column)
+    {
+        return 'geometrycollection';
+    }
+
+    /**
+     * Create the column definition for a spatial MultiPoint type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    public function typeMultiPoint(Fluent $column)
+    {
+        return 'multipoint';
+    }
+
+    /**
+     * Create the column definition for a spatial MultiLineString type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    public function typeMultiLineString(Fluent $column)
+    {
+        return 'multilinestring';
+    }
+
+    /**
+     * Create the column definition for a spatial MultiPolygon type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    public function typeMultiPolygon(Fluent $column)
+    {
+        return 'multipolygon';
+    }
+
+    /**
      * Create the column definition for a char type.
      *
      * @param  \Illuminate\Support\Fluent  $column
@@ -546,17 +634,6 @@ class SQLiteGrammar extends Grammar
     }
 
     /**
-     * Create the column definition for a date-time type.
-     *
-     * @param  \Illuminate\Support\Fluent  $column
-     * @return string
-     */
-    protected function typeDateTime(Fluent $column)
-    {
-        return 'datetime';
-    }
-
-    /**
      * Create the column definition for a date-time (with time zone) type.
      *
      * Note: "SQLite does not have a storage class set aside for storing dates and/or times."
@@ -571,14 +648,14 @@ class SQLiteGrammar extends Grammar
     }
 
     /**
-     * Create the column definition for a time type.
+     * Create the column definition for a date-time type.
      *
      * @param  \Illuminate\Support\Fluent  $column
      * @return string
      */
-    protected function typeTime(Fluent $column)
+    protected function typeDateTime(Fluent $column)
     {
-        return 'time';
+        return 'datetime';
     }
 
     /**
@@ -593,14 +670,14 @@ class SQLiteGrammar extends Grammar
     }
 
     /**
-     * Create the column definition for a timestamp type.
+     * Create the column definition for a time type.
      *
      * @param  \Illuminate\Support\Fluent  $column
      * @return string
      */
-    protected function typeTimestamp(Fluent $column)
+    protected function typeTime(Fluent $column)
     {
-        return $column->useCurrent ? 'datetime default CURRENT_TIMESTAMP' : 'datetime';
+        return 'time';
     }
 
     /**
@@ -612,6 +689,17 @@ class SQLiteGrammar extends Grammar
     protected function typeTimestampTz(Fluent $column)
     {
         return $this->typeTimestamp($column);
+    }
+
+    /**
+     * Create the column definition for a timestamp type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    protected function typeTimestamp(Fluent $column)
+    {
+        return $column->useCurrent ? 'datetime default CURRENT_TIMESTAMP' : 'datetime';
     }
 
     /**
@@ -656,94 +744,6 @@ class SQLiteGrammar extends Grammar
     protected function typeMacAddress(Fluent $column)
     {
         return 'varchar';
-    }
-
-    /**
-     * Create the column definition for a spatial Geometry type.
-     *
-     * @param  \Illuminate\Support\Fluent  $column
-     * @return string
-     */
-    public function typeGeometry(Fluent $column)
-    {
-        return 'geometry';
-    }
-
-    /**
-     * Create the column definition for a spatial Point type.
-     *
-     * @param  \Illuminate\Support\Fluent  $column
-     * @return string
-     */
-    public function typePoint(Fluent $column)
-    {
-        return 'point';
-    }
-
-    /**
-     * Create the column definition for a spatial LineString type.
-     *
-     * @param  \Illuminate\Support\Fluent  $column
-     * @return string
-     */
-    public function typeLineString(Fluent $column)
-    {
-        return 'linestring';
-    }
-
-    /**
-     * Create the column definition for a spatial Polygon type.
-     *
-     * @param  \Illuminate\Support\Fluent  $column
-     * @return string
-     */
-    public function typePolygon(Fluent $column)
-    {
-        return 'polygon';
-    }
-
-    /**
-     * Create the column definition for a spatial GeometryCollection type.
-     *
-     * @param  \Illuminate\Support\Fluent  $column
-     * @return string
-     */
-    public function typeGeometryCollection(Fluent $column)
-    {
-        return 'geometrycollection';
-    }
-
-    /**
-     * Create the column definition for a spatial MultiPoint type.
-     *
-     * @param  \Illuminate\Support\Fluent  $column
-     * @return string
-     */
-    public function typeMultiPoint(Fluent $column)
-    {
-        return 'multipoint';
-    }
-
-    /**
-     * Create the column definition for a spatial MultiLineString type.
-     *
-     * @param  \Illuminate\Support\Fluent  $column
-     * @return string
-     */
-    public function typeMultiLineString(Fluent $column)
-    {
-        return 'multilinestring';
-    }
-
-    /**
-     * Create the column definition for a spatial MultiPolygon type.
-     *
-     * @param  \Illuminate\Support\Fluent  $column
-     * @return string
-     */
-    public function typeMultiPolygon(Fluent $column)
-    {
-        return 'multipolygon';
     }
 
     /**

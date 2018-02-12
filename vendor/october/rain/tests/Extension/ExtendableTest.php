@@ -192,11 +192,6 @@ class ExtendableTest_ExampleBehaviorClass1 extends ExtensionBase
 {
     public $behaviorAttribute;
 
-    public function getFoo()
-    {
-        return 'foo';
-    }
-
     public static function getStaticBar()
     {
         return 'bar';
@@ -205,6 +200,11 @@ class ExtendableTest_ExampleBehaviorClass1 extends ExtensionBase
     public static function vanillaIceIce()
     {
         return 'cream';
+    }
+
+    public function getFoo()
+    {
+        return 'foo';
     }
 }
 
@@ -244,11 +244,6 @@ class ExtendableTest_ExampleExtendableClass extends Extendable
         return 'baby';
     }
 
-    protected function protectedBar()
-    {
-        return 'foo';
-    }
-
     protected static function protectedMars()
     {
         return 'bar';
@@ -257,6 +252,11 @@ class ExtendableTest_ExampleExtendableClass extends Extendable
     public function getProtectedFooAttribute()
     {
         return $this->protectedFoo;
+    }
+
+    protected function protectedBar()
+    {
+        return 'foo';
     }
 }
 

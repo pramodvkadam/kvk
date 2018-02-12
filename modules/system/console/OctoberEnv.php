@@ -69,6 +69,46 @@ class OctoberEnv extends Command
     }
 
     /**
+     * @return array
+     */
+    private function config()
+    {
+        return [
+            'app' => [
+                'APP_DEBUG' => 'debug',
+                'APP_URL' => 'url',
+                'APP_KEY' => 'key',
+            ],
+            'database' => [
+                'DB_CONNECTION' => 'default',
+            ],
+            'cache' => [
+                'CACHE_DRIVER' => 'default',
+            ],
+            'session' => [
+                'SESSION_DRIVER' => 'driver',
+            ],
+            'queue' => [
+                'QUEUE_DRIVER' => 'default',
+            ],
+            'mail' => [
+                'MAIL_DRIVER' => 'driver',
+                'MAIL_HOST' => 'host',
+                'MAIL_PORT' => 'port',
+                'MAIL_USERNAME' => 'username',
+                'MAIL_PASSWORD' => 'password',
+                'MAIL_ENCRYPTION' => 'encryption',
+            ],
+            'cms' => [
+                'ROUTES_CACHE' => 'enableRoutesCache',
+                'ASSET_CACHE' => 'enableAssetCache',
+                'LINK_POLICY' => 'linkPolicy',
+                'ENABLE_CSRF' => 'enableCsrfProtection',
+            ],
+        ];
+    }
+
+    /**
      * Replace config values with env() syntax
      */
     private function configToEnv()
@@ -96,6 +136,14 @@ class OctoberEnv extends Command
         $this->writeToEnv("\n");
 
         return implode('', $lines);
+    }
+
+    /**
+     * @return array
+     */
+    private function lines()
+    {
+        return file(config_path($this->config . '.php'));
     }
 
     /**
@@ -132,37 +180,6 @@ class OctoberEnv extends Command
     }
 
     /**
-     * @param $line
-     * @return mixed
-     */
-    private function replaceDbConfigLine($line)
-    {
-        if ($this->config == 'database') {
-
-            foreach ($this->dbConfig() as $connection => $settings) {
-                $this->setCurrentConnection($line, $connection);
-
-                if ($this->connection == $connection) {
-                    $line = $this->replaceConfigLine($line, $settings);
-                }
-            }
-        }
-
-        return $line;
-    }
-
-    /**
-     * @param $line
-     * @param $connection
-     */
-    private function setCurrentConnection($line, $connection)
-    {
-        if (preg_match("/['\"]" . $connection . "['\"]" . "\s*=>/", $line)) {
-            $this->connection = $connection;
-        }
-    }
-
-    /**
      * @param $configKey
      * @return string
      */
@@ -186,33 +203,6 @@ class OctoberEnv extends Command
 
             return $this->isEnv($matches[0]) ? $matches[0] : "'$configKey' => env('$envKey', {$value}),";
         };
-    }
-
-    /**
-     * @param $key
-     * @param $value
-     */
-    private function saveEnvSettings($key, $value)
-    {
-        if (! $this->envKeyExists($key)) {
-            $line = sprintf("%s=%s\n", $key, $this->stripQuotes($value));
-
-            if ($this->config == 'database' && $key != 'DB_CONNECTION') {
-                $this->writeDbEnvSettings($line);
-            } else {
-                $this->writeToEnv($line);
-            }
-        }
-    }
-
-    /**
-     * @param $line
-     */
-    private function writeDbEnvSettings($line)
-    {
-        if ($this->connection == config('database.default') || $this->connection == 'redis') {
-            $this->writeToEnv($line);
-        }
     }
 
     /**
@@ -265,53 +255,20 @@ class OctoberEnv extends Command
     }
 
     /**
-     * @param $string
-     * @return string
+     * @param $key
+     * @param $value
      */
-    private function stripQuotes($string)
+    private function saveEnvSettings($key, $value)
     {
-        return strtr($string, ['"' => '', "'" => '']);
-    }
+        if (! $this->envKeyExists($key)) {
+            $line = sprintf("%s=%s\n", $key, $this->stripQuotes($value));
 
-    /**
-     * @param $matches
-     * @return bool
-     */
-    private function isEnv($matches)
-    {
-        return strpos($matches, 'env') !== false;
-    }
-
-    /**
-     * @param $content
-     */
-    private function writeToEnv($content)
-    {
-        file_put_contents('.env', $content, FILE_APPEND);
-    }
-
-    /**
-     * @return string
-     */
-    private function readEnvFile()
-    {
-        return file_exists('.env') ? file_get_contents('.env') : '';
-    }
-
-    /**
-     * @param $content
-     */
-    private function writeToConfigFile($content)
-    {
-        file_put_contents(config_path($this->config . '.php'), $content);
-    }
-
-    /**
-     * @return array
-     */
-    private function lines()
-    {
-        return file(config_path($this->config . '.php'));
+            if ($this->config == 'database' && $key != 'DB_CONNECTION') {
+                $this->writeDbEnvSettings($line);
+            } else {
+                $this->writeToEnv($line);
+            }
+        }
     }
 
     /**
@@ -324,43 +281,67 @@ class OctoberEnv extends Command
     }
 
     /**
-     * @return array
+     * @return string
      */
-    private function config()
+    private function readEnvFile()
     {
-        return [
-            'app' => [
-                'APP_DEBUG' => 'debug',
-                'APP_URL' => 'url',
-                'APP_KEY' => 'key',
-            ],
-            'database' => [
-                'DB_CONNECTION' => 'default',
-            ],
-            'cache' => [
-                'CACHE_DRIVER' => 'default',
-            ],
-            'session' => [
-                'SESSION_DRIVER' => 'driver',
-            ],
-            'queue' => [
-                'QUEUE_DRIVER' => 'default',
-            ],
-            'mail' => [
-                'MAIL_DRIVER' => 'driver',
-                'MAIL_HOST' => 'host',
-                'MAIL_PORT' => 'port',
-                'MAIL_USERNAME' => 'username',
-                'MAIL_PASSWORD' => 'password',
-                'MAIL_ENCRYPTION' => 'encryption',
-            ],
-            'cms' => [
-                'ROUTES_CACHE' => 'enableRoutesCache',
-                'ASSET_CACHE' => 'enableAssetCache',
-                'LINK_POLICY' => 'linkPolicy',
-                'ENABLE_CSRF' => 'enableCsrfProtection',
-            ],
-        ];
+        return file_exists('.env') ? file_get_contents('.env') : '';
+    }
+
+    /**
+     * @param $string
+     * @return string
+     */
+    private function stripQuotes($string)
+    {
+        return strtr($string, ['"' => '', "'" => '']);
+    }
+
+    /**
+     * @param $line
+     */
+    private function writeDbEnvSettings($line)
+    {
+        if ($this->connection == config('database.default') || $this->connection == 'redis') {
+            $this->writeToEnv($line);
+        }
+    }
+
+    /**
+     * @param $content
+     */
+    private function writeToEnv($content)
+    {
+        file_put_contents('.env', $content, FILE_APPEND);
+    }
+
+    /**
+     * @param $matches
+     * @return bool
+     */
+    private function isEnv($matches)
+    {
+        return strpos($matches, 'env') !== false;
+    }
+
+    /**
+     * @param $line
+     * @return mixed
+     */
+    private function replaceDbConfigLine($line)
+    {
+        if ($this->config == 'database') {
+
+            foreach ($this->dbConfig() as $connection => $settings) {
+                $this->setCurrentConnection($line, $connection);
+
+                if ($this->connection == $connection) {
+                    $line = $this->replaceConfigLine($line, $settings);
+                }
+            }
+        }
+
+        return $line;
     }
 
     /**
@@ -392,6 +373,25 @@ class OctoberEnv extends Command
                 'REDIS_PORT' => 'port',
             ],
         ];
+    }
+
+    /**
+     * @param $line
+     * @param $connection
+     */
+    private function setCurrentConnection($line, $connection)
+    {
+        if (preg_match("/['\"]" . $connection . "['\"]" . "\s*=>/", $line)) {
+            $this->connection = $connection;
+        }
+    }
+
+    /**
+     * @param $content
+     */
+    private function writeToConfigFile($content)
+    {
+        file_put_contents(config_path($this->config . '.php'), $content);
     }
 
 }

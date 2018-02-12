@@ -66,21 +66,6 @@ class MailChannel
     }
 
     /**
-     * Get the mailer Closure for the message.
-     *
-     * @param  mixed  $notifiable
-     * @param  \Illuminate\Notifications\Notification  $notification
-     * @param  \Illuminate\Notifications\Messages\MailMessage  $message
-     * @return \Closure
-     */
-    protected function messageBuilder($notifiable, $notification, $message)
-    {
-        return function ($mailMessage) use ($notifiable, $notification, $message) {
-            $this->buildMessage($mailMessage, $notifiable, $notification, $message);
-        };
-    }
-
-    /**
      * Build the notification's view.
      *
      * @param  \Illuminate\Notifications\Messages\MailMessage  $message
@@ -96,6 +81,21 @@ class MailChannel
             'html' => $this->markdown->render($message->markdown, $message->data()),
             'text' => $this->markdown->renderText($message->markdown, $message->data()),
         ];
+    }
+
+    /**
+     * Get the mailer Closure for the message.
+     *
+     * @param  mixed  $notifiable
+     * @param  \Illuminate\Notifications\Notification  $notification
+     * @param  \Illuminate\Notifications\Messages\MailMessage  $message
+     * @return \Closure
+     */
+    protected function messageBuilder($notifiable, $notification, $message)
+    {
+        return function ($mailMessage) use ($notifiable, $notification, $message) {
+            $this->buildMessage($mailMessage, $notifiable, $notification, $message);
+        };
     }
 
     /**

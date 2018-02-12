@@ -20,6 +20,35 @@ class HalcyonModelTest extends TestCase
         $this->setValidatorOnModel();
     }
 
+    protected function setDatasourceResolver()
+    {
+        $theme1 = new FileDatasource(__DIR__.'/../fixtures/halcyon/themes/theme1', new Filesystem);
+        $this->resolver = new Resolver(['theme1' => $theme1]);
+        $this->resolver->setDefaultDatasource('theme1');
+
+        $theme2 = new FileDatasource(__DIR__.'/../fixtures/halcyon/themes/theme2', new Filesystem);
+        $this->resolver->addDatasource('theme2', $theme2);
+
+        Model::setDatasourceResolver($this->resolver);
+    }
+
+    protected function setValidatorOnModel()
+    {
+        $translator = $this->getMockBuilder('Illuminate\Contracts\Translation\Translator')->setMethods([
+            'get',
+            'trans',
+            'transChoice',
+            'setLocale',
+            'getLocale'
+        ])->getMock();
+
+        $translator->expects($this->any())->method('get')->will($this->returnArgument(0));
+
+        $factory = new \Illuminate\Validation\Factory($translator);
+
+        HalcyonTestPageWithValidation::setModelValidator($factory);
+    }
+
     public function testFindAll()
     {
         $pages = HalcyonTestPage::all();
@@ -311,6 +340,10 @@ ESC;
         $page->delete();
     }
 
+    //
+    // House keeping
+    //
+
     public function testPageWithNestedValidationPass()
     {
         $page = new HalcyonTestPageWithValidation;
@@ -330,38 +363,5 @@ ESC;
 
         $this->assertCount(2, $files);
         $this->assertEquals(['about.htm', 'home.htm'], $files);
-    }
-
-    //
-    // House keeping
-    //
-
-    protected function setDatasourceResolver()
-    {
-        $theme1 = new FileDatasource(__DIR__.'/../fixtures/halcyon/themes/theme1', new Filesystem);
-        $this->resolver = new Resolver(['theme1' => $theme1]);
-        $this->resolver->setDefaultDatasource('theme1');
-
-        $theme2 = new FileDatasource(__DIR__.'/../fixtures/halcyon/themes/theme2', new Filesystem);
-        $this->resolver->addDatasource('theme2', $theme2);
-
-        Model::setDatasourceResolver($this->resolver);
-    }
-
-    protected function setValidatorOnModel()
-    {
-        $translator = $this->getMockBuilder('Illuminate\Contracts\Translation\Translator')->setMethods([
-            'get',
-            'trans',
-            'transChoice',
-            'setLocale',
-            'getLocale'
-        ])->getMock();
-
-        $translator->expects($this->any())->method('get')->will($this->returnArgument(0));
-
-        $factory = new \Illuminate\Validation\Factory($translator);
-
-        HalcyonTestPageWithValidation::setModelValidator($factory);
     }
 }

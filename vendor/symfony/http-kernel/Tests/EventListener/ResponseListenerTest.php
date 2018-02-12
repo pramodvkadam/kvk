@@ -26,21 +26,6 @@ class ResponseListenerTest extends TestCase
 
     private $kernel;
 
-    protected function setUp()
-    {
-        $this->dispatcher = new EventDispatcher();
-        $listener = new ResponseListener('UTF-8');
-        $this->dispatcher->addListener(KernelEvents::RESPONSE, array($listener, 'onKernelResponse'));
-
-        $this->kernel = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpKernelInterface')->getMock();
-    }
-
-    protected function tearDown()
-    {
-        $this->dispatcher = null;
-        $this->kernel = null;
-    }
-
     public function testFilterDoesNothingForSubRequests()
     {
         $response = new Response('foo');
@@ -91,5 +76,20 @@ class ResponseListenerTest extends TestCase
         $this->dispatcher->dispatch(KernelEvents::RESPONSE, $event);
 
         $this->assertEquals('ISO-8859-15', $response->getCharset());
+    }
+
+    protected function setUp()
+    {
+        $this->dispatcher = new EventDispatcher();
+        $listener = new ResponseListener('UTF-8');
+        $this->dispatcher->addListener(KernelEvents::RESPONSE, array($listener, 'onKernelResponse'));
+
+        $this->kernel = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpKernelInterface')->getMock();
+    }
+
+    protected function tearDown()
+    {
+        $this->dispatcher = null;
+        $this->kernel = null;
     }
 }

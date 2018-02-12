@@ -74,6 +74,40 @@ abstract class Queue
     }
 
     /**
+     * Get the connection name for the queue.
+     *
+     * @return string
+     */
+    public function getConnectionName()
+    {
+        return $this->connectionName;
+    }
+
+    /**
+     * Set the connection name for the queue.
+     *
+     * @param  string  $name
+     * @return $this
+     */
+    public function setConnectionName($name)
+    {
+        $this->connectionName = $name;
+
+        return $this;
+    }
+
+    /**
+     * Set the IoC container instance.
+     *
+     * @param  \Illuminate\Container\Container  $container
+     * @return void
+     */
+    public function setContainer(Container $container)
+    {
+        $this->container = $container;
+    }
+
+    /**
      * Create a payload string from the given job and data.
      *
      * @param  string  $job
@@ -174,39 +208,5 @@ abstract class Queue
             'job' => $job, 'maxTries' => null,
             'timeout' => null, 'data' => $data,
         ];
-    }
-
-    /**
-     * Get the connection name for the queue.
-     *
-     * @return string
-     */
-    public function getConnectionName()
-    {
-        return $this->connectionName;
-    }
-
-    /**
-     * Set the connection name for the queue.
-     *
-     * @param  string  $name
-     * @return $this
-     */
-    public function setConnectionName($name)
-    {
-        $this->connectionName = $name;
-
-        return $this;
-    }
-
-    /**
-     * Set the IoC container instance.
-     *
-     * @param  \Illuminate\Container\Container  $container
-     * @return void
-     */
-    public function setContainer(Container $container)
-    {
-        $this->container = $container;
     }
 }

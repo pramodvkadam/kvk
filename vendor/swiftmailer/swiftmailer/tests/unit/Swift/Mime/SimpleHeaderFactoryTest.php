@@ -6,11 +6,6 @@ class Swift_Mime_SimpleHeaderFactoryTest extends \PHPUnit\Framework\TestCase
 {
     private $factory;
 
-    protected function setUp()
-    {
-        $this->factory = $this->createFactory();
-    }
-
     public function testMailboxHeaderIsCorrectType()
     {
         $header = $this->factory->createMailboxHeader('X-Foo');
@@ -144,6 +139,11 @@ class Swift_Mime_SimpleHeaderFactoryTest extends \PHPUnit\Framework\TestCase
         $factory = $this->createFactory($encoder, $paramEncoder);
 
         $factory->charsetChanged('utf-8');
+    }
+
+    protected function setUp()
+    {
+        $this->factory = $this->createFactory();
     }
 
     private function createFactory($encoder = null, $paramEncoder = null)

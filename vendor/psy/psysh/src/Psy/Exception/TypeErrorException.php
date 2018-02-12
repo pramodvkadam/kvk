@@ -32,16 +32,6 @@ class TypeErrorException extends \Exception implements Exception
     }
 
     /**
-     * Get the raw (unformatted) message for this error.
-     *
-     * @return string
-     */
-    public function getRawMessage()
-    {
-        return $this->rawMessage;
-    }
-
-    /**
      * Create a TypeErrorException from a TypeError.
      *
      * @param \TypeError $e
@@ -51,5 +41,15 @@ class TypeErrorException extends \Exception implements Exception
     public static function fromTypeError(\TypeError $e)
     {
         return new self($e->getMessage(), $e->getLine());
+    }
+
+    /**
+     * Get the raw (unformatted) message for this error.
+     *
+     * @return string
+     */
+    public function getRawMessage()
+    {
+        return $this->rawMessage;
     }
 }

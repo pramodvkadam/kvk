@@ -18,6 +18,25 @@ class QueueFake extends QueueManager implements Queue
     /**
      * Assert if a job was pushed based on a truth-test callback.
      *
+     * @param  string  $queue
+     * @param  string  $job
+     * @param  callable|null  $callback
+     * @return void
+     */
+    public function assertPushedOn($queue, $job, $callback = null)
+    {
+        return $this->assertPushed($job, function ($job, $pushedQueue) use ($callback, $queue) {
+            if ($pushedQueue !== $queue) {
+                return false;
+            }
+
+            return $callback ? $callback(...func_get_args()) : true;
+        });
+    }
+
+    /**
+     * Assert if a job was pushed based on a truth-test callback.
+     *
      * @param  string  $job
      * @param  callable|int|null  $callback
      * @return void
@@ -47,50 +66,6 @@ class QueueFake extends QueueManager implements Queue
             ($count = $this->pushed($job)->count()) === $times,
             "The expected [{$job}] job was pushed {$count} times instead of {$times} times."
         );
-    }
-
-    /**
-     * Assert if a job was pushed based on a truth-test callback.
-     *
-     * @param  string  $queue
-     * @param  string  $job
-     * @param  callable|null  $callback
-     * @return void
-     */
-    public function assertPushedOn($queue, $job, $callback = null)
-    {
-        return $this->assertPushed($job, function ($job, $pushedQueue) use ($callback, $queue) {
-            if ($pushedQueue !== $queue) {
-                return false;
-            }
-
-            return $callback ? $callback(...func_get_args()) : true;
-        });
-    }
-
-    /**
-     * Determine if a job was pushed based on a truth-test callback.
-     *
-     * @param  string  $job
-     * @param  callable|null  $callback
-     * @return void
-     */
-    public function assertNotPushed($job, $callback = null)
-    {
-        PHPUnit::assertTrue(
-            $this->pushed($job, $callback)->count() === 0,
-            "The unexpected [{$job}] job was pushed."
-        );
-    }
-
-    /**
-     * Assert that no jobs were pushed.
-     *
-     * @return void
-     */
-    public function assertNothingPushed()
-    {
-        PHPUnit::assertEmpty($this->jobs, 'Jobs were pushed unexpectedly.');
     }
 
     /**
@@ -127,6 +102,31 @@ class QueueFake extends QueueManager implements Queue
     }
 
     /**
+     * Determine if a job was pushed based on a truth-test callback.
+     *
+     * @param  string  $job
+     * @param  callable|null  $callback
+     * @return void
+     */
+    public function assertNotPushed($job, $callback = null)
+    {
+        PHPUnit::assertTrue(
+            $this->pushed($job, $callback)->count() === 0,
+            "The unexpected [{$job}] job was pushed."
+        );
+    }
+
+    /**
+     * Assert that no jobs were pushed.
+     *
+     * @return void
+     */
+    public function assertNothingPushed()
+    {
+        PHPUnit::assertEmpty($this->jobs, 'Jobs were pushed unexpectedly.');
+    }
+
+    /**
      * Resolve a queue connection instance.
      *
      * @param  mixed  $value
@@ -146,22 +146,6 @@ class QueueFake extends QueueManager implements Queue
     public function size($queue = null)
     {
         return 0;
-    }
-
-    /**
-     * Push a new job onto the queue.
-     *
-     * @param  string  $job
-     * @param  mixed   $data
-     * @param  string  $queue
-     * @return mixed
-     */
-    public function push($job, $data = '', $queue = null)
-    {
-        $this->jobs[is_object($job) ? get_class($job) : $job][] = [
-            'job' => $job,
-            'queue' => $queue,
-        ];
     }
 
     /**
@@ -189,6 +173,22 @@ class QueueFake extends QueueManager implements Queue
     public function later($delay, $job, $data = '', $queue = null)
     {
         return $this->push($job, $data, $queue);
+    }
+
+    /**
+     * Push a new job onto the queue.
+     *
+     * @param  string  $job
+     * @param  mixed   $data
+     * @param  string  $queue
+     * @return mixed
+     */
+    public function push($job, $data = '', $queue = null)
+    {
+        $this->jobs[is_object($job) ? get_class($job) : $job][] = [
+            'job' => $job,
+            'queue' => $queue,
+        ];
     }
 
     /**

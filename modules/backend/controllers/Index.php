@@ -48,23 +48,6 @@ class Index extends Controller
         BackendMenu::setContextMainMenu('dashboard');
     }
 
-    public function index_onInitReportContainer()
-    {
-        $this->initReportContainer();
-
-        return ['#dashReportContainer' => $this->widget->reportContainer->render()];
-    }
-
-    /**
-     * Prepare the report widget used by the dashboard
-     * @param Model $model
-     * @return void
-     */
-    protected function initReportContainer()
-    {
-        new ReportContainer($this, 'config_dashboard.yaml');
-    }
-
     /**
      * Custom permissions check that will redirect to the next
      * available menu item, if permission to this page is denied.
@@ -77,5 +60,22 @@ class Index extends Controller
                 return Redirect::intended($first->url);
             }
         }
+    }
+
+    /**
+     * Prepare the report widget used by the dashboard
+     * @param Model $model
+     * @return void
+     */
+    protected function initReportContainer()
+    {
+        new ReportContainer($this, 'config_dashboard.yaml');
+    }
+
+    public function index_onInitReportContainer()
+    {
+        $this->initReportContainer();
+
+        return ['#dashReportContainer' => $this->widget->reportContainer->render()];
     }
 }

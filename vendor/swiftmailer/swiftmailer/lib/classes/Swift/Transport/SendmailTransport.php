@@ -54,6 +54,16 @@ class Swift_Transport_SendmailTransport extends Swift_Transport_AbstractSmtpTran
     }
 
     /**
+     * Get the sendmail command which will be invoked.
+     *
+     * @return string
+     */
+    public function getCommand()
+    {
+        return $this->params['command'];
+    }
+
+    /**
      * Set the command to invoke.
      *
      * If using -t mode you are strongly advised to include -oi or -i in the flags.
@@ -72,16 +82,6 @@ class Swift_Transport_SendmailTransport extends Swift_Transport_AbstractSmtpTran
         $this->params['command'] = $command;
 
         return $this;
-    }
-
-    /**
-     * Get the sendmail command which will be invoked.
-     *
-     * @return string
-     */
-    public function getCommand()
-    {
-        return $this->params['command'];
     }
 
     /**

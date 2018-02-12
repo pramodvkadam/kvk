@@ -35,6 +35,13 @@ class ValueContainer implements \ArrayAccess, \IteratorAggregate, \Countable
         return array_key_exists($offset, $this->values);
     }
 
+    private function initialize()
+    {
+        if (null === $this->values) {
+            $this->values = $this->valueSupplier->getValues();
+        }
+    }
+
     public function offsetGet($offset)
     {
         $this->initialize();
@@ -68,12 +75,5 @@ class ValueContainer implements \ArrayAccess, \IteratorAggregate, \Countable
         $this->initialize();
 
         return count($this->values);
-    }
-
-    private function initialize()
-    {
-        if (null === $this->values) {
-            $this->values = $this->valueSupplier->getValues();
-        }
     }
 }

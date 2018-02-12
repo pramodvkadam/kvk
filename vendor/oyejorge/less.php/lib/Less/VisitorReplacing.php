@@ -8,6 +8,22 @@
  */
 class Less_VisitorReplacing extends Less_Visitor{
 
+	public function visitArray( $nodes ){
+
+		$newNodes = array();
+		foreach($nodes as $node){
+			$evald = $this->visitObj($node);
+			if( $evald ){
+				if( is_array($evald) ){
+					self::flatten($evald,$newNodes);
+				}else{
+					$newNodes[] = $evald;
+				}
+			}
+		}
+		return $newNodes;
+	}
+
 	public function visitObj( $node ){
 
 		$funcName = 'visit'.$node->type;
@@ -32,22 +48,6 @@ class Less_VisitorReplacing extends Less_Visitor{
 		}
 
 		return $node;
-	}
-
-	public function visitArray( $nodes ){
-
-		$newNodes = array();
-		foreach($nodes as $node){
-			$evald = $this->visitObj($node);
-			if( $evald ){
-				if( is_array($evald) ){
-					self::flatten($evald,$newNodes);
-				}else{
-					$newNodes[] = $evald;
-				}
-			}
-		}
-		return $newNodes;
 	}
 
 	public function flatten( $arr, &$out ){

@@ -27,34 +27,29 @@ class Model extends EloquentModel
     use \October\Rain\Database\Traits\DeferredBinding;
 
     /**
+     * @var array The array of models booted events.
+     */
+    protected static $eventsBooted = [];
+    /**
      * @var array Behaviors implemented by this model.
      */
     public $implement;
-
     /**
      * @var array Make the model's attributes public so behaviors can modify them.
      */
     public $attributes = [];
-
-    /**
-     * @var array List of attribute names which are json encoded and decoded from the database.
-     */
-    protected $jsonable = [];
-
-    /**
-     * @var array List of datetime attributes to convert to an instance of Carbon/DateTime objects.
-     */
-    protected $dates = [];
-
     /**
      * @var bool Indicates if duplicate queries from this model should be cached in memory.
      */
     public $duplicateCache = true;
-
     /**
-     * @var array The array of models booted events.
+     * @var array List of attribute names which are json encoded and decoded from the database.
      */
-    protected static $eventsBooted = [];
+    protected $jsonable = [];
+    /**
+     * @var array List of datetime attributes to convert to an instance of Carbon/DateTime objects.
+     */
+    protected $dates = [];
 
     /**
      * Constructor
@@ -68,74 +63,6 @@ class Model extends EloquentModel
         $this->extendableConstruct();
 
         $this->fill($attributes);
-    }
-
-    /**
-     * Create a new model and return the instance.
-     * @param array $attributes
-     * @return \Illuminate\Database\Eloquent\Model|static
-     */
-    public static function make($attributes = [])
-    {
-        return new static($attributes);
-    }
-
-    /**
-     * Save a new model and return the instance.
-     * @param array $attributes
-     * @param string $sessionKey
-     * @return \Illuminate\Database\Eloquent\Model|static
-     */
-    public static function create(array $attributes = [], $sessionKey = null)
-    {
-        $model = new static($attributes);
-
-        $model->save(null, $sessionKey);
-
-        return $model;
-    }
-
-    /**
-     * Reloads the model attributes from the database.
-     * @return \Illuminate\Database\Eloquent\Model|static
-     */
-    public function reload()
-    {
-        static::flushDuplicateCache();
-
-        if (!$this->exists) {
-            $this->syncOriginal();
-        }
-        elseif ($fresh = static::find($this->getKey())) {
-            $this->setRawAttributes($fresh->getAttributes(), true);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Reloads the model relationship cache.
-     * @param string  $relationName
-     * @return void
-     */
-    public function reloadRelations($relationName = null)
-    {
-        static::flushDuplicateCache();
-
-        if (!$relationName) {
-            $this->setRelations([]);
-        }
-        else {
-            unset($this->relations[$relationName]);
-        }
-    }
-
-    /**
-     * Extend this object properties upon construction.
-     */
-    public static function extend(Closure $callback)
-    {
-        self::extendableExtendCallback($callback);
     }
 
     /**
@@ -186,318 +113,41 @@ class Model extends EloquentModel
     }
 
     /**
-     * Remove all of the event listeners for the model
-     * Also flush registry of models that had events booted
-     * Allows painless unit testing.
-     *
-     * @override
-     * @return void
-     */
-    public static function flushEventListeners()
-    {
-        parent::flushEventListeners();
-        static::$eventsBooted = [];
-    }
-
-    /**
-     * Flush the memory cache.
-     * @return void
-     */
-    public static function flushDuplicateCache()
-    {
-        MemoryCache::instance()->flush();
-    }
-
-    /**
-     * Create a new model instance that is existing.
-     * @param  array  $attributes
+     * Create a new model and return the instance.
+     * @param array $attributes
      * @return \Illuminate\Database\Eloquent\Model|static
      */
-    public function newFromBuilder($attributes = [], $connection = null)
+    public static function make($attributes = [])
     {
-        $instance = $this->newInstance([], true);
-
-        if ($instance->fireModelEvent('fetching') === false) {
-            return $instance;
-        }
-
-        $instance->setRawAttributes((array) $attributes, true);
-
-        $instance->fireModelEvent('fetched', false);
-
-        $instance->setConnection($connection ?: $this->connection);
-
-        return $instance;
+        return new static($attributes);
     }
 
     /**
-     * Create a new native event for handling beforeFetch().
-     * @param Closure|string $callback
-     * @return void
+     * Save a new model and return the instance.
+     * @param array $attributes
+     * @param string $sessionKey
+     * @return \Illuminate\Database\Eloquent\Model|static
      */
-    public static function fetching($callback)
+    public static function create(array $attributes = [], $sessionKey = null)
     {
-        static::registerModelEvent('fetching', $callback);
+        $model = new static($attributes);
+
+        $model->save(null, $sessionKey);
+
+        return $model;
     }
 
     /**
-     * Create a new native event for handling afterFetch().
-     * @param Closure|string $callback
-     * @return void
-     */
-    public static function fetched($callback)
-    {
-        static::registerModelEvent('fetched', $callback);
-    }
-
-    /**
-     * Checks if an attribute is jsonable or not.
-     *
-     * @return array
-     */
-    public function isJsonable($key)
-    {
-        return in_array($key, $this->jsonable);
-    }
-
-    /**
-     * Get the jsonable attributes name
-     *
-     * @return array
-     */
-    public function getJsonable()
-    {
-        return $this->jsonable;
-    }
-
-    /**
-     * Set the jsonable attributes for the model.
-     *
-     * @param  array  $jsonable
-     * @return $this
-     */
-    public function jsonable(array $jsonable)
-    {
-        $this->jsonable = $jsonable;
-
-        return $this;
-    }
-
-    //
-    // Overrides
-    //
-
-    /**
-     * Get the observable event names.
-     * @return array
-     */
-    public function getObservableEvents()
-    {
-        return array_merge(
-            [
-                'creating', 'created', 'updating', 'updated',
-                'deleting', 'deleted', 'saving', 'saved',
-                'restoring', 'restored', 'fetching', 'fetched'
-            ],
-            $this->observables
-        );
-    }
-
-    /**
-     * Get a fresh timestamp for the model.
-     *
-     * @return \October\Rain\Argon\Argon
-     */
-    public function freshTimestamp()
-    {
-        return new Argon;
-    }
-
-    /**
-     * Return a timestamp as DateTime object.
-     *
-     * @param  mixed  $value
-     * @return \Carbon\Carbon
-     */
-    protected function asDateTime($value)
-    {
-        if ($value instanceof Argon) {
-            return $value;
-        }
-
-        if ($value instanceof DateTimeInterface) {
-            return new Argon(
-                $value->format('Y-m-d H:i:s.u'), $value->getTimezone()
-            );
-        }
-
-        if (is_numeric($value)) {
-            return Argon::createFromTimestamp($value);
-        }
-
-        if ($this->isStandardDateFormat($value)) {
-            return Argon::createFromFormat('Y-m-d', $value)->startOfDay();
-        }
-
-        return Argon::createFromFormat(
-            $this->getDateFormat(), $value
-        );
-    }
-
-    /**
-     * Convert a DateTime to a storable string.
-     *
-     * @param  \DateTime|int  $value
-     * @return string
-     */
-    public function fromDateTime($value)
-    {
-        if (is_null($value)) {
-            return $value;
-        }
-
-        return parent::fromDateTime($value);
-    }
-
-    /**
-     * Create a new Eloquent query builder for the model.
-     *
-     * @param  \October\Rain\Database\QueryBuilder $query
-     * @return \October\Rain\Database\Builder|static
-     */
-    public function newEloquentBuilder($query)
-    {
-        return new Builder($query);
-    }
-
-    /**
-     * Get a new query builder instance for the connection.
-     *
-     * @return \October\Rain\Database\QueryBuilder
-     */
-    protected function newBaseQueryBuilder()
-    {
-        $conn = $this->getConnection();
-
-        $grammar = $conn->getQueryGrammar();
-
-        $builder = new QueryBuilder($conn, $grammar, $conn->getPostProcessor());
-
-        if ($this->duplicateCache) {
-            $builder->enableDuplicateCache();
-        }
-
-        return $builder;
-    }
-
-    /**
-     * Create a new Model Collection instance.
-     *
-     * @param  array  $models
-     * @return \October\Rain\Database\Collection
-     */
-    public function newCollection(array $models = [])
-    {
-        return new Collection($models);
-    }
-
-    //
-    // Magic
-    //
-
-    public function __get($name)
-    {
-        return $this->extendableGet($name);
-    }
-
-    public function __set($name, $value)
-    {
-        return $this->extendableSet($name, $value);
-    }
-
-    public function __call($name, $params)
-    {
-        /*
-         * Never call handleRelation() anywhere else as it could
-         * break getRelationCaller(), use $this->{$name}() instead
-         */
-        if ($this->hasRelation($name)) {
-            return $this->handleRelation($name);
-        }
-
-        return $this->extendableCall($name, $params);
-    }
-
-    /**
-     * Determine if an attribute or relation exists on the model.
-     *
-     * @param  string  $key
+     * Save the model to the database.
+     * @param array $options
+     * @param null $sessionKey
      * @return bool
      */
-    public function __isset($key)
+    public function save(array $options = null, $sessionKey = null)
     {
-        return !is_null($this->getAttribute($key));
+        $this->sessionKey = $sessionKey;
+        return $this->saveInternal(['force' => false] + (array) $options);
     }
-
-    /**
-     * This a custom piece of logic specifically to satisfy Twig's
-     * desire to return a relation object instead of loading the
-     * related model.
-     *
-     * @param  mixed  $offset
-     * @return bool
-     */
-    public function offsetExists($offset)
-    {
-        if ($result = parent::offsetExists($offset)) {
-            return $result;
-        }
-
-        return $this->hasRelation($offset);
-    }
-
-    //
-    // Pivot
-    //
-
-    /**
-     * Create a generic pivot model instance.
-     * @param  \October\Rain\Database\Model  $parent
-     * @param  array  $attributes
-     * @param  string  $table
-     * @param  bool  $exists
-     * @param  string|null  $using
-     * @return \October\Rain\Database\Pivot
-     */
-    public function newPivot(EloquentModel $parent, array $attributes, $table, $exists, $using = null)
-    {
-        return $using
-            ? $using::fromRawAttributes($parent, $attributes, $table, $exists)
-            : new Pivot($parent, $attributes, $table, $exists);
-    }
-
-    /**
-     * Create a pivot model instance specific to a relation.
-     * @param  \October\Rain\Database\Model  $parent
-     * @param  string  $relationName
-     * @param  array   $attributes
-     * @param  string  $table
-     * @param  bool    $exists
-     * @return \October\Rain\Database\Pivot
-     */
-    public function newRelationPivot($relationName, $parent, $attributes, $table, $exists)
-    {
-        $definition = $this->getRelationDefinition($relationName);
-
-        if (!is_null($definition) && array_key_exists('pivotModel', $definition)) {
-            $pivotModel = $definition['pivotModel'];
-            return new $pivotModel($parent, $attributes, $table, $exists);
-        }
-    }
-
-    //
-    // Saving
-    //
 
     /**
      * Save the model to the database. Is used by {@link save()} and {@link forceSave()}.
@@ -551,16 +201,393 @@ class Model extends EloquentModel
     }
 
     /**
-     * Save the model to the database.
-     * @param array $options
-     * @param null $sessionKey
+     * Extend this object properties upon construction.
+     */
+    public static function extend(Closure $callback)
+    {
+        self::extendableExtendCallback($callback);
+    }
+
+    /**
+     * Remove all of the event listeners for the model
+     * Also flush registry of models that had events booted
+     * Allows painless unit testing.
+     *
+     * @override
+     * @return void
+     */
+    public static function flushEventListeners()
+    {
+        parent::flushEventListeners();
+        static::$eventsBooted = [];
+    }
+
+    /**
+     * Create a new native event for handling beforeFetch().
+     * @param Closure|string $callback
+     * @return void
+     */
+    public static function fetching($callback)
+    {
+        static::registerModelEvent('fetching', $callback);
+    }
+
+    /**
+     * Create a new native event for handling afterFetch().
+     * @param Closure|string $callback
+     * @return void
+     */
+    public static function fetched($callback)
+    {
+        static::registerModelEvent('fetched', $callback);
+    }
+
+    /**
+     * Reloads the model attributes from the database.
+     * @return \Illuminate\Database\Eloquent\Model|static
+     */
+    public function reload()
+    {
+        static::flushDuplicateCache();
+
+        if (!$this->exists) {
+            $this->syncOriginal();
+        }
+        elseif ($fresh = static::find($this->getKey())) {
+            $this->setRawAttributes($fresh->getAttributes(), true);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Flush the memory cache.
+     * @return void
+     */
+    public static function flushDuplicateCache()
+    {
+        MemoryCache::instance()->flush();
+    }
+
+    /**
+     * Reloads the model relationship cache.
+     * @param string  $relationName
+     * @return void
+     */
+    public function reloadRelations($relationName = null)
+    {
+        static::flushDuplicateCache();
+
+        if (!$relationName) {
+            $this->setRelations([]);
+        }
+        else {
+            unset($this->relations[$relationName]);
+        }
+    }
+
+    /**
+     * Create a new model instance that is existing.
+     * @param  array  $attributes
+     * @return \Illuminate\Database\Eloquent\Model|static
+     */
+    public function newFromBuilder($attributes = [], $connection = null)
+    {
+        $instance = $this->newInstance([], true);
+
+        if ($instance->fireModelEvent('fetching') === false) {
+            return $instance;
+        }
+
+        $instance->setRawAttributes((array) $attributes, true);
+
+        $instance->fireModelEvent('fetched', false);
+
+        $instance->setConnection($connection ?: $this->connection);
+
+        return $instance;
+    }
+
+    /**
+     * Get the jsonable attributes name
+     *
+     * @return array
+     */
+    public function getJsonable()
+    {
+        return $this->jsonable;
+    }
+
+    //
+    // Overrides
+    //
+
+    /**
+     * Set the jsonable attributes for the model.
+     *
+     * @param  array  $jsonable
+     * @return $this
+     */
+    public function jsonable(array $jsonable)
+    {
+        $this->jsonable = $jsonable;
+
+        return $this;
+    }
+
+    /**
+     * Get the observable event names.
+     * @return array
+     */
+    public function getObservableEvents()
+    {
+        return array_merge(
+            [
+                'creating', 'created', 'updating', 'updated',
+                'deleting', 'deleted', 'saving', 'saved',
+                'restoring', 'restored', 'fetching', 'fetched'
+            ],
+            $this->observables
+        );
+    }
+
+    /**
+     * Get a fresh timestamp for the model.
+     *
+     * @return \October\Rain\Argon\Argon
+     */
+    public function freshTimestamp()
+    {
+        return new Argon;
+    }
+
+    /**
+     * Convert a DateTime to a storable string.
+     *
+     * @param  \DateTime|int  $value
+     * @return string
+     */
+    public function fromDateTime($value)
+    {
+        if (is_null($value)) {
+            return $value;
+        }
+
+        return parent::fromDateTime($value);
+    }
+
+    /**
+     * Create a new Eloquent query builder for the model.
+     *
+     * @param  \October\Rain\Database\QueryBuilder $query
+     * @return \October\Rain\Database\Builder|static
+     */
+    public function newEloquentBuilder($query)
+    {
+        return new Builder($query);
+    }
+
+    /**
+     * Create a new Model Collection instance.
+     *
+     * @param  array  $models
+     * @return \October\Rain\Database\Collection
+     */
+    public function newCollection(array $models = [])
+    {
+        return new Collection($models);
+    }
+
+    public function __get($name)
+    {
+        return $this->extendableGet($name);
+    }
+
+    //
+    // Magic
+    //
+
+    public function __set($name, $value)
+    {
+        return $this->extendableSet($name, $value);
+    }
+
+    public function __call($name, $params)
+    {
+        /*
+         * Never call handleRelation() anywhere else as it could
+         * break getRelationCaller(), use $this->{$name}() instead
+         */
+        if ($this->hasRelation($name)) {
+            return $this->handleRelation($name);
+        }
+
+        return $this->extendableCall($name, $params);
+    }
+
+    /**
+     * Determine if an attribute or relation exists on the model.
+     *
+     * @param  string  $key
      * @return bool
      */
-    public function save(array $options = null, $sessionKey = null)
+    public function __isset($key)
     {
-        $this->sessionKey = $sessionKey;
-        return $this->saveInternal(['force' => false] + (array) $options);
+        return !is_null($this->getAttribute($key));
     }
+
+    /**
+     * Get an attribute from the model.
+     * Overrided from {@link Eloquent} to implement recognition of the relation.
+     * @return mixed
+     */
+    public function getAttribute($key)
+    {
+        if (array_key_exists($key, $this->attributes) || $this->hasGetMutator($key)) {
+            return $this->getAttributeValue($key);
+        }
+
+        if ($this->relationLoaded($key)) {
+            return $this->relations[$key];
+        }
+
+        if ($this->hasRelation($key)) {
+            return $this->getRelationshipFromMethod($key);
+        }
+    }
+
+    /**
+     * Determine if a get mutator exists for an attribute.
+     * @param  string  $key
+     * @return bool
+     */
+    public function hasGetMutator($key)
+    {
+        return $this->methodExists('get'.Str::studly($key).'Attribute');
+    }
+
+    //
+    // Pivot
+    //
+
+    /**
+     * Get a plain attribute (not a relationship).
+     * @param  string  $key
+     * @return mixed
+     */
+    public function getAttributeValue($key)
+    {
+        /*
+         * Before Event
+         */
+        if (($attr = $this->fireEvent('model.beforeGetAttribute', [$key], true)) !== null) {
+            return $attr;
+        }
+
+        $attr = parent::getAttributeValue($key);
+
+        /*
+         * Return valid json (boolean, array) if valid, otherwise
+         * jsonable fields will return a string for invalid data.
+         */
+        if ($this->isJsonable($key) && !empty($attr)) {
+            $_attr = json_decode($attr, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $attr = $_attr;
+            }
+        }
+
+        /*
+         * After Event
+         */
+        if (($_attr = $this->fireEvent('model.getAttribute', [$key, $attr], true)) !== null) {
+            return $_attr;
+        }
+
+        return $attr;
+    }
+
+    /**
+     * Checks if an attribute is jsonable or not.
+     *
+     * @return array
+     */
+    public function isJsonable($key)
+    {
+        return in_array($key, $this->jsonable);
+    }
+
+    //
+    // Saving
+    //
+
+    /**
+     * This a custom piece of logic specifically to satisfy Twig's
+     * desire to return a relation object instead of loading the
+     * related model.
+     *
+     * @param  mixed  $offset
+     * @return bool
+     */
+    public function offsetExists($offset)
+    {
+        if ($result = parent::offsetExists($offset)) {
+            return $result;
+        }
+
+        return $this->hasRelation($offset);
+    }
+
+    /**
+     * Create a generic pivot model instance.
+     * @param  \October\Rain\Database\Model  $parent
+     * @param  array  $attributes
+     * @param  string  $table
+     * @param  bool  $exists
+     * @param  string|null  $using
+     * @return \October\Rain\Database\Pivot
+     */
+    public function newPivot(EloquentModel $parent, array $attributes, $table, $exists, $using = null)
+    {
+        return $using
+            ? $using::fromRawAttributes($parent, $attributes, $table, $exists)
+            : new Pivot($parent, $attributes, $table, $exists);
+    }
+
+    /**
+     * Create a pivot model instance specific to a relation.
+     * @param  \October\Rain\Database\Model  $parent
+     * @param  string  $relationName
+     * @param  array   $attributes
+     * @param  string  $table
+     * @param  bool    $exists
+     * @return \October\Rain\Database\Pivot
+     */
+    public function newRelationPivot($relationName, $parent, $attributes, $table, $exists)
+    {
+        $definition = $this->getRelationDefinition($relationName);
+
+        if (!is_null($definition) && array_key_exists('pivotModel', $definition)) {
+            $pivotModel = $definition['pivotModel'];
+            return new $pivotModel($parent, $attributes, $table, $exists);
+        }
+    }
+
+    /**
+     * Pushes the first level of relations even if the parent
+     * model has no changes.
+     * @param array $options
+     * @param string $sessionKey
+     * @return bool
+     */
+    public function alwaysPush($options = null, $sessionKey)
+    {
+        return $this->push(['always' => true] + (array) $options, $sessionKey);
+    }
+
+    //
+    // Deleting
+    //
 
     /**
      * Save the model and all of its relationships.
@@ -602,78 +629,6 @@ class Model extends EloquentModel
     }
 
     /**
-     * Pushes the first level of relations even if the parent
-     * model has no changes.
-     * @param array $options
-     * @param string $sessionKey
-     * @return bool
-     */
-    public function alwaysPush($options = null, $sessionKey)
-    {
-        return $this->push(['always' => true] + (array) $options, $sessionKey);
-    }
-
-    //
-    // Deleting
-    //
-
-    /**
-     * Perform the actual delete query on this model instance.
-     * @return void
-     */
-    protected function performDeleteOnModel()
-    {
-        $this->performDeleteOnRelations();
-
-        $this->setKeysForSaveQuery($this->newQueryWithoutScopes())->delete();
-    }
-
-    /**
-     * Locates relations with delete flag and cascades the delete event.
-     * @return void
-     */
-    protected function performDeleteOnRelations()
-    {
-        $definitions = $this->getRelationDefinitions();
-        foreach ($definitions as $type => $relations) {
-            /*
-             * Hard 'delete' definition
-             */
-            foreach ($relations as $name => $options) {
-                if (!Arr::get($options, 'delete', false)) {
-                    continue;
-                }
-
-                if (!$relation = $this->{$name}) {
-                    continue;
-                }
-
-                if ($relation instanceof EloquentModel) {
-                    $relation->forceDelete();
-                }
-                elseif ($relation instanceof CollectionBase) {
-                    $relation->each(function($model) {
-                        $model->forceDelete();
-                    });
-                }
-            }
-
-            /*
-             * Belongs-To-Many should clean up after itself always
-             */
-            if ($type == 'belongsToMany') {
-                foreach ($relations as $name => $options) {
-                    $this->{$name}()->detach();
-                }
-            }
-        }
-    }
-
-    //
-    // Adders
-    //
-
-    /**
      * Adds a datetime attribute to convert to an instance of Carbon/DateTime object.
      * @param string   $attribute
      * @return void
@@ -686,6 +641,10 @@ class Model extends EloquentModel
 
         $this->dates[] = $attribute;
     }
+
+    //
+    // Adders
+    //
 
     /**
      * Add fillable attributes for the model.
@@ -711,77 +670,6 @@ class Model extends EloquentModel
         $attributes = is_array($attributes) ? $attributes : func_get_args();
 
         $this->jsonable = array_merge($this->jsonable, $attributes);
-    }
-
-    //
-    // Getters
-    //
-
-    /**
-     * Get an attribute from the model.
-     * Overrided from {@link Eloquent} to implement recognition of the relation.
-     * @return mixed
-     */
-    public function getAttribute($key)
-    {
-        if (array_key_exists($key, $this->attributes) || $this->hasGetMutator($key)) {
-            return $this->getAttributeValue($key);
-        }
-
-        if ($this->relationLoaded($key)) {
-            return $this->relations[$key];
-        }
-
-        if ($this->hasRelation($key)) {
-            return $this->getRelationshipFromMethod($key);
-        }
-    }
-
-    /**
-     * Get a plain attribute (not a relationship).
-     * @param  string  $key
-     * @return mixed
-     */
-    public function getAttributeValue($key)
-    {
-        /*
-         * Before Event
-         */
-        if (($attr = $this->fireEvent('model.beforeGetAttribute', [$key], true)) !== null) {
-            return $attr;
-        }
-
-        $attr = parent::getAttributeValue($key);
-
-        /*
-         * Return valid json (boolean, array) if valid, otherwise
-         * jsonable fields will return a string for invalid data.
-         */
-        if ($this->isJsonable($key) && !empty($attr)) {
-            $_attr = json_decode($attr, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $attr = $_attr;
-            }
-        }
-
-        /*
-         * After Event
-         */
-        if (($_attr = $this->fireEvent('model.getAttribute', [$key, $attr], true)) !== null) {
-            return $_attr;
-        }
-
-        return $attr;
-    }
-
-    /**
-     * Determine if a get mutator exists for an attribute.
-     * @param  string  $key
-     * @return bool
-     */
-    public function hasGetMutator($key)
-    {
-        return $this->methodExists('get'.Str::studly($key).'Attribute');
     }
 
     /**
@@ -882,8 +770,39 @@ class Model extends EloquentModel
     }
 
     //
-    // Setters
+    // Getters
     //
+
+    /**
+     * Return a timestamp as DateTime object.
+     *
+     * @param  mixed  $value
+     * @return \Carbon\Carbon
+     */
+    protected function asDateTime($value)
+    {
+        if ($value instanceof Argon) {
+            return $value;
+        }
+
+        if ($value instanceof DateTimeInterface) {
+            return new Argon(
+                $value->format('Y-m-d H:i:s.u'), $value->getTimezone()
+            );
+        }
+
+        if (is_numeric($value)) {
+            return Argon::createFromTimestamp($value);
+        }
+
+        if ($this->isStandardDateFormat($value)) {
+            return Argon::createFromFormat('Y-m-d', $value)->startOfDay();
+        }
+
+        return Argon::createFromFormat(
+            $this->getDateFormat(), $value
+        );
+    }
 
     /**
      * Set a given attribute on the model.
@@ -951,5 +870,81 @@ class Model extends EloquentModel
     public function hasSetMutator($key)
     {
         return $this->methodExists('set'.Str::studly($key).'Attribute');
+    }
+
+    /**
+     * Get a new query builder instance for the connection.
+     *
+     * @return \October\Rain\Database\QueryBuilder
+     */
+    protected function newBaseQueryBuilder()
+    {
+        $conn = $this->getConnection();
+
+        $grammar = $conn->getQueryGrammar();
+
+        $builder = new QueryBuilder($conn, $grammar, $conn->getPostProcessor());
+
+        if ($this->duplicateCache) {
+            $builder->enableDuplicateCache();
+        }
+
+        return $builder;
+    }
+
+    //
+    // Setters
+    //
+
+    /**
+     * Perform the actual delete query on this model instance.
+     * @return void
+     */
+    protected function performDeleteOnModel()
+    {
+        $this->performDeleteOnRelations();
+
+        $this->setKeysForSaveQuery($this->newQueryWithoutScopes())->delete();
+    }
+
+    /**
+     * Locates relations with delete flag and cascades the delete event.
+     * @return void
+     */
+    protected function performDeleteOnRelations()
+    {
+        $definitions = $this->getRelationDefinitions();
+        foreach ($definitions as $type => $relations) {
+            /*
+             * Hard 'delete' definition
+             */
+            foreach ($relations as $name => $options) {
+                if (!Arr::get($options, 'delete', false)) {
+                    continue;
+                }
+
+                if (!$relation = $this->{$name}) {
+                    continue;
+                }
+
+                if ($relation instanceof EloquentModel) {
+                    $relation->forceDelete();
+                }
+                elseif ($relation instanceof CollectionBase) {
+                    $relation->each(function($model) {
+                        $model->forceDelete();
+                    });
+                }
+            }
+
+            /*
+             * Belongs-To-Many should clean up after itself always
+             */
+            if ($type == 'belongsToMany') {
+                foreach ($relations as $name => $options) {
+                    $this->{$name}()->detach();
+                }
+            }
+        }
     }
 }

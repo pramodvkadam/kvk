@@ -132,61 +132,6 @@ abstract class AbstractProxyFactory
     }
 
     /**
-     * Generates proxy classes for all given classes.
-     *
-     * @param \Doctrine\Common\Persistence\Mapping\ClassMetadata[] $classes The classes (ClassMetadata instances)
-     *                                                                      for which to generate proxies.
-     * @param string $proxyDir The target directory of the proxy classes. If not specified, the
-     *                         directory configured on the Configuration of the EntityManager used
-     *                         by this factory is used.
-     * @return int Number of generated proxies.
-     */
-    public function generateProxyClasses(array $classes, $proxyDir = null)
-    {
-        $generated = 0;
-
-        foreach ($classes as $class) {
-            if ($this->skipClass($class)) {
-                continue;
-            }
-
-            $proxyFileName = $this->proxyGenerator->getProxyFileName($class->getName(), $proxyDir);
-
-            $this->proxyGenerator->generateProxyClass($class, $proxyFileName);
-
-            $generated += 1;
-        }
-
-        return $generated;
-    }
-
-    /**
-     * Reset initialization/cloning logic for an un-initialized proxy
-     *
-     * @param \Doctrine\Common\Proxy\Proxy $proxy
-     *
-     * @return \Doctrine\Common\Proxy\Proxy
-     *
-     * @throws \Doctrine\Common\Proxy\Exception\InvalidArgumentException
-     */
-    public function resetUninitializedProxy(Proxy $proxy)
-    {
-        if ($proxy->__isInitialized()) {
-            throw InvalidArgumentException::unitializedProxyExpected($proxy);
-        }
-
-        $className  = ClassUtils::getClass($proxy);
-        $definition = isset($this->definitions[$className])
-            ? $this->definitions[$className]
-            : $this->getProxyDefinition($className);
-
-        $proxy->__setInitializer($definition->initializer);
-        $proxy->__setCloner($definition->cloner);
-
-        return $proxy;
-    }
-
-    /**
      * Get a proxy definition for the given class name.
      *
      * @param string $className
@@ -231,6 +176,42 @@ abstract class AbstractProxyFactory
     }
 
     /**
+     * @param string $className
+     *
+     * @return ProxyDefinition
+     */
+    abstract protected function createProxyDefinition($className);
+
+    /**
+     * Generates proxy classes for all given classes.
+     *
+     * @param \Doctrine\Common\Persistence\Mapping\ClassMetadata[] $classes The classes (ClassMetadata instances)
+     *                                                                      for which to generate proxies.
+     * @param string $proxyDir The target directory of the proxy classes. If not specified, the
+     *                         directory configured on the Configuration of the EntityManager used
+     *                         by this factory is used.
+     * @return int Number of generated proxies.
+     */
+    public function generateProxyClasses(array $classes, $proxyDir = null)
+    {
+        $generated = 0;
+
+        foreach ($classes as $class) {
+            if ($this->skipClass($class)) {
+                continue;
+            }
+
+            $proxyFileName = $this->proxyGenerator->getProxyFileName($class->getName(), $proxyDir);
+
+            $this->proxyGenerator->generateProxyClass($class, $proxyFileName);
+
+            $generated += 1;
+        }
+
+        return $generated;
+    }
+
+    /**
      * Determine if this class should be skipped during proxy generation.
      *
      * @param \Doctrine\Common\Persistence\Mapping\ClassMetadata $metadata
@@ -240,9 +221,28 @@ abstract class AbstractProxyFactory
     abstract protected function skipClass(ClassMetadata $metadata);
 
     /**
-     * @param string $className
+     * Reset initialization/cloning logic for an un-initialized proxy
      *
-     * @return ProxyDefinition
+     * @param \Doctrine\Common\Proxy\Proxy $proxy
+     *
+     * @return \Doctrine\Common\Proxy\Proxy
+     *
+     * @throws \Doctrine\Common\Proxy\Exception\InvalidArgumentException
      */
-    abstract protected function createProxyDefinition($className);
+    public function resetUninitializedProxy(Proxy $proxy)
+    {
+        if ($proxy->__isInitialized()) {
+            throw InvalidArgumentException::unitializedProxyExpected($proxy);
+        }
+
+        $className  = ClassUtils::getClass($proxy);
+        $definition = isset($this->definitions[$className])
+            ? $this->definitions[$className]
+            : $this->getProxyDefinition($className);
+
+        $proxy->__setInitializer($definition->initializer);
+        $proxy->__setCloner($definition->cloner);
+
+        return $proxy;
+    }
 }

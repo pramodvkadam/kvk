@@ -18,6 +18,15 @@ class Plugins extends ReportWidgetBase
         return $this->makePartial('widget');
     }
 
+    protected function loadData()
+    {
+        $this->vars['js']    = Frontend::where('language', '1')->count();
+        $this->vars['php']   = Frontend::where('language', '2')->count();
+        $this->vars['css']   = Frontend::where('language', '3')->count();
+        $this->vars['font']  = Frontend::where('language', '4')->count();
+        $this->vars['total'] = $this->vars['js'] + $this->vars['php'] + $this->vars['css'] + $this->vars['font'];
+    }
+
     public function defineProperties()
     {
         return [
@@ -54,14 +63,5 @@ class Plugins extends ReportWidgetBase
                 'type'              => 'checkbox'
             ]
         ];
-    }
-
-    protected function loadData()
-    {
-        $this->vars['js']    = Frontend::where('language', '1')->count();
-        $this->vars['php']   = Frontend::where('language', '2')->count();
-        $this->vars['css']   = Frontend::where('language', '3')->count();
-        $this->vars['font']  = Frontend::where('language', '4')->count();
-        $this->vars['total'] = $this->vars['js'] + $this->vars['php'] + $this->vars['css'] + $this->vars['font'];
     }
 }

@@ -27,20 +27,6 @@ class SymfonyStyleTest extends TestCase
     /** @var CommandTester */
     protected $tester;
 
-    protected function setUp()
-    {
-        putenv('COLUMNS=121');
-        $this->command = new Command('sfstyle');
-        $this->tester = new CommandTester($this->command);
-    }
-
-    protected function tearDown()
-    {
-        putenv('COLUMNS');
-        $this->command = null;
-        $this->tester = null;
-    }
-
     /**
      * @dataProvider inputCommandToOutputFilesProvider
      */
@@ -112,5 +98,19 @@ class SymfonyStyleTest extends TestCase
         $style = new SymfonyStyle($this->getMockBuilder(InputInterface::class)->getMock(), $output);
 
         $this->assertInstanceOf(SymfonyStyle::class, $style->getErrorStyle());
+    }
+
+    protected function setUp()
+    {
+        putenv('COLUMNS=121');
+        $this->command = new Command('sfstyle');
+        $this->tester = new CommandTester($this->command);
+    }
+
+    protected function tearDown()
+    {
+        putenv('COLUMNS');
+        $this->command = null;
+        $this->tester = null;
     }
 }

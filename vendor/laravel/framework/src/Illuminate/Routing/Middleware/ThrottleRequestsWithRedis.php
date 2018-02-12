@@ -9,25 +9,23 @@ use Illuminate\Contracts\Redis\Factory as Redis;
 class ThrottleRequestsWithRedis extends ThrottleRequests
 {
     /**
-     * The Redis factory implementation.
-     *
-     * @var \Illuminate\Contracts\Redis\Factory
-     */
-    protected $redis;
-
-    /**
      * The timestamp of the end of the current duration.
      *
      * @var int
      */
     public $decaysAt;
-
     /**
      * The number of remaining slots.
      *
      * @var int
      */
     public $remaining;
+    /**
+     * The Redis factory implementation.
+     *
+     * @var \Illuminate\Contracts\Redis\Factory
+     */
+    protected $redis;
 
     /**
      * Create a new request throttler.

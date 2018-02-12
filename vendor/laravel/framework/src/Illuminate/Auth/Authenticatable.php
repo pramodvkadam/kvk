@@ -12,16 +12,6 @@ trait Authenticatable
     protected $rememberTokenName = 'remember_token';
 
     /**
-     * Get the name of the unique identifier for the user.
-     *
-     * @return string
-     */
-    public function getAuthIdentifierName()
-    {
-        return $this->getKeyName();
-    }
-
-    /**
      * Get the unique identifier for the user.
      *
      * @return mixed
@@ -29,6 +19,16 @@ trait Authenticatable
     public function getAuthIdentifier()
     {
         return $this->{$this->getAuthIdentifierName()};
+    }
+
+    /**
+     * Get the name of the unique identifier for the user.
+     *
+     * @return string
+     */
+    public function getAuthIdentifierName()
+    {
+        return $this->getKeyName();
     }
 
     /**
@@ -54,6 +54,16 @@ trait Authenticatable
     }
 
     /**
+     * Get the column name for the "remember me" token.
+     *
+     * @return string
+     */
+    public function getRememberTokenName()
+    {
+        return $this->rememberTokenName;
+    }
+
+    /**
      * Set the token value for the "remember me" session.
      *
      * @param  string  $value
@@ -64,15 +74,5 @@ trait Authenticatable
         if (! empty($this->getRememberTokenName())) {
             $this->{$this->getRememberTokenName()} = $value;
         }
-    }
-
-    /**
-     * Get the column name for the "remember me" token.
-     *
-     * @return string
-     */
-    public function getRememberTokenName()
-    {
-        return $this->rememberTokenName;
     }
 }

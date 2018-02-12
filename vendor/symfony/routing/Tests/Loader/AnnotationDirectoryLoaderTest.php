@@ -19,14 +19,6 @@ class AnnotationDirectoryLoaderTest extends AbstractAnnotationLoaderTest
     protected $loader;
     protected $reader;
 
-    protected function setUp()
-    {
-        parent::setUp();
-
-        $this->reader = $this->getReader();
-        $this->loader = new AnnotationDirectoryLoader(new FileLocator(), $this->getClassLoader($this->reader));
-    }
-
     public function testLoad()
     {
         $this->reader->expects($this->exactly(4))->method('getClassAnnotation');
@@ -58,6 +50,15 @@ class AnnotationDirectoryLoaderTest extends AbstractAnnotationLoaderTest
         $this->loader->load(__DIR__.'/../Fixtures/AnnotatedClasses');
     }
 
+    private function expectAnnotationsToBeReadFrom(array $classes)
+    {
+        $this->reader->expects($this->exactly(count($classes)))
+            ->method('getClassAnnotation')
+            ->with($this->callback(function (\ReflectionClass $class) use ($classes) {
+                return in_array($class->getName(), $classes);
+            }));
+    }
+
     public function testSupports()
     {
         $fixturesDir = __DIR__.'/../Fixtures';
@@ -87,12 +88,11 @@ class AnnotationDirectoryLoaderTest extends AbstractAnnotationLoaderTest
         $this->loader->load(__DIR__.'/../Fixtures/AnnotatedClasses/FooClass.php');
     }
 
-    private function expectAnnotationsToBeReadFrom(array $classes)
+    protected function setUp()
     {
-        $this->reader->expects($this->exactly(count($classes)))
-            ->method('getClassAnnotation')
-            ->with($this->callback(function (\ReflectionClass $class) use ($classes) {
-                return in_array($class->getName(), $classes);
-            }));
+        parent::setUp();
+
+        $this->reader = $this->getReader();
+        $this->loader = new AnnotationDirectoryLoader(new FileLocator(), $this->getClassLoader($this->reader));
     }
 }

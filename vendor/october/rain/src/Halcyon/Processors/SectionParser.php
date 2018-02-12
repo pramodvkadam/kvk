@@ -180,29 +180,6 @@ class SectionParser
     }
 
     /**
-     * Returns the line number of a found instance of CMS object section separator (==).
-     * @param string $content Object content
-     * @param int $instance Which instance to look for
-     * @return int The line number the instance was found.
-     */
-    private static function calculateLinePosition($content, $instance = 1)
-    {
-        $count = 0;
-        $lines = explode(PHP_EOL, $content);
-        foreach ($lines as $number => $line) {
-            if (trim($line) == self::SECTION_SEPARATOR) {
-                $count++;
-            }
-
-            if ($count == $instance) {
-                return static::adjustLinePosition($content, $number);
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Pushes the starting line number forward since it is not always directly
      * after the separator (==). There can be an opening tag or white space in between
      * where the section really begins.
@@ -248,5 +225,28 @@ class SectionParser
 
         // Line 0 does not exist.
         return ++$startLine;
+    }
+
+    /**
+     * Returns the line number of a found instance of CMS object section separator (==).
+     * @param string $content Object content
+     * @param int $instance Which instance to look for
+     * @return int The line number the instance was found.
+     */
+    private static function calculateLinePosition($content, $instance = 1)
+    {
+        $count = 0;
+        $lines = explode(PHP_EOL, $content);
+        foreach ($lines as $number => $line) {
+            if (trim($line) == self::SECTION_SEPARATOR) {
+                $count++;
+            }
+
+            if ($count == $instance) {
+                return static::adjustLinePosition($content, $number);
+            }
+        }
+
+        return null;
     }
 }

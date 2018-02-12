@@ -99,41 +99,27 @@ abstract class Bundle implements BundleInterface
     }
 
     /**
-     * Gets the Bundle namespace.
+     * Creates the bundle's container extension.
      *
-     * @return string The Bundle namespace
+     * @return ExtensionInterface|null
      */
-    public function getNamespace()
+    protected function createContainerExtension()
     {
-        if (null === $this->namespace) {
-            $this->parseClassName();
+        if (class_exists($class = $this->getContainerExtensionClass())) {
+            return new $class();
         }
-
-        return $this->namespace;
     }
 
     /**
-     * Gets the Bundle directory path.
+     * Returns the bundle's container extension class.
      *
-     * @return string The Bundle absolute path
+     * @return string
      */
-    public function getPath()
+    protected function getContainerExtensionClass()
     {
-        if (null === $this->path) {
-            $reflected = new \ReflectionObject($this);
-            $this->path = dirname($reflected->getFileName());
-        }
+        $basename = preg_replace('/Bundle$/', '', $this->getName());
 
-        return $this->path;
-    }
-
-    /**
-     * Returns the bundle parent name.
-     *
-     * @return string|null The Bundle parent name it overrides or null if no parent
-     */
-    public function getParent()
-    {
+        return $this->getNamespace().'\\DependencyInjection\\'.$basename.'Extension';
     }
 
     /**
@@ -148,6 +134,38 @@ abstract class Bundle implements BundleInterface
         }
 
         return $this->name;
+    }
+
+    private function parseClassName()
+    {
+        $pos = strrpos(static::class, '\\');
+        $this->namespace = false === $pos ? '' : substr(static::class, 0, $pos);
+        if (null === $this->name) {
+            $this->name = false === $pos ? static::class : substr(static::class, $pos + 1);
+        }
+    }
+
+    /**
+     * Gets the Bundle namespace.
+     *
+     * @return string The Bundle namespace
+     */
+    public function getNamespace()
+    {
+        if (null === $this->namespace) {
+            $this->parseClassName();
+        }
+
+        return $this->namespace;
+    }
+
+    /**
+     * Returns the bundle parent name.
+     *
+     * @return string|null The Bundle parent name it overrides or null if no parent
+     */
+    public function getParent()
+    {
     }
 
     /**
@@ -195,35 +213,17 @@ abstract class Bundle implements BundleInterface
     }
 
     /**
-     * Returns the bundle's container extension class.
+     * Gets the Bundle directory path.
      *
-     * @return string
+     * @return string The Bundle absolute path
      */
-    protected function getContainerExtensionClass()
+    public function getPath()
     {
-        $basename = preg_replace('/Bundle$/', '', $this->getName());
-
-        return $this->getNamespace().'\\DependencyInjection\\'.$basename.'Extension';
-    }
-
-    /**
-     * Creates the bundle's container extension.
-     *
-     * @return ExtensionInterface|null
-     */
-    protected function createContainerExtension()
-    {
-        if (class_exists($class = $this->getContainerExtensionClass())) {
-            return new $class();
+        if (null === $this->path) {
+            $reflected = new \ReflectionObject($this);
+            $this->path = dirname($reflected->getFileName());
         }
-    }
 
-    private function parseClassName()
-    {
-        $pos = strrpos(static::class, '\\');
-        $this->namespace = false === $pos ? '' : substr(static::class, 0, $pos);
-        if (null === $this->name) {
-            $this->name = false === $pos ? static::class : substr(static::class, $pos + 1);
-        }
+        return $this->path;
     }
 }

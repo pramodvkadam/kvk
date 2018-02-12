@@ -362,6 +362,28 @@ class Frontend extends Controller
     }
 
     /* Get details */
+
+    public function insertToDatabase($name = '', $webpage = '', $version = 'none', $language = 1, $theme = '', $description = '')
+    {
+        if ($description != '') {
+            $description = Lang::get('indikator.plugins::lang.3rd_plugin.'.$description);
+        }
+
+        FrontendPlugins::insertGetId([
+            'name'        => $name,
+            'webpage'     => $webpage,
+            'version'     => $version,
+            'language'    => $language,
+            'theme'       => $theme,
+            'description' => $description,
+            'common'      => '',
+            'created_at'  => date('Y-m-d H:i:s'),
+            'updated_at'  => date('Y-m-d H:i:s')
+        ]);
+    }
+
+    /* Get version */
+
     public function getPluginDetails($name = '', $path = '')
     {
         /* Supported plugins */
@@ -531,7 +553,8 @@ class Frontend extends Controller
         ];
     }
 
-    /* Get version */
+    /* Add plugin */
+
     public function getPluginVersion($path = '')
     {
         if (!File::exists(base_path().'/'.$path)) {
@@ -558,27 +581,8 @@ class Frontend extends Controller
         return 'none';
     }
 
-    /* Add plugin */
-    public function insertToDatabase($name = '', $webpage = '', $version = 'none', $language = 1, $theme = '', $description = '')
-    {
-        if ($description != '') {
-            $description = Lang::get('indikator.plugins::lang.3rd_plugin.'.$description);
-        }
-
-        FrontendPlugins::insertGetId([
-            'name'        => $name,
-            'webpage'     => $webpage,
-            'version'     => $version,
-            'language'    => $language,
-            'theme'       => $theme,
-            'description' => $description,
-            'common'      => '',
-            'created_at'  => date('Y-m-d H:i:s'),
-            'updated_at'  => date('Y-m-d H:i:s')
-        ]);
-    }
-
     /* Update version */
+
     public function updateToDatabase($id = 0, $version = '1.0')
     {
         if (!$item = FrontendPlugins::find($id)) {

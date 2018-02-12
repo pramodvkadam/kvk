@@ -26,6 +26,11 @@ class Swift_Mime_ContentEncoder_QpContentEncoderTest extends \SwiftMailerTestCas
                     allow an alternative encoding.
                     */
 
+    private function createCharacterStream($stub = false)
+    {
+        return $this->getMockery('Swift_CharacterStream')->shouldIgnoreMissing();
+    }
+
     public function testPermittedCharactersAreNotEncoded()
     {
         /* -- RFC 2045, 6.7 --
@@ -64,6 +69,16 @@ class Swift_Mime_ContentEncoder_QpContentEncoderTest extends \SwiftMailerTestCas
             $encoder->encodeByteStream($os, $is);
             $this->assertIdenticalBinary($char, $collection->content);
         }
+    }
+
+    private function createOutputByteStream($stub = false)
+    {
+        return $this->getMockery('Swift_OutputByteStream')->shouldIgnoreMissing();
+    }
+
+    private function createInputByteStream($stub = false)
+    {
+        return $this->getMockery('Swift_InputByteStream')->shouldIgnoreMissing();
     }
 
     public function testLinearWhiteSpaceAtLineEndingIsEncoded()
@@ -491,26 +506,11 @@ class Swift_Mime_ContentEncoder_QpContentEncoderTest extends \SwiftMailerTestCas
             );
     }
 
-    private function createCharacterStream($stub = false)
-    {
-        return $this->getMockery('Swift_CharacterStream')->shouldIgnoreMissing();
-    }
-
     private function createEncoder()
     {
         $factory = new Swift_CharacterReaderFactory_SimpleCharacterReaderFactory();
         $charStream = new Swift_CharacterStream_NgCharacterStream($factory, 'utf-8');
 
         return new Swift_Mime_ContentEncoder_QpContentEncoder($charStream);
-    }
-
-    private function createOutputByteStream($stub = false)
-    {
-        return $this->getMockery('Swift_OutputByteStream')->shouldIgnoreMissing();
-    }
-
-    private function createInputByteStream($stub = false)
-    {
-        return $this->getMockery('Swift_InputByteStream')->shouldIgnoreMissing();
     }
 }

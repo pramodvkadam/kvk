@@ -12,6 +12,16 @@ class FileExistsException extends RuntimeException
     protected $invalidPath;
 
     /**
+     * Get the affected directory path.
+     *
+     * @return string
+     */
+    public function getInvalidPath()
+    {
+        return $this->invalidPath;
+    }
+
+    /**
      * Set the affected directory path.
      *
      * @param  string   $model
@@ -24,15 +34,5 @@ class FileExistsException extends RuntimeException
         $this->message = "A file already exists at [{$path}].";
 
         return $this;
-    }
-
-    /**
-     * Get the affected directory path.
-     *
-     * @return string
-     */
-    public function getInvalidPath()
-    {
-        return $this->invalidPath;
     }
 }

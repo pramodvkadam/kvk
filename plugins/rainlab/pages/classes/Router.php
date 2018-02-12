@@ -18,19 +18,17 @@ use October\Rain\Router\Helper as RouterHelper;
 class Router
 {
     /**
-     * @var \Cms\Classes\Theme A reference to the CMS theme containing the object.
-     */
-    protected $theme;
-
-    /**
      * @var array Contains the URL map - the list of page file names and corresponding URL patterns.
      */
     private static $urlMap = [];
-
     /**
      * @var array Request-level cache
      */
     private static $cache = [];
+    /**
+     * @var \Cms\Classes\Theme A reference to the CMS theme containing the object.
+     */
+    protected $theme;
 
     /**
      * Creates the router instance.

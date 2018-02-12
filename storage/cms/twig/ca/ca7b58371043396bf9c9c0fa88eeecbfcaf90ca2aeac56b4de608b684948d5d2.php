@@ -13,6 +13,39 @@ class __TwigTemplate_3dfa1003519b6115b2fe0b04fa89286318d8df76add0f65616b7fbb53d3
         );
     }
 
+    public function getTemplateName()
+    {
+        return "/var/www/html/atma/themes/atma-new/pages/contact.htm";
+    }
+
+    public function isTraitable()
+    {
+        return false;
+    }
+
+    public function getDebugInfo()
+    {
+        return array (  45 => 12,  41 => 11,  35 => 7,  31 => 6,  27 => 4,  23 => 3,  19 => 1,);
+    }
+
+    public function getSourceContext()
+    {
+        return new Twig_Source("<div class=\"row\">
+    <div class=\"col-md-4\">
+        {% content 'contact/page' %}
+
+        <div class=\"module-contact well\">
+            {% content 'contact/details' %}
+        </div>
+    </div>
+    <div class=\"col-md-8\">
+        <div id=\"partialContactForm\">
+            {% partial 'contact/form' %}
+        </div>
+    </div>
+</div>", "/var/www/html/atma/themes/atma-new/pages/contact.htm", "");
+    }
+
     protected function doDisplay(array $context, array $blocks = array())
     {
         // line 1
@@ -45,38 +78,5 @@ class __TwigTemplate_3dfa1003519b6115b2fe0b04fa89286318d8df76add0f65616b7fbb53d3
         echo "        </div>
     </div>
 </div>";
-    }
-
-    public function getTemplateName()
-    {
-        return "/var/www/html/atma/themes/atma-new/pages/contact.htm";
-    }
-
-    public function isTraitable()
-    {
-        return false;
-    }
-
-    public function getDebugInfo()
-    {
-        return array (  45 => 12,  41 => 11,  35 => 7,  31 => 6,  27 => 4,  23 => 3,  19 => 1,);
-    }
-
-    public function getSourceContext()
-    {
-        return new Twig_Source("<div class=\"row\">
-    <div class=\"col-md-4\">
-        {% content 'contact/page' %}
-
-        <div class=\"module-contact well\">
-            {% content 'contact/details' %}
-        </div>
-    </div>
-    <div class=\"col-md-8\">
-        <div id=\"partialContactForm\">
-            {% partial 'contact/form' %}
-        </div>
-    </div>
-</div>", "/var/www/html/atma/themes/atma-new/pages/contact.htm", "");
     }
 }

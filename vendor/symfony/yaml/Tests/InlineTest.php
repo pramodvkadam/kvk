@@ -18,11 +18,6 @@ use Symfony\Component\Yaml\Yaml;
 
 class InlineTest extends TestCase
 {
-    protected function setUp()
-    {
-        Inline::initialize(0, 0);
-    }
-
     /**
      * @dataProvider getTestsForParse
      */
@@ -790,5 +785,10 @@ class InlineTest extends TestCase
     public function testDeprecatedStrTag()
     {
         $this->assertSame(array('foo' => 'bar'), Inline::parse('{ foo: !str bar }'));
+    }
+
+    protected function setUp()
+    {
+        Inline::initialize(0, 0);
     }
 }

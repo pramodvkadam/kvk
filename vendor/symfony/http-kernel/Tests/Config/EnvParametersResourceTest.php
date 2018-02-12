@@ -23,29 +23,6 @@ class EnvParametersResourceTest extends TestCase
     protected $initialEnv;
     protected $resource;
 
-    protected function setUp()
-    {
-        $this->initialEnv = array(
-            $this->prefix.'1' => 'foo',
-            $this->prefix.'2' => 'bar',
-        );
-
-        foreach ($this->initialEnv as $key => $value) {
-            $_SERVER[$key] = $value;
-        }
-
-        $this->resource = new EnvParametersResource($this->prefix);
-    }
-
-    protected function tearDown()
-    {
-        foreach ($_SERVER as $key => $value) {
-            if (0 === strpos($key, $this->prefix)) {
-                unset($_SERVER[$key]);
-            }
-        }
-    }
-
     public function testGetResource()
     {
         $this->assertSame(
@@ -106,5 +83,28 @@ class EnvParametersResourceTest extends TestCase
     public function testSerializeUnserialize()
     {
         $this->assertEquals($this->resource, unserialize(serialize($this->resource)));
+    }
+
+    protected function setUp()
+    {
+        $this->initialEnv = array(
+            $this->prefix.'1' => 'foo',
+            $this->prefix.'2' => 'bar',
+        );
+
+        foreach ($this->initialEnv as $key => $value) {
+            $_SERVER[$key] = $value;
+        }
+
+        $this->resource = new EnvParametersResource($this->prefix);
+    }
+
+    protected function tearDown()
+    {
+        foreach ($_SERVER as $key => $value) {
+            if (0 === strpos($key, $this->prefix)) {
+                unset($_SERVER[$key]);
+            }
+        }
     }
 }

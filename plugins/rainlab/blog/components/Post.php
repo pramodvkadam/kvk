@@ -54,13 +54,6 @@ class Post extends ComponentBase
         $this->post = $this->page['post'] = $this->loadPost();
     }
 
-    public function onRender()
-    {
-        if (empty($this->post)) {
-            $this->post = $this->page['post'] = $this->loadPost();
-        }
-    }
-
     protected function loadPost()
     {
         $slug = $this->property('slug');
@@ -89,14 +82,22 @@ class Post extends ComponentBase
         return $post;
     }
 
+    protected function checkEditor()
+    {
+        $backendUser = BackendAuth::getUser();
+        return $backendUser && $backendUser->hasAccess('rainlab.blog.access_posts');
+    }
+
+    public function onRender()
+    {
+        if (empty($this->post)) {
+            $this->post = $this->page['post'] = $this->loadPost();
+        }
+    }
+
     public function previousPost()
     {
         return $this->getPostSibling(-1);
-    }
-
-    public function nextPost()
-    {
-        return $this->getPostSibling(1);
     }
 
     protected function getPostSibling($direction = 1)
@@ -122,9 +123,8 @@ class Post extends ComponentBase
         return $post;
     }
 
-    protected function checkEditor()
+    public function nextPost()
     {
-        $backendUser = BackendAuth::getUser();
-        return $backendUser && $backendUser->hasAccess('rainlab.blog.access_posts');
+        return $this->getPostSibling(1);
     }
 }

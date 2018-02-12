@@ -24,27 +24,6 @@ class Processor
     }
 
     /**
-     * Get the CSS from the style-tags in the given HTML-string
-     *
-     * @param string $html
-     * @return string
-     */
-    public function getCssFromStyleTags($html)
-    {
-        $css = '';
-        $matches = array();
-        preg_match_all('|<style(?:\s.*)?>(.*)</style>|isU', $html, $matches);
-
-        if (!empty($matches[1])) {
-            foreach ($matches[1] as $match) {
-                $css .= trim($match) . "\n";
-            }
-        }
-
-        return $css;
-    }
-
-    /**
      * @param string $css
      * @return string
      */
@@ -61,6 +40,27 @@ class Processor
         $css = preg_replace('|/\*.*?\*/|', '', $css);
         $css = preg_replace('/\s\s++/', ' ', $css);
         $css = trim($css);
+
+        return $css;
+    }
+
+    /**
+     * Get the CSS from the style-tags in the given HTML-string
+     *
+     * @param string $html
+     * @return string
+     */
+    public function getCssFromStyleTags($html)
+    {
+        $css = '';
+        $matches = array();
+        preg_match_all('|<style(?:\s.*)?>(.*)</style>|isU', $html, $matches);
+
+        if (!empty($matches[1])) {
+            foreach ($matches[1] as $match) {
+                $css .= trim($match) . "\n";
+            }
+        }
 
         return $css;
     }

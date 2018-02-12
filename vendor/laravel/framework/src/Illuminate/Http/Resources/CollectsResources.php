@@ -8,6 +8,16 @@ use Illuminate\Pagination\AbstractPaginator;
 trait CollectsResources
 {
     /**
+     * Get an iterator for the resource collection.
+     *
+     * @return \ArrayIterator
+     */
+    public function getIterator()
+    {
+        return $this->collection->getIterator();
+    }
+
+    /**
      * Map the given collection resource into its individual resources.
      *
      * @param  mixed  $resource
@@ -47,15 +57,5 @@ trait CollectsResources
             class_exists($class = Str::replaceLast('Collection', '', get_class($this)))) {
             return $class;
         }
-    }
-
-    /**
-     * Get an iterator for the resource collection.
-     *
-     * @return \ArrayIterator
-     */
-    public function getIterator()
-    {
-        return $this->collection->getIterator();
     }
 }

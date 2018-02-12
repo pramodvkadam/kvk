@@ -147,6 +147,19 @@ class ResultCacheStatement implements \IteratorAggregate, ResultStatement
     /**
      * {@inheritdoc}
      */
+    public function fetchAll($fetchMode = null)
+    {
+        $rows = array();
+        while ($row = $this->fetch($fetchMode)) {
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function fetch($fetchMode = null)
     {
         if ($this->data === null) {
@@ -174,19 +187,6 @@ class ResultCacheStatement implements \IteratorAggregate, ResultStatement
         $this->emptied = true;
 
         return false;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function fetchAll($fetchMode = null)
-    {
-        $rows = array();
-        while ($row = $this->fetch($fetchMode)) {
-            $rows[] = $row;
-        }
-
-        return $rows;
     }
 
     /**

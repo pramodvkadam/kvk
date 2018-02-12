@@ -106,6 +106,33 @@ class LazyAssetManager extends AssetManager
     }
 
     /**
+     * Loads formulae from resources.
+     *
+     * @throws \LogicException If a resource has been added to an invalid loader
+     */
+    public function load()
+    {
+        if ($this->loading) {
+            return;
+        }
+
+        if ($diff = array_diff(array_keys($this->resources), array_keys($this->loaders))) {
+            throw new \LogicException('The following loader(s) are not registered: '.implode(', ', $diff));
+        }
+
+        $this->loading = true;
+
+        foreach ($this->resources as $loader => $resources) {
+            foreach ($resources as $resource) {
+                $this->formulae = array_replace($this->formulae, $this->loaders[$loader]->load($resource));
+            }
+        }
+
+        $this->loaded = true;
+        $this->loading = false;
+    }
+
+    /**
      * Returns an asset's formula.
      *
      * @param string $name An asset name
@@ -136,33 +163,6 @@ class LazyAssetManager extends AssetManager
     public function setFormula($name, array $formula)
     {
         $this->formulae[$name] = $formula;
-    }
-
-    /**
-     * Loads formulae from resources.
-     *
-     * @throws \LogicException If a resource has been added to an invalid loader
-     */
-    public function load()
-    {
-        if ($this->loading) {
-            return;
-        }
-
-        if ($diff = array_diff(array_keys($this->resources), array_keys($this->loaders))) {
-            throw new \LogicException('The following loader(s) are not registered: '.implode(', ', $diff));
-        }
-
-        $this->loading = true;
-
-        foreach ($this->resources as $loader => $resources) {
-            foreach ($resources as $resource) {
-                $this->formulae = array_replace($this->formulae, $this->loaders[$loader]->load($resource));
-            }
-        }
-
-        $this->loaded = true;
-        $this->loading = false;
     }
 
     public function get($name)

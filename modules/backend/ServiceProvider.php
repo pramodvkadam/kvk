@@ -37,16 +37,6 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * Bootstrap the module events.
-     *
-     * @return void
-     */
-    public function boot()
-    {
-        parent::boot('backend');
-    }
-
-    /**
      * Register mail templates
      */
     protected function registerMailer()
@@ -84,9 +74,6 @@ class ServiceProvider extends ModuleServiceProvider
         });
     }
 
-    /*
-     * Register navigation
-     */
     protected function registerBackendNavigation()
     {
         BackendMenu::registerCallback(function ($manager) {
@@ -112,8 +99,9 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /*
-     * Register report widgets
+     * Register navigation
      */
+
     protected function registerBackendReportWidgets()
     {
         WidgetManager::instance()->registerReportWidgets(function ($manager) {
@@ -125,8 +113,32 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /*
+     * Register report widgets
+     */
+
+    protected function registerBackendWidgets()
+    {
+        WidgetManager::instance()->registerFormWidgets(function ($manager) {
+            $manager->registerFormWidget('Backend\FormWidgets\CodeEditor', 'codeeditor');
+            $manager->registerFormWidget('Backend\FormWidgets\RichEditor', 'richeditor');
+            $manager->registerFormWidget('Backend\FormWidgets\MarkdownEditor', 'markdown');
+            $manager->registerFormWidget('Backend\FormWidgets\FileUpload', 'fileupload');
+            $manager->registerFormWidget('Backend\FormWidgets\Relation', 'relation');
+            $manager->registerFormWidget('Backend\FormWidgets\DatePicker', 'datepicker');
+            $manager->registerFormWidget('Backend\FormWidgets\TimePicker', 'timepicker');
+            $manager->registerFormWidget('Backend\FormWidgets\ColorPicker', 'colorpicker');
+            $manager->registerFormWidget('Backend\FormWidgets\DataTable', 'datatable');
+            $manager->registerFormWidget('Backend\FormWidgets\RecordFinder', 'recordfinder');
+            $manager->registerFormWidget('Backend\FormWidgets\Repeater', 'repeater');
+            $manager->registerFormWidget('Backend\FormWidgets\TagList', 'taglist');
+            $manager->registerFormWidget('Backend\FormWidgets\MediaFinder', 'mediafinder');
+        });
+    }
+
+    /*
      * Register permissions
      */
+
     protected function registerBackendPermissions()
     {
         BackendAuth::registerCallback(function ($manager) {
@@ -162,28 +174,7 @@ class ServiceProvider extends ModuleServiceProvider
     /*
      * Register widgets
      */
-    protected function registerBackendWidgets()
-    {
-        WidgetManager::instance()->registerFormWidgets(function ($manager) {
-            $manager->registerFormWidget('Backend\FormWidgets\CodeEditor', 'codeeditor');
-            $manager->registerFormWidget('Backend\FormWidgets\RichEditor', 'richeditor');
-            $manager->registerFormWidget('Backend\FormWidgets\MarkdownEditor', 'markdown');
-            $manager->registerFormWidget('Backend\FormWidgets\FileUpload', 'fileupload');
-            $manager->registerFormWidget('Backend\FormWidgets\Relation', 'relation');
-            $manager->registerFormWidget('Backend\FormWidgets\DatePicker', 'datepicker');
-            $manager->registerFormWidget('Backend\FormWidgets\TimePicker', 'timepicker');
-            $manager->registerFormWidget('Backend\FormWidgets\ColorPicker', 'colorpicker');
-            $manager->registerFormWidget('Backend\FormWidgets\DataTable', 'datatable');
-            $manager->registerFormWidget('Backend\FormWidgets\RecordFinder', 'recordfinder');
-            $manager->registerFormWidget('Backend\FormWidgets\Repeater', 'repeater');
-            $manager->registerFormWidget('Backend\FormWidgets\TagList', 'taglist');
-            $manager->registerFormWidget('Backend\FormWidgets\MediaFinder', 'mediafinder');
-        });
-    }
 
-    /*
-     * Register settings
-     */
     protected function registerBackendSettings()
     {
         SettingsManager::instance()->registerCallback(function ($manager) {
@@ -239,5 +230,19 @@ class ServiceProvider extends ModuleServiceProvider
                 ]
             ]);
         });
+    }
+
+    /*
+     * Register settings
+     */
+
+    /**
+     * Bootstrap the module events.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        parent::boot('backend');
     }
 }

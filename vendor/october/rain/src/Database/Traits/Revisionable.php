@@ -93,6 +93,61 @@ trait Revisionable
         $this->revisionableCleanUp();
     }
 
+    /**
+     * Get revision history relation name name.
+     * @return string
+     */
+    public function getRevisionHistoryName()
+    {
+        return defined('static::REVISION_HISTORY') ? static::REVISION_HISTORY : 'revision_history';
+    }
+
+    /*
+     * Deletes revision records exceeding the limit.
+     */
+
+    protected function revisionableGetUser()
+    {
+        if (method_exists($this, 'getRevisionableUser')) {
+            $user = $this->getRevisionableUser();
+
+            return $user instanceof EloquentModel
+                ? $user->getKey()
+                : $user;
+        }
+
+        return null;
+    }
+
+    protected function revisionableGetCastType($attribute)
+    {
+        if (in_array($attribute, $this->getDates())) {
+            return 'date';
+        }
+
+        return null;
+    }
+
+    protected function revisionableCleanUp()
+    {
+        $relation = $this->getRevisionHistoryName();
+        $relationObject = $this->{$relation}();
+
+        $revisionLimit = property_exists($this, 'revisionableLimit')
+            ? (int) $this->revisionableLimit
+            : 500;
+
+        $toDelete = $relationObject
+            ->orderBy('id', 'desc')
+            ->skip($revisionLimit)
+            ->limit(64)
+            ->get();
+
+        foreach ($toDelete as $record) {
+            $record->delete();
+        }
+    }
+
     public function revisionableAfterDelete()
     {
         if (!$this->revisionsEnabled) {
@@ -129,60 +184,6 @@ trait Revisionable
 
         Db::table($revisionModel->getTable())->insert($toSave);
         $this->revisionableCleanUp();
-    }
-
-    /*
-     * Deletes revision records exceeding the limit.
-     */
-    protected function revisionableCleanUp()
-    {
-        $relation = $this->getRevisionHistoryName();
-        $relationObject = $this->{$relation}();
-
-        $revisionLimit = property_exists($this, 'revisionableLimit')
-            ? (int) $this->revisionableLimit
-            : 500;
-
-        $toDelete = $relationObject
-            ->orderBy('id', 'desc')
-            ->skip($revisionLimit)
-            ->limit(64)
-            ->get();
-
-        foreach ($toDelete as $record) {
-            $record->delete();
-        }
-    }
-
-    protected function revisionableGetCastType($attribute)
-    {
-        if (in_array($attribute, $this->getDates())) {
-            return 'date';
-        }
-
-        return null;
-    }
-
-    protected function revisionableGetUser()
-    {
-        if (method_exists($this, 'getRevisionableUser')) {
-            $user = $this->getRevisionableUser();
-
-            return $user instanceof EloquentModel
-                ? $user->getKey()
-                : $user;
-        }
-
-        return null;
-    }
-
-    /**
-     * Get revision history relation name name.
-     * @return string
-     */
-    public function getRevisionHistoryName()
-    {
-        return defined('static::REVISION_HISTORY') ? static::REVISION_HISTORY : 'revision_history';
     }
 
 }

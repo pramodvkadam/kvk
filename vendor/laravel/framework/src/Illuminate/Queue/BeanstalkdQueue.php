@@ -59,6 +59,17 @@ class BeanstalkdQueue extends Queue implements QueueContract
     }
 
     /**
+     * Get the queue or return the default.
+     *
+     * @param  string|null  $queue
+     * @return string
+     */
+    public function getQueue($queue)
+    {
+        return $queue ?: $this->default;
+    }
+
+    /**
      * Push a new job onto the queue.
      *
      * @param  string  $job
@@ -138,17 +149,6 @@ class BeanstalkdQueue extends Queue implements QueueContract
         $queue = $this->getQueue($queue);
 
         $this->pheanstalk->useTube($queue)->delete(new PheanstalkJob($id, ''));
-    }
-
-    /**
-     * Get the queue or return the default.
-     *
-     * @param  string|null  $queue
-     * @return string
-     */
-    public function getQueue($queue)
-    {
-        return $queue ?: $this->default;
     }
 
     /**

@@ -29,6 +29,19 @@ class FileTest extends TestCase
         $this->assertEquals('image/gif', $file->getMimeType());
     }
 
+    protected function createMockGuesser($path, $mimeType)
+    {
+        $guesser = $this->getMockBuilder('Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface')->getMock();
+        $guesser
+            ->expects($this->once())
+            ->method('guess')
+            ->with($this->equalTo($path))
+            ->will($this->returnValue($mimeType))
+        ;
+
+        return $guesser;
+    }
+
     public function testGuessExtensionWithoutGuesser()
     {
         $file = new File(__DIR__.'/Fixtures/directory/.empty');
@@ -163,18 +176,5 @@ class FileTest extends TestCase
         @unlink($sourcePath);
         @unlink($targetPath);
         @rmdir($targetDir);
-    }
-
-    protected function createMockGuesser($path, $mimeType)
-    {
-        $guesser = $this->getMockBuilder('Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface')->getMock();
-        $guesser
-            ->expects($this->once())
-            ->method('guess')
-            ->with($this->equalTo($path))
-            ->will($this->returnValue($mimeType))
-        ;
-
-        return $guesser;
     }
 }

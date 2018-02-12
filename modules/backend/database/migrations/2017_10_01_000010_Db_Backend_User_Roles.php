@@ -25,11 +25,6 @@ class DbBackendUserRoles extends Migration
         $this->migratePreviousBuild();
     }
 
-    public function down()
-    {
-        Schema::dropIfExists('backend_user_roles');
-    }
-
     protected function migratePreviousBuild()
     {
         // Role not found in the users table, perform a complete migration.
@@ -158,5 +153,10 @@ class DbBackendUserRoles extends Migration
             ]);
         }
         catch (Exception $ex) {}
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('backend_user_roles');
     }
 }

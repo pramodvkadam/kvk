@@ -70,6 +70,27 @@ class RedisQueue extends Queue implements QueueContract
     }
 
     /**
+     * Get the queue or return the default.
+     *
+     * @param  string|null  $queue
+     * @return string
+     */
+    public function getQueue($queue)
+    {
+        return 'queues:'.($queue ?: $this->default);
+    }
+
+    /**
+     * Get the connection for the queue.
+     *
+     * @return \Illuminate\Redis\Connections\Connection
+     */
+    protected function getConnection()
+    {
+        return $this->redis->connection($this->connection);
+    }
+
+    /**
      * Push a new job onto the queue.
      *
      * @param  object|string  $job
@@ -126,21 +147,6 @@ class RedisQueue extends Queue implements QueueContract
         );
 
         return json_decode($payload, true)['id'] ?? null;
-    }
-
-    /**
-     * Create a payload string from the given job and data.
-     *
-     * @param  string  $job
-     * @param  mixed   $data
-     * @return string
-     */
-    protected function createPayloadArray($job, $data = '')
-    {
-        return array_merge(parent::createPayloadArray($job, $data), [
-            'id' => $this->getRandomId(),
-            'attempts' => 0,
-        ]);
     }
 
     /**
@@ -237,37 +243,6 @@ class RedisQueue extends Queue implements QueueContract
     }
 
     /**
-     * Get a random ID string.
-     *
-     * @return string
-     */
-    protected function getRandomId()
-    {
-        return Str::random(32);
-    }
-
-    /**
-     * Get the queue or return the default.
-     *
-     * @param  string|null  $queue
-     * @return string
-     */
-    public function getQueue($queue)
-    {
-        return 'queues:'.($queue ?: $this->default);
-    }
-
-    /**
-     * Get the connection for the queue.
-     *
-     * @return \Illuminate\Redis\Connections\Connection
-     */
-    protected function getConnection()
-    {
-        return $this->redis->connection($this->connection);
-    }
-
-    /**
      * Get the underlying Redis instance.
      *
      * @return \Illuminate\Contracts\Redis\Factory
@@ -275,5 +250,30 @@ class RedisQueue extends Queue implements QueueContract
     public function getRedis()
     {
         return $this->redis;
+    }
+
+    /**
+     * Create a payload string from the given job and data.
+     *
+     * @param  string  $job
+     * @param  mixed   $data
+     * @return string
+     */
+    protected function createPayloadArray($job, $data = '')
+    {
+        return array_merge(parent::createPayloadArray($job, $data), [
+            'id' => $this->getRandomId(),
+            'attempts' => 0,
+        ]);
+    }
+
+    /**
+     * Get a random ID string.
+     *
+     * @return string
+     */
+    protected function getRandomId()
+    {
+        return Str::random(32);
     }
 }

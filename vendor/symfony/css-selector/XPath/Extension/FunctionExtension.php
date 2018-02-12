@@ -46,6 +46,14 @@ class FunctionExtension extends AbstractExtension
     }
 
     /**
+     * @return XPathExpr
+     */
+    public function translateNthLastChild(XPathExpr $xpath, FunctionNode $function)
+    {
+        return $this->translateNthChild($xpath, $function, true);
+    }
+
+    /**
      * @param XPathExpr    $xpath
      * @param FunctionNode $function
      * @param bool         $last
@@ -108,14 +116,6 @@ class FunctionExtension extends AbstractExtension
         // an means every a elements, i.e., 2n means even
         // -n means -1n
         // -1n+6 means elements 6 and previous
-    }
-
-    /**
-     * @return XPathExpr
-     */
-    public function translateNthLastChild(XPathExpr $xpath, FunctionNode $function)
-    {
-        return $this->translateNthChild($xpath, $function, true);
     }
 
     /**

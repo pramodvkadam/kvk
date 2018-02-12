@@ -21,60 +21,48 @@ class TemplateList extends WidgetBase
 
     use \Backend\Traits\SelectableWidget;
     use \Backend\Traits\CollapsableWidget;
-
-    protected $searchTerm = false;
-
-    protected $dataSource;
-
-    protected $theme;
-
     /**
      * @var string object property to use as a title.
      */
     public $titleProperty;
-
     /**
      * @var array a list of object properties to use in the description area.
      * The array should include the property names and corresponding titles:
      * ['url'=>'URL']
      */
     public $descriptionProperties = [];
-
     /**
      * @var string object property to use as a description.
      */
     public $descriptionProperty;
-
     /**
      * @var string Message to display when there are no records in the list.
      */
     public $noRecordsMessage = 'cms::lang.template.no_list_records';
-
     /**
      * @var string Message to display when the Delete button is clicked.
      */
     public $deleteConfirmation = 'cms::lang.template.delete_confirm';
-
     /**
      * @var string Specifies the item type.
      */
     public $itemType;
-
     /**
      * @var string Extra CSS class name to apply to the control.
      */
     public $controlClass = null;
-
     /**
      * @var string A list of file name patterns to suppress / hide.
      */
     public $ignoreDirectories = [];
-
     /**
      * @var boolean Defines sorting properties.
      * The sorting feature is disabled if there are no sorting properties defined.
      */
     public $sortingProperties = [];
+    protected $searchTerm = false;
+    protected $dataSource;
+    protected $theme;
 
     /*
      * Public methods
@@ -106,6 +94,15 @@ class TemplateList extends WidgetBase
         $this->bindToController();
     }
 
+    protected function getThemeSessionKey($prefix)
+    {
+        return $prefix.$this->theme->getDirName();
+    }
+
+    /*
+     * Event handlers
+     */
+
     /**
      * Renders the widget.
      * @return string
@@ -120,39 +117,6 @@ class TemplateList extends WidgetBase
             'data' => $this->getData()
         ]);
     }
-
-    /*
-     * Event handlers
-     */
-
-    public function onSearch()
-    {
-        $this->setSearchTerm(Input::get('search'));
-        $this->extendSelection();
-
-        return $this->updateList();
-    }
-
-    public function onUpdate()
-    {
-        $this->extendSelection();
-
-        return $this->updateList();
-    }
-
-    public function onApplySorting()
-    {
-        $this->setSortingProperty(Input::get('sortProperty'));
-
-        $result = $this->updateList();
-        $result['#'.$this->getId('sorting-options')] = $this->makePartial('sorting-options');
-
-        return $result;
-    }
-
-    //
-    // Methods for the internal use
-    //
 
     protected function getData()
     {
@@ -239,15 +203,6 @@ class TemplateList extends WidgetBase
         return $result;
     }
 
-    protected function sortItems(&$items)
-    {
-        $sortingProperty = $this->getSortingProperty();
-
-        usort($items, function ($a, $b) use ($sortingProperty) {
-            return strcmp($a->$sortingProperty, $b->$sortingProperty);
-        });
-    }
-
     protected function removeIgnoredDirectories($items)
     {
         if (!$this->ignoreDirectories) {
@@ -275,6 +230,121 @@ class TemplateList extends WidgetBase
         });
 
         return $items;
+    }
+
+    //
+    // Methods for the internal use
+    //
+
+    protected function sortItems(&$items)
+    {
+        $sortingProperty = $this->getSortingProperty();
+
+        usort($items, function ($a, $b) use ($sortingProperty) {
+            return strcmp($a->$sortingProperty, $b->$sortingProperty);
+        });
+    }
+
+    protected function getSortingProperty()
+    {
+        $property = $this->getSession($this->getThemeSessionKey('sorting_property'), self::SORTING_FILENAME);
+
+        if (!array_key_exists($property, $this->sortingProperties)) {
+            return self::SORTING_FILENAME;
+        }
+
+        return $property;
+    }
+
+    protected function getSearchTerm()
+    {
+        return $this->searchTerm !== false ? $this->searchTerm : $this->getSession('search');
+    }
+
+    protected function setSearchTerm($term)
+    {
+        $this->searchTerm = trim($term);
+        $this->putSession('search', $this->searchTerm);
+    }
+
+    protected function itemContainsWord($word, $item, $exact = false)
+    {
+        $operator = $exact ? 'is' : 'contains';
+
+        if (strlen($item->title)) {
+            if (Str::$operator(Str::lower($item->title), $word)) {
+                return true;
+            }
+        }
+
+        if (Str::$operator(Str::lower($item->fileName), $word)) {
+            return true;
+        }
+
+        if (Str::$operator(Str::lower($item->description), $word) && strlen($item->description)) {
+            return true;
+        }
+
+        foreach ($item->descriptions as $value) {
+            if (Str::$operator(Str::lower($value), $word) && strlen($value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function itemMatchesSearch($words, $item)
+    {
+        foreach ($words as $word) {
+            $word = trim($word);
+            if (!strlen($word)) {
+                continue;
+            }
+
+            if (!$this->itemContainsWord($word, $item)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function onSearch()
+    {
+        $this->setSearchTerm(Input::get('search'));
+        $this->extendSelection();
+
+        return $this->updateList();
+    }
+
+    protected function updateList()
+    {
+        return [
+            '#'.$this->getId('template-list') => $this->makePartial('items', ['items' => $this->getData()])
+        ];
+    }
+
+    public function onUpdate()
+    {
+        $this->extendSelection();
+
+        return $this->updateList();
+    }
+
+    public function onApplySorting()
+    {
+        $this->setSortingProperty(Input::get('sortProperty'));
+
+        $result = $this->updateList();
+        $result['#'.$this->getId('sorting-options')] = $this->makePartial('sorting-options');
+
+        return $result;
+    }
+
+    protected function setSortingProperty($property)
+    {
+        $this->putSession($this->getThemeSessionKey('sorting_property'), $property);
     }
 
     protected function normalizeItem($item)
@@ -306,6 +376,17 @@ class TemplateList extends WidgetBase
         return (object) $result;
     }
 
+    protected function getItemTitle($item)
+    {
+        $titleProperty = $this->titleProperty;
+
+        if ($titleProperty) {
+            return $item->$titleProperty ?: basename($item->getFileName());
+        }
+
+        return basename($item->getFileName());
+    }
+
     protected function getItemDragValue($item)
     {
         if ($item instanceof \Cms\Classes\Partial) {
@@ -321,98 +402,5 @@ class TemplateList extends WidgetBase
         }
 
         return '';
-    }
-
-    protected function getItemTitle($item)
-    {
-        $titleProperty = $this->titleProperty;
-
-        if ($titleProperty) {
-            return $item->$titleProperty ?: basename($item->getFileName());
-        }
-
-        return basename($item->getFileName());
-    }
-
-    protected function setSearchTerm($term)
-    {
-        $this->searchTerm = trim($term);
-        $this->putSession('search', $this->searchTerm);
-    }
-
-    protected function getSearchTerm()
-    {
-        return $this->searchTerm !== false ? $this->searchTerm : $this->getSession('search');
-    }
-
-    protected function updateList()
-    {
-        return [
-            '#'.$this->getId('template-list') => $this->makePartial('items', ['items' => $this->getData()])
-        ];
-    }
-
-    protected function itemMatchesSearch($words, $item)
-    {
-        foreach ($words as $word) {
-            $word = trim($word);
-            if (!strlen($word)) {
-                continue;
-            }
-
-            if (!$this->itemContainsWord($word, $item)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    protected function itemContainsWord($word, $item, $exact = false)
-    {
-        $operator = $exact ? 'is' : 'contains';
-
-        if (strlen($item->title)) {
-            if (Str::$operator(Str::lower($item->title), $word)) {
-                return true;
-            }
-        }
-
-        if (Str::$operator(Str::lower($item->fileName), $word)) {
-            return true;
-        }
-
-        if (Str::$operator(Str::lower($item->description), $word) && strlen($item->description)) {
-            return true;
-        }
-
-        foreach ($item->descriptions as $value) {
-            if (Str::$operator(Str::lower($value), $word) && strlen($value)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    protected function getThemeSessionKey($prefix)
-    {
-        return $prefix.$this->theme->getDirName();
-    }
-
-    protected function getSortingProperty()
-    {
-        $property = $this->getSession($this->getThemeSessionKey('sorting_property'), self::SORTING_FILENAME);
-
-        if (!array_key_exists($property, $this->sortingProperties)) {
-            return self::SORTING_FILENAME;
-        }
-
-        return $property;
-    }
-
-    protected function setSortingProperty($property)
-    {
-        $this->putSession($this->getThemeSessionKey('sorting_property'), $property);
     }
 }

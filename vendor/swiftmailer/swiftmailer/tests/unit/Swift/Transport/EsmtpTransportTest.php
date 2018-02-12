@@ -2,6 +2,14 @@
 
 class Swift_Transport_EsmtpTransportTest extends Swift_Transport_AbstractSmtpEventSupportTest
 {
+    public function testHostCanBeSetAndFetched()
+    {
+        $buf = $this->getBuffer();
+        $smtp = $this->getTransport($buf);
+        $smtp->setHost('foo');
+        $this->assertEquals('foo', $smtp->getHost(), '%s: Host should be returned');
+    }
+
     protected function getTransport($buf, $dispatcher = null)
     {
         if (!$dispatcher) {
@@ -9,14 +17,6 @@ class Swift_Transport_EsmtpTransportTest extends Swift_Transport_AbstractSmtpEve
         }
 
         return new Swift_Transport_EsmtpTransport($buf, array(), $dispatcher, 'example.org');
-    }
-
-    public function testHostCanBeSetAndFetched()
-    {
-        $buf = $this->getBuffer();
-        $smtp = $this->getTransport($buf);
-        $smtp->setHost('foo');
-        $this->assertEquals('foo', $smtp->getHost(), '%s: Host should be returned');
     }
 
     public function testPortCanBeSetAndFetched()

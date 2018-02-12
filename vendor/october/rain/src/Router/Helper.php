@@ -9,26 +9,6 @@
 class Helper
 {
     /**
-     * Adds leading slash and removes trailing slash from the URL.
-     *
-     * @param string $url URL to normalize.
-     * @return string Returns normalized URL.
-     */
-    public static function normalizeUrl($url)
-    {
-        if (substr($url, 0, 1) != '/')
-            $url = '/'.$url;
-
-        if (substr($url, -1) == '/')
-            $url = substr($url, 0, -1);
-
-        if (!strlen($url))
-            $url = '/';
-
-        return $url;
-    }
-
-    /**
      * Splits an URL by segments separated by the slash symbol.
      *
      * @param string $url URL to segmentize.
@@ -47,6 +27,26 @@ class Helper
         }
 
         return $result;
+    }
+
+    /**
+     * Adds leading slash and removes trailing slash from the URL.
+     *
+     * @param string $url URL to normalize.
+     * @return string Returns normalized URL.
+     */
+    public static function normalizeUrl($url)
+    {
+        if (substr($url, 0, 1) != '/')
+            $url = '/'.$url;
+
+        if (substr($url, -1) == '/')
+            $url = substr($url, 0, -1);
+
+        if (!strlen($url))
+            $url = '/';
+
+        return $url;
     }
 
     /**

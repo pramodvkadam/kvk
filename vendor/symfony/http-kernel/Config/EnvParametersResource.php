@@ -41,6 +41,21 @@ class EnvParametersResource implements SelfCheckingResourceInterface, \Serializa
         $this->variables = $this->findVariables();
     }
 
+    private function findVariables()
+    {
+        $variables = array();
+
+        foreach ($_SERVER as $key => $value) {
+            if (0 === strpos($key, $this->prefix)) {
+                $variables[$key] = $value;
+            }
+        }
+
+        ksort($variables);
+
+        return $variables;
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -80,20 +95,5 @@ class EnvParametersResource implements SelfCheckingResourceInterface, \Serializa
 
         $this->prefix = $unserialized['prefix'];
         $this->variables = $unserialized['variables'];
-    }
-
-    private function findVariables()
-    {
-        $variables = array();
-
-        foreach ($_SERVER as $key => $value) {
-            if (0 === strpos($key, $this->prefix)) {
-                $variables[$key] = $value;
-            }
-        }
-
-        ksort($variables);
-
-        return $variables;
     }
 }

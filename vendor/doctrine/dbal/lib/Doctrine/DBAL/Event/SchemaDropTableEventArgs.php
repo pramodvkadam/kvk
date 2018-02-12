@@ -79,6 +79,14 @@ class SchemaDropTableEventArgs extends SchemaEventArgs
     }
 
     /**
+     * @return string|null
+     */
+    public function getSql()
+    {
+        return $this->_sql;
+    }
+
+    /**
      * @param string $sql
      *
      * @return \Doctrine\DBAL\Event\SchemaDropTableEventArgs
@@ -88,13 +96,5 @@ class SchemaDropTableEventArgs extends SchemaEventArgs
         $this->_sql = $sql;
 
         return $this;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getSql()
-    {
-        return $this->_sql;
     }
 }

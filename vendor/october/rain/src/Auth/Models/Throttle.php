@@ -10,15 +10,13 @@ use October\Rain\Database\Model;
 class Throttle extends Model
 {
     /**
-     * @var bool Throttling status.
+     * @var int Attempt limit.
      */
-    protected $enabled = true;
-
+    protected static $attemptLimit = 5;
     /**
-     * @var string The table associated with the model.
+     * @var int Suspensions time in minutes.
      */
-    protected $table = 'throttle';
-
+    protected static $suspensionTime = 15;
     /**
      * @var array Relations
      */
@@ -30,7 +28,14 @@ class Throttle extends Model
      * @var bool Indicates if the model should be timestamped.
      */
     public $timestamps = false;
-
+    /**
+     * @var bool Throttling status.
+     */
+    protected $enabled = true;
+    /**
+     * @var string The table associated with the model.
+     */
+    protected $table = 'throttle';
     /**
      * The attributes that should be mutated to dates.
      *
@@ -39,22 +44,29 @@ class Throttle extends Model
     protected $dates = ['last_attempt_at', 'suspended_at', 'banned_at'];
 
     /**
-     * @var int Attempt limit.
-     */
-    protected static $attemptLimit = 5;
-
-    /**
-     * @var int Suspensions time in minutes.
-     */
-    protected static $suspensionTime = 15;
-
-    /**
      * Returns the associated user with the throttler.
      * @return User
      */
     public function getUser()
     {
         return $this->user()->getResults();
+    }
+
+    /**
+     * Add a new login attempt.
+     * @return void
+     */
+    public function addLoginAttempt()
+    {
+        $this->attempts++;
+        $this->last_attempt_at = $this->freshTimestamp();
+
+        if ($this->getLoginAttempts() >= static::$attemptLimit) {
+            $this->suspend();
+        }
+        else {
+            $this->save();
+        }
     }
 
     /**
@@ -71,18 +83,40 @@ class Throttle extends Model
     }
 
     /**
-     * Add a new login attempt.
+     * Inspects the last attempt vs the suspension time
+     * (the time in which attempts must space before the
+     * account is suspended). If we can clear our attempts
+     * now, we'll do so and save.
+     *
      * @return void
      */
-    public function addLoginAttempt()
+    public function clearLoginAttemptsIfAllowed()
     {
-        $this->attempts++;
-        $this->last_attempt_at = $this->freshTimestamp();
+        $lastAttempt = clone $this->last_attempt_at;
 
-        if ($this->getLoginAttempts() >= static::$attemptLimit) {
-            $this->suspend();
+        $suspensionTime = static::$suspensionTime;
+        $clearAttemptsAt = $lastAttempt->modify("+{$suspensionTime} minutes");
+        $now = new Carbon;
+
+        if ($clearAttemptsAt <= $now) {
+            $this->attempts = 0;
+            $this->save();
         }
-        else {
+
+        unset($lastAttempt);
+        unset($clearAttemptsAt);
+        unset($now);
+    }
+
+    /**
+     * Suspend the user associated with the throttle
+     * @return void
+     */
+    public function suspend()
+    {
+        if (!$this->is_suspended) {
+            $this->is_suspended = true;
+            $this->suspended_at = $this->freshTimestamp();
             $this->save();
         }
     }
@@ -108,48 +142,6 @@ class Throttle extends Model
         $this->is_suspended = false;
         $this->suspended_at = null;
         $this->save();
-    }
-
-    /**
-     * Suspend the user associated with the throttle
-     * @return void
-     */
-    public function suspend()
-    {
-        if (!$this->is_suspended) {
-            $this->is_suspended = true;
-            $this->suspended_at = $this->freshTimestamp();
-            $this->save();
-        }
-    }
-
-    /**
-     * Unsuspend the user.
-     * @return void
-     */
-    public function unsuspend()
-    {
-        if ($this->is_suspended) {
-            $this->attempts = 0;
-            $this->last_attempt_at = null;
-            $this->is_suspended = false;
-            $this->suspended_at = null;
-            $this->save();
-        }
-    }
-
-    /**
-     * Check if the user is suspended.
-     * @return bool
-     */
-    public function checkSuspended()
-    {
-        if ($this->is_suspended && $this->suspended_at) {
-            $this->removeSuspensionIfAllowed();
-            return (bool) $this->is_suspended;
-        }
-
-        return false;
     }
 
     /**
@@ -201,29 +193,17 @@ class Throttle extends Model
     }
 
     /**
-     * Inspects the last attempt vs the suspension time
-     * (the time in which attempts must space before the
-     * account is suspended). If we can clear our attempts
-     * now, we'll do so and save.
-     *
-     * @return void
+     * Check if the user is suspended.
+     * @return bool
      */
-    public function clearLoginAttemptsIfAllowed()
+    public function checkSuspended()
     {
-        $lastAttempt = clone $this->last_attempt_at;
-
-        $suspensionTime = static::$suspensionTime;
-        $clearAttemptsAt = $lastAttempt->modify("+{$suspensionTime} minutes");
-        $now = new Carbon;
-
-        if ($clearAttemptsAt <= $now) {
-            $this->attempts = 0;
-            $this->save();
+        if ($this->is_suspended && $this->suspended_at) {
+            $this->removeSuspensionIfAllowed();
+            return (bool) $this->is_suspended;
         }
 
-        unset($lastAttempt);
-        unset($clearAttemptsAt);
-        unset($now);
+        return false;
     }
 
     /**
@@ -248,6 +228,21 @@ class Throttle extends Model
         unset($suspended);
         unset($unsuspendAt);
         unset($now);
+    }
+
+    /**
+     * Unsuspend the user.
+     * @return void
+     */
+    public function unsuspend()
+    {
+        if ($this->is_suspended) {
+            $this->attempts = 0;
+            $this->last_attempt_at = null;
+            $this->is_suspended = false;
+            $this->suspended_at = null;
+            $this->save();
+        }
     }
 
     /**

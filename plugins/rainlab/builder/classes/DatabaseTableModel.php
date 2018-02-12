@@ -19,36 +19,30 @@ use Db;
  */
 class DatabaseTableModel extends BaseModel
 {
-    public $columns = [];
-
-    /**
-     * @var string Specifies the database table model
-     */
-    public $name;
-
     protected static $fillable = [
         'name',
         'columns'
     ];
-
-    protected $validationRules = [
-        'name' => ['required', 'regex:/^[a-z]+[a-z0-9_]+$/', 'tablePrefix', 'uniqueTableName', 'max:64']
-    ];
-
-    /**
-     * @var \Doctrine\DBAL\Schema\Table Table details loaded from the database.
-     */
-    protected $tableInfo;
-
     /**
      * @var \Doctrine\DBAL\Schema\AbstractSchemaManager Contains the database schema
      */
     protected static $schemaManager = null;
-
     /**
      * @var \Doctrine\DBAL\Schema\Schema Contains the database schema
      */
     protected static $schema = null;
+    public $columns = [];
+    /**
+     * @var string Specifies the database table model
+     */
+    public $name;
+    protected $validationRules = [
+        'name' => ['required', 'regex:/^[a-z]+[a-z0-9_]+$/', 'tablePrefix', 'uniqueTableName', 'max:64']
+    ];
+    /**
+     * @var \Doctrine\DBAL\Schema\Table Table details loaded from the database.
+     */
+    protected $tableInfo;
 
     public static function listPluginTables($pluginCode)
     {
@@ -62,9 +56,21 @@ class DatabaseTableModel extends BaseModel
         });
     }
 
-    public static function tableExists($name)
+    protected static function getSchemaManager()
     {
-        return self::getSchema()->hasTable($name);
+        if (!self::$schemaManager) {
+            self::$schemaManager = Schema::getConnection()->getDoctrineSchemaManager();
+
+            Type::addType('enumdbtype', 'RainLab\Builder\Classes\EnumDbType');
+
+            // Fixes the problem with enum column type not supported
+            // by Doctrine (https://github.com/laravel/framework/issues/1346)
+            $platform = self::$schemaManager->getDatabasePlatform();
+            $platform->registerDoctrineTypeMapping('enum', 'enumdbtype');
+            $platform->registerDoctrineTypeMapping('json', 'text');
+        }
+
+        return self::$schemaManager;
     }
 
     /**
@@ -83,6 +89,55 @@ class DatabaseTableModel extends BaseModel
         $this->tableInfo = $schema->getTable($this->name);
         $this->loadColumnsFromTableInfo();
         $this->exists = true;
+    }
+
+    public static function tableExists($name)
+    {
+        return self::getSchema()->hasTable($name);
+    }
+
+    public static function getSchema()
+    {
+        if (!self::$schema) {
+            self::$schema = self::getSchemaManager()->createSchema();
+        }
+
+        return self::$schema;
+    }
+
+    protected function loadColumnsFromTableInfo()
+    {
+        $this->columns = [];
+        $columns = $this->tableInfo->getColumns();
+
+        $primaryKey = $this->tableInfo->getPrimaryKey();
+        $primaryKeyColumns =[];
+        if ($primaryKey) {
+            $primaryKeyColumns = $primaryKey->getColumns();
+        }
+
+        foreach ($columns as $column) {
+            $columnName = $column->getName();
+            $typeName = $column->getType()->getName();
+
+            if ($typeName == EnumDbType::TYPENAME) {
+                throw new ApplicationException(Lang::get('rainlab.builder::lang.database.error_enum_not_supported'));
+            }
+
+            $item = [
+                'name' => $columnName,
+                'type' => MigrationColumnType::toMigrationMethodName($typeName, $columnName),
+                'length' => MigrationColumnType::doctrineLengthToMigrationLength($column),
+                'unsigned' => $column->getUnsigned(),
+                'allow_null' => !$column->getNotnull(),
+                'auto_increment' => $column->getAutoincrement(),
+                'primary_key' => in_array($columnName, $primaryKeyColumns),
+                'default' => $column->getDefault(),
+                'id' => $columnName,
+            ];
+
+            $this->columns[] = $item;
+        }
     }
 
     public function validate()
@@ -132,43 +187,6 @@ class DatabaseTableModel extends BaseModel
         $this->validateColumns();
 
         return parent::validate();
-    }
-
-    public function generateCreateOrUpdateMigration()
-    {
-        $schemaCreator = new DatabaseTableSchemaCreator();
-        $existingSchema = $this->tableInfo;
-        $newTableName = $this->name;
-        $tableName = $existingSchema ? $existingSchema->getName() : $this->name;
-
-        $newSchema = $schemaCreator->createTableSchema($tableName, $this->columns);
-
-        $codeGenerator = new TableMigrationCodeGenerator();
-        $migrationCode = $codeGenerator->createOrUpdateTable($newSchema, $existingSchema, $newTableName);
-        if ($migrationCode === false) {
-            return $migrationCode;
-        }
-
-        $description = $existingSchema ? 'Updated table %s' : 'Created table %s';
-        return $this->createMigrationObject($migrationCode, sprintf($description, $tableName));
-    }
-
-    public function generateDropMigration()
-    {
-        $existingSchema = $this->tableInfo;
-        $codeGenerator = new TableMigrationCodeGenerator();
-        $migrationCode = $codeGenerator->dropTable($existingSchema);
-
-        return $this->createMigrationObject($migrationCode, sprintf('Drop table %s', $this->name));
-    }
-
-    public static function getSchema()
-    {
-        if (!self::$schema) {
-            self::$schema = self::getSchemaManager()->createSchema();
-        }
-
-        return self::$schema;
     }
 
     protected function validateColumns()
@@ -261,6 +279,20 @@ class DatabaseTableModel extends BaseModel
         }
     }
 
+    protected function validateColumnsLengthParameter()
+    {
+        foreach ($this->columns as $column) {
+            try {
+                MigrationColumnType::validateLength($column['type'], $column['length']);
+            }
+            catch (Exception $ex) {
+                throw new ValidationException([
+                    'columns' => $ex->getMessage()
+                ]);
+            }
+        }
+    }
+
     protected function validateUnsignedColumns()
     {
         foreach ($this->columns as $column) {
@@ -271,20 +303,6 @@ class DatabaseTableModel extends BaseModel
             if (!in_array($column['type'], MigrationColumnType::getIntegerTypes())) {
                 throw new ValidationException([
                     'columns' => Lang::get('rainlab.builder::lang.database.error_unsigned_type_not_int', ['column'=>$column['name']])
-                ]);
-            }
-        }
-    }
-
-    protected function validateColumnsLengthParameter()
-    {
-        foreach ($this->columns as $column) {
-            try {
-                MigrationColumnType::validateLength($column['type'], $column['length']);
-            }
-            catch (Exception $ex) {
-                throw new ValidationException([
-                    'columns' => $ex->getMessage()
                 ]);
             }
         }
@@ -335,56 +353,23 @@ class DatabaseTableModel extends BaseModel
         }
     }
 
-    protected static function getSchemaManager()
+    public function generateCreateOrUpdateMigration()
     {
-        if (!self::$schemaManager) {
-            self::$schemaManager = Schema::getConnection()->getDoctrineSchemaManager();
+        $schemaCreator = new DatabaseTableSchemaCreator();
+        $existingSchema = $this->tableInfo;
+        $newTableName = $this->name;
+        $tableName = $existingSchema ? $existingSchema->getName() : $this->name;
 
-            Type::addType('enumdbtype', 'RainLab\Builder\Classes\EnumDbType');
+        $newSchema = $schemaCreator->createTableSchema($tableName, $this->columns);
 
-            // Fixes the problem with enum column type not supported
-            // by Doctrine (https://github.com/laravel/framework/issues/1346)
-            $platform = self::$schemaManager->getDatabasePlatform();
-            $platform->registerDoctrineTypeMapping('enum', 'enumdbtype');
-            $platform->registerDoctrineTypeMapping('json', 'text');
+        $codeGenerator = new TableMigrationCodeGenerator();
+        $migrationCode = $codeGenerator->createOrUpdateTable($newSchema, $existingSchema, $newTableName);
+        if ($migrationCode === false) {
+            return $migrationCode;
         }
 
-        return self::$schemaManager;
-    }
-
-    protected function loadColumnsFromTableInfo()
-    {
-        $this->columns = [];
-        $columns = $this->tableInfo->getColumns();
-
-        $primaryKey = $this->tableInfo->getPrimaryKey();
-        $primaryKeyColumns =[];
-        if ($primaryKey) {
-            $primaryKeyColumns = $primaryKey->getColumns();
-        }
-
-        foreach ($columns as $column) {
-            $columnName = $column->getName();
-            $typeName = $column->getType()->getName();
-
-            if ($typeName == EnumDbType::TYPENAME) {
-                throw new ApplicationException(Lang::get('rainlab.builder::lang.database.error_enum_not_supported'));
-            }
-
-            $item = [
-                'name' => $columnName,
-                'type' => MigrationColumnType::toMigrationMethodName($typeName, $columnName),
-                'length' => MigrationColumnType::doctrineLengthToMigrationLength($column),
-                'unsigned' => $column->getUnsigned(),
-                'allow_null' => !$column->getNotnull(),
-                'auto_increment' => $column->getAutoincrement(),
-                'primary_key' => in_array($columnName, $primaryKeyColumns),
-                'default' => $column->getDefault(),
-                'id' => $columnName,
-            ];
-
-            $this->columns[] = $item;
-        }
+        $description = $existingSchema ? 'Updated table %s' : 'Created table %s';
+        return $this->createMigrationObject($migrationCode, sprintf($description, $tableName));
     }
 
     protected function createMigrationObject($code, $description)
@@ -397,5 +382,14 @@ class DatabaseTableModel extends BaseModel
         $migration->description = $description;
 
         return $migration;
+    }
+
+    public function generateDropMigration()
+    {
+        $existingSchema = $this->tableInfo;
+        $codeGenerator = new TableMigrationCodeGenerator();
+        $migrationCode = $codeGenerator->dropTable($existingSchema);
+
+        return $this->createMigrationObject($migrationCode, sprintf('Drop table %s', $this->name));
     }
 }

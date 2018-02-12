@@ -57,6 +57,43 @@ class Loader extends LoaderBase implements Twig_LoaderInterface
     }
 
     /**
+     * Internal method that checks if the template name matches
+     * the loaded object, with fallback support to partials.
+     *
+     * @return bool
+     */
+    protected function validateCmsObject($name)
+    {
+        if ($name == $this->obj->getFilePath()) {
+            return true;
+        }
+
+        if ($fallbackObj = $this->findFallbackObject($name)) {
+            $this->obj = $fallbackObj;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Looks up a fallback CMS partial object.
+     * @return Cms\Classes\Partial
+     */
+    protected function findFallbackObject($name)
+    {
+        if (strpos($name, '::') !== false) {
+            return false;
+        }
+
+        if (array_key_exists($name, $this->fallbackCache)) {
+            return $this->fallbackCache[$name];
+        }
+
+        return $this->fallbackCache[$name] = CmsPartial::find($name);
+    }
+
+    /**
      * Returns the Twig cache key.
      */
     public function getCacheKey($name)
@@ -102,42 +139,5 @@ class Loader extends LoaderBase implements Twig_LoaderInterface
         }
 
         return $this->obj->exists;
-    }
-
-    /**
-     * Internal method that checks if the template name matches
-     * the loaded object, with fallback support to partials.
-     *
-     * @return bool
-     */
-    protected function validateCmsObject($name)
-    {
-        if ($name == $this->obj->getFilePath()) {
-            return true;
-        }
-
-        if ($fallbackObj = $this->findFallbackObject($name)) {
-            $this->obj = $fallbackObj;
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Looks up a fallback CMS partial object.
-     * @return Cms\Classes\Partial
-     */
-    protected function findFallbackObject($name)
-    {
-        if (strpos($name, '::') !== false) {
-            return false;
-        }
-
-        if (array_key_exists($name, $this->fallbackCache)) {
-            return $this->fallbackCache[$name];
-        }
-
-        return $this->fallbackCache[$name] = CmsPartial::find($name);
     }
 }

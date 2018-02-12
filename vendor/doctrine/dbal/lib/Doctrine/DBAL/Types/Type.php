@@ -95,67 +95,6 @@ abstract class Type
     }
 
     /**
-     * Converts a value from its PHP representation to its database representation
-     * of this type.
-     *
-     * @param mixed                                     $value    The value to convert.
-     * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform The currently used database platform.
-     *
-     * @return mixed The database representation of the value.
-     */
-    public function convertToDatabaseValue($value, AbstractPlatform $platform)
-    {
-        return $value;
-    }
-
-    /**
-     * Converts a value from its database representation to its PHP representation
-     * of this type.
-     *
-     * @param mixed                                     $value    The value to convert.
-     * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform The currently used database platform.
-     *
-     * @return mixed The PHP representation of the value.
-     */
-    public function convertToPHPValue($value, AbstractPlatform $platform)
-    {
-        return $value;
-    }
-
-    /**
-     * Gets the default length of this type.
-     *
-     * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform
-     *
-     * @return integer|null
-     *
-     * @todo Needed?
-     */
-    public function getDefaultLength(AbstractPlatform $platform)
-    {
-        return null;
-    }
-
-    /**
-     * Gets the SQL declaration snippet for a field of this type.
-     *
-     * @param array                                     $fieldDeclaration The field declaration.
-     * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform         The currently used database platform.
-     *
-     * @return string
-     */
-    abstract public function getSQLDeclaration(array $fieldDeclaration, AbstractPlatform $platform);
-
-    /**
-     * Gets the name of this type.
-     *
-     * @return string
-     *
-     * @todo Needed?
-     */
-    abstract public function getName();
-
-    /**
      * Factory method to create type instances.
      * Type instances are implemented as flyweights.
      *
@@ -232,6 +171,78 @@ abstract class Type
     }
 
     /**
+     * Gets the types array map which holds all registered types and the corresponding
+     * type class
+     *
+     * @return array
+     */
+    public static function getTypesMap()
+    {
+        return self::$_typesMap;
+    }
+
+    /**
+     * Converts a value from its PHP representation to its database representation
+     * of this type.
+     *
+     * @param mixed                                     $value    The value to convert.
+     * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform The currently used database platform.
+     *
+     * @return mixed The database representation of the value.
+     */
+    public function convertToDatabaseValue($value, AbstractPlatform $platform)
+    {
+        return $value;
+    }
+
+    /**
+     * Converts a value from its database representation to its PHP representation
+     * of this type.
+     *
+     * @param mixed                                     $value    The value to convert.
+     * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform The currently used database platform.
+     *
+     * @return mixed The PHP representation of the value.
+     */
+    public function convertToPHPValue($value, AbstractPlatform $platform)
+    {
+        return $value;
+    }
+
+    /**
+     * Gets the default length of this type.
+     *
+     * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform
+     *
+     * @return integer|null
+     *
+     * @todo Needed?
+     */
+    public function getDefaultLength(AbstractPlatform $platform)
+    {
+        return null;
+    }
+
+    /**
+     * Gets the SQL declaration snippet for a field of this type.
+     *
+     * @param array                                     $fieldDeclaration The field declaration.
+     * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform         The currently used database platform.
+     *
+     * @return string
+     */
+    abstract public function getSQLDeclaration(array $fieldDeclaration, AbstractPlatform $platform);
+
+    /**
+     * Gets the name of this type.
+     *
+     * @return string
+     *
+     * @todo Needed?
+     */
+    abstract public function getName();
+
+    /**
      * Gets the (preferred) binding type for values of this type that
      * can be used when binding parameters to prepared statements.
      *
@@ -248,17 +259,6 @@ abstract class Type
     public function getBindingType()
     {
         return \PDO::PARAM_STR;
-    }
-
-    /**
-     * Gets the types array map which holds all registered types and the corresponding
-     * type class
-     *
-     * @return array
-     */
-    public static function getTypesMap()
-    {
-        return self::$_typesMap;
     }
 
     /**

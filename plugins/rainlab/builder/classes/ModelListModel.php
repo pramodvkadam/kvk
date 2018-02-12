@@ -13,36 +13,14 @@ use Lang;
  */
 class ModelListModel extends ModelYamlModel
 {
-    public $columns;
-
     protected static $fillable = [
         'fileName',
         'columns'
     ];
-
+    public $columns;
     protected $validationRules = [
         'fileName' => ['required', 'regex:/^[a-z0-9\.\-_]+$/i']
     ];
-
-    public function loadForm($path)
-    {
-        $this->fileName = $path;
-        
-        return parent::load($this->getFilePath());
-    }
-
-    public function fill(array $attributes)
-    {
-        if (!is_array($attributes['columns'])) {
-            $attributes['columns'] = json_decode($attributes['columns'], true);
-
-            if ($attributes['columns'] === null) {
-                throw new SystemException('Cannot decode columns JSON string.');
-            }
-        }
-
-        return parent::fill($attributes);
-    }
 
     public static function validateFileIsModelType($fileContentsArray)
     {
@@ -59,6 +37,26 @@ class ModelListModel extends ModelYamlModel
         return false;
     }
 
+    public function loadForm($path)
+    {
+        $this->fileName = $path;
+
+        return parent::load($this->getFilePath());
+    }
+
+    public function fill(array $attributes)
+    {
+        if (!is_array($attributes['columns'])) {
+            $attributes['columns'] = json_decode($attributes['columns'], true);
+
+            if ($attributes['columns'] === null) {
+                throw new SystemException('Cannot decode columns JSON string.');
+            }
+        }
+
+        return parent::fill($attributes);
+    }
+
     public function validate()
     {
         parent::validate();
@@ -70,24 +68,24 @@ class ModelListModel extends ModelYamlModel
         }
     }
 
-    public function initDefaults()
-    {
-        $this->fileName = 'columns.yaml';
-    }
-
     protected function validateDupicateColumns()
     {
         foreach ($this->columns as $outerIndex=>$outerColumn) {
             foreach ($this->columns as $innerIndex=>$innerColumn) {
                 if ($innerIndex != $outerIndex && $innerColumn['field'] == $outerColumn['field']) {
                     throw new ValidationException([
-                        'columns' => Lang::get('rainlab.builder::lang.list.error_duplicate_column', 
+                        'columns' => Lang::get('rainlab.builder::lang.list.error_duplicate_column',
                             ['column' => $outerColumn['field']]
                         )
                     ]);
                 }
             }
         }
+    }
+
+    public function initDefaults()
+    {
+        $this->fileName = 'columns.yaml';
     }
 
     /**
@@ -120,36 +118,6 @@ class ModelListModel extends ModelYamlModel
         ];
     }
 
-    /**
-     * Load the model's data from an array.
-     * @param array $array An array to load the model fields from.
-     */
-    protected function yamlArrayToModel($array)
-    {
-        $fileColumns = $array['columns'];
-        $columns = [];
-        $index = 0;
-
-        foreach ($fileColumns as $columnName=>$column) {
-            if (!is_array($column)) {
-                // Handle the case when a column is defined as
-                // column: Title
-                $column = [
-                    'label' => $column 
-                ];
-            }
-
-            $column['id'] = $index;
-            $column['field'] = $columnName;
-
-            $columns[] = $column;
-
-            $index++;
-        }
-
-        $this->columns = $columns;
-    }
-
     protected function preprocessColumnDataBeforeSave($column)
     {
         $booleanFields = [
@@ -158,7 +126,7 @@ class ModelListModel extends ModelYamlModel
             'sortable'
         ];
 
-        $column = array_filter($column, function($value) 
+        $column = array_filter($column, function($value)
         {
             return strlen($value) > 0;
         });
@@ -181,5 +149,35 @@ class ModelListModel extends ModelYamlModel
         }
 
         return $column;
+    }
+
+    /**
+     * Load the model's data from an array.
+     * @param array $array An array to load the model fields from.
+     */
+    protected function yamlArrayToModel($array)
+    {
+        $fileColumns = $array['columns'];
+        $columns = [];
+        $index = 0;
+
+        foreach ($fileColumns as $columnName=>$column) {
+            if (!is_array($column)) {
+                // Handle the case when a column is defined as
+                // column: Title
+                $column = [
+                    'label' => $column
+                ];
+            }
+
+            $column['id'] = $index;
+            $column['field'] = $columnName;
+
+            $columns[] = $column;
+
+            $index++;
+        }
+
+        $this->columns = $columns;
     }
 }

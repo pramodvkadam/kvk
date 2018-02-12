@@ -13,6 +13,21 @@ class __TwigTemplate_eb7aee260c454cee150b2a2157a5ae273d5520d05a54fce254d0fbfadde
         );
     }
 
+    public function getTemplateName()
+    {
+        return "/var/www/html/atma/themes/atma-new/partials/snippets/news.htm";
+    }
+
+    public function isTraitable()
+    {
+        return false;
+    }
+
+    public function getDebugInfo()
+    {
+        return array (  63 => 16,  56 => 14,  47 => 10,  41 => 9,  35 => 6,  31 => 5,  27 => 3,  22 => 2,  19 => 1,);
+    }
+
     protected function doDisplay(array $context, array $blocks = array())
     {
         // line 1
@@ -61,21 +76,6 @@ class __TwigTemplate_eb7aee260c454cee150b2a2157a5ae273d5520d05a54fce254d0fbfadde
         $context = array_intersect_key($context, $_parent) + $_parent;
         // line 16
         echo "</div>";
-    }
-
-    public function getTemplateName()
-    {
-        return "/var/www/html/atma/themes/atma-new/partials/snippets/news.htm";
-    }
-
-    public function isTraitable()
-    {
-        return false;
-    }
-
-    public function getDebugInfo()
-    {
-        return array (  63 => 16,  56 => 14,  47 => 10,  41 => 9,  35 => 6,  31 => 5,  27 => 3,  22 => 2,  19 => 1,);
     }
 
     public function getSourceContext()

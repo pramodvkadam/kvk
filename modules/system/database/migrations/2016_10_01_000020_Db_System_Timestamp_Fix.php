@@ -24,11 +24,6 @@ class DbSystemTimestampFix extends Migration
         }
     }
 
-    public function down()
-    {
-        // ...
-    }
-
     protected function getCoreTables()
     {
         $failedJobsTable = Config::get('queue.failed.table', 'failed_jobs');
@@ -45,5 +40,10 @@ class DbSystemTimestampFix extends Migration
             'system_request_logs',
             'system_revisions',
         ];
+    }
+
+    public function down()
+    {
+        // ...
     }
 }

@@ -60,6 +60,16 @@ class LineFormatter extends NormalizerFormatter
         $this->ignoreEmptyContextAndExtra = $ignore;
     }
 
+    public function formatBatch(array $records)
+    {
+        $message = '';
+        foreach ($records as $record) {
+            $message .= $this->format($record);
+        }
+
+        return $message;
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -110,19 +120,39 @@ class LineFormatter extends NormalizerFormatter
         return $output;
     }
 
-    public function formatBatch(array $records)
-    {
-        $message = '';
-        foreach ($records as $record) {
-            $message .= $this->format($record);
-        }
-
-        return $message;
-    }
-
     public function stringify($value)
     {
         return $this->replaceNewlines($this->convertToString($value));
+    }
+
+    protected function replaceNewlines($str)
+    {
+        if ($this->allowInlineLineBreaks) {
+            if (0 === strpos($str, '{')) {
+                return str_replace(array('\r', '\n'), array("\r", "\n"), $str);
+            }
+
+            return $str;
+        }
+
+        return str_replace(array("\r\n", "\r", "\n"), ' ', $str);
+    }
+
+    protected function convertToString($data)
+    {
+        if (null === $data || is_bool($data)) {
+            return var_export($data, true);
+        }
+
+        if (is_scalar($data)) {
+            return (string) $data;
+        }
+
+        if (version_compare(PHP_VERSION, '5.4.0', '>=')) {
+            return $this->toJson($data, true);
+        }
+
+        return str_replace('\\/', '/', @json_encode($data));
     }
 
     protected function normalizeException($e)
@@ -145,35 +175,5 @@ class LineFormatter extends NormalizerFormatter
         }
 
         return $str;
-    }
-
-    protected function convertToString($data)
-    {
-        if (null === $data || is_bool($data)) {
-            return var_export($data, true);
-        }
-
-        if (is_scalar($data)) {
-            return (string) $data;
-        }
-
-        if (version_compare(PHP_VERSION, '5.4.0', '>=')) {
-            return $this->toJson($data, true);
-        }
-
-        return str_replace('\\/', '/', @json_encode($data));
-    }
-
-    protected function replaceNewlines($str)
-    {
-        if ($this->allowInlineLineBreaks) {
-            if (0 === strpos($str, '{')) {
-                return str_replace(array('\r', '\n'), array("\r", "\n"), $str);
-            }
-
-            return $str;
-        }
-
-        return str_replace(array("\r\n", "\r", "\n"), ' ', $str);
     }
 }

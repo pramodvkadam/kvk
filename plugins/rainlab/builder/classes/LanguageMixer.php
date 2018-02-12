@@ -51,27 +51,10 @@ class LanguageMixer
         return $result;
     }
 
-    public static function arrayMergeRecursive(&$array1, &$array2)
+    protected function arrayToYaml($array)
     {
-        // The native PHP implementation of array_merge_recursive
-        // generates unexpected results when two scalar elements with a 
-        // same key is found, so we use a custom one.
-
-        $result = $array1;
-
-        foreach ($array2 as $key=>&$value)
-        {
-            if (is_array ($value) && isset($result[$key]) && is_array($result[$key]))
-            {
-                $result[$key] = self::arrayMergeRecursive($result[$key], $value);
-            }
-            else
-            {
-                $result[$key] = $value;
-            }
-        }
-
-        return $result;
+        $dumper = new YamlDumper();
+        return $dumper->dump($array, 20, 0, false, true);
     }
 
     protected function findMissingPaths($destArray, $srcArray, &$mismatch)
@@ -129,10 +112,27 @@ class LanguageMixer
         return true;
     }
 
-    protected function arrayToYaml($array)
+    public static function arrayMergeRecursive(&$array1, &$array2)
     {
-        $dumper = new YamlDumper();
-        return $dumper->dump($array, 20, 0, false, true);
+        // The native PHP implementation of array_merge_recursive
+        // generates unexpected results when two scalar elements with a
+        // same key is found, so we use a custom one.
+
+        $result = $array1;
+
+        foreach ($array2 as $key=>&$value)
+        {
+            if (is_array ($value) && isset($result[$key]) && is_array($result[$key]))
+            {
+                $result[$key] = self::arrayMergeRecursive($result[$key], $value);
+            }
+            else
+            {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 
     protected function getAddedLines($strings, $paths)

@@ -27,19 +27,6 @@ trait MorphOneOrMany
     }
 
     /**
-     * Create a new instance of this related model with deferred binding support.
-     */
-    public function create(array $attributes = [], $sessionKey = null)
-    {
-        $model = parent::create($attributes);
-
-        if ($sessionKey !== null)
-            $this->add($model, $sessionKey);
-
-        return $model;
-    }
-
-    /**
      * Adds a model to this relationship type.
      */
     public function add(Model $model, $sessionKey = null)
@@ -62,6 +49,19 @@ trait MorphOneOrMany
         else {
             $this->parent->bindDeferred($this->relationName, $model, $sessionKey);
         }
+    }
+
+    /**
+     * Create a new instance of this related model with deferred binding support.
+     */
+    public function create(array $attributes = [], $sessionKey = null)
+    {
+        $model = parent::create($attributes);
+
+        if ($sessionKey !== null)
+            $this->add($model, $sessionKey);
+
+        return $model;
     }
 
     /**

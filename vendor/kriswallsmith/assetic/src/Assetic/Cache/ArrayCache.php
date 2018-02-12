@@ -21,14 +21,6 @@ class ArrayCache implements CacheInterface
     private $cache = array();
 
     /**
-     * @see CacheInterface::has()
-     */
-    public function has($key)
-    {
-        return isset($this->cache[$key]);
-    }
-
-    /**
      * @see CacheInterface::get()
      */
     public function get($key)
@@ -38,6 +30,14 @@ class ArrayCache implements CacheInterface
         }
 
         return $this->cache[$key];
+    }
+
+    /**
+     * @see CacheInterface::has()
+     */
+    public function has($key)
+    {
+        return isset($this->cache[$key]);
     }
 
     /**

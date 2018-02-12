@@ -68,6 +68,17 @@ class HasInDatabase extends Constraint
     }
 
     /**
+     * Get a string representation of the object.
+     *
+     * @param  int  $options
+     * @return string
+     */
+    public function toString($options = 0)
+    {
+        return json_encode($this->data, $options);
+    }
+
+    /**
      * Get additional info about the records found in the database table.
      *
      * @param  string  $table
@@ -88,16 +99,5 @@ class HasInDatabase extends Constraint
         }
 
         return $description;
-    }
-
-    /**
-     * Get a string representation of the object.
-     *
-     * @param  int  $options
-     * @return string
-     */
-    public function toString($options = 0)
-    {
-        return json_encode($this->data, $options);
     }
 }

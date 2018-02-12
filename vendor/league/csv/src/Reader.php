@@ -47,18 +47,6 @@ class Reader extends AbstractCsv
     }
 
     /**
-     * Fetch the next row from a result set
-     *
-     * @param callable|null $callable a callable function to be applied to each Iterator item
-     *
-     * @return Iterator
-     */
-    public function fetch(callable $callable = null)
-    {
-        return $this->applyCallable($this->getQueryIterator(), $callable);
-    }
-
-    /**
      * Apply The callable function
      *
      * @param Iterator      $iterator
@@ -73,6 +61,18 @@ class Reader extends AbstractCsv
         }
 
         return $iterator;
+    }
+
+    /**
+     * Fetch the next row from a result set
+     *
+     * @param callable|null $callable a callable function to be applied to each Iterator item
+     *
+     * @return Iterator
+     */
+    public function fetch(callable $callable = null)
+    {
+        return $this->applyCallable($this->getQueryIterator(), $callable);
     }
 
     /**
@@ -294,18 +294,6 @@ class Reader extends AbstractCsv
     }
 
     /**
-     * Returns whether the submitted value can be used as string
-     *
-     * @param mixed $value
-     *
-     * @return bool
-     */
-    protected function isValidKey($value)
-    {
-        return is_scalar($value) || (is_object($value) && method_exists($value, '__toString'));
-    }
-
-    /**
      * Returns a single row from the CSV without filtering
      *
      * @param int $offset
@@ -335,5 +323,17 @@ class Reader extends AbstractCsv
         }
 
         return $row;
+    }
+
+    /**
+     * Returns whether the submitted value can be used as string
+     *
+     * @param mixed $value
+     *
+     * @return bool
+     */
+    protected function isValidKey($value)
+    {
+        return is_scalar($value) || (is_object($value) && method_exists($value, '__toString'));
     }
 }

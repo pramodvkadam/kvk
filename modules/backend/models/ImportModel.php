@@ -17,18 +17,16 @@ abstract class ImportModel extends Model
     use \October\Rain\Database\Traits\Validation;
 
     /**
-     * The attributes that aren't mass assignable.
-     * @var array
-     */
-    protected $guarded = [];
-
-    /**
      * Relations
      */
     public $attachOne = [
         'import_file' => \System\Models\File::class
     ];
-
+    /**
+     * The attributes that aren't mass assignable.
+     * @var array
+     */
+    protected $guarded = [];
     /**
      * @var array Import statistics store.
      */
@@ -39,19 +37,6 @@ abstract class ImportModel extends Model
         'warnings' => [],
         'skipped' => []
     ];
-
-    /**
-     * Called when data is being imported.
-     * The $results array should be in the format of:
-     *
-     *    [
-     *        'db_name1' => 'Some value',
-     *        'db_name2' => 'Another value'
-     *    ],
-     *    [...]
-     *
-     */
-    abstract public function importData($results, $sessionKey = null);
 
     /**
      * Import data based on column names matching header indexes in the CSV.
@@ -72,6 +57,26 @@ abstract class ImportModel extends Model
         $path = $this->getImportFilePath($sessionKey);
         $data = $this->processImportData($path, $matches, $options);
         return $this->importData($data, $sessionKey);
+    }
+
+    /**
+     * Returns an attached imported file local path, if available.
+     * @return string
+     */
+    public function getImportFilePath($sessionKey = null)
+    {
+        $file = $this
+            ->import_file()
+            ->withDeferred($sessionKey)
+            ->orderBy('id', 'desc')
+            ->first()
+        ;
+
+        if (!$file) {
+            return null;
+        }
+
+        return $file->getLocalPath();
     }
 
     /**
@@ -169,42 +174,17 @@ abstract class ImportModel extends Model
     }
 
     /**
-     * Explodes a string using pipes (|) to a single dimension array
-     * @return array
+     * Called when data is being imported.
+     * The $results array should be in the format of:
+     *
+     *    [
+     *        'db_name1' => 'Some value',
+     *        'db_name2' => 'Another value'
+     *    ],
+     *    [...]
+     *
      */
-    protected function decodeArrayValue($value, $delimeter = '|')
-    {
-        if (strpos($value, $delimeter) === false) return [$value];
-
-        $data = preg_split('~(?<!\\\)' . preg_quote($delimeter, '~') . '~', $value);
-        $newData = [];
-
-        foreach ($data as $_value) {
-            $newData[] = str_replace('\\'.$delimeter, $delimeter, $_value);
-        }
-
-        return $newData;
-    }
-
-    /**
-     * Returns an attached imported file local path, if available.
-     * @return string
-     */
-    public function getImportFilePath($sessionKey = null)
-    {
-        $file = $this
-            ->import_file()
-            ->withDeferred($sessionKey)
-            ->orderBy('id', 'desc')
-            ->first()
-        ;
-
-        if (!$file) {
-            return null;
-        }
-
-        return $file->getLocalPath();
-    }
+    abstract public function importData($results, $sessionKey = null);
 
     /**
      * Returns all available encodings values from the localization config
@@ -240,10 +220,6 @@ abstract class ImportModel extends Model
         return array_combine($options, $translated);
     }
 
-    //
-    // Result logging
-    //
-
     public function getResultStats()
     {
         $this->resultStats['errorCount'] = count($this->resultStats['errors']);
@@ -257,6 +233,28 @@ abstract class ImportModel extends Model
         );
 
         return (object) $this->resultStats;
+    }
+
+    //
+    // Result logging
+    //
+
+    /**
+     * Explodes a string using pipes (|) to a single dimension array
+     * @return array
+     */
+    protected function decodeArrayValue($value, $delimeter = '|')
+    {
+        if (strpos($value, $delimeter) === false) return [$value];
+
+        $data = preg_split('~(?<!\\\)' . preg_quote($delimeter, '~') . '~', $value);
+        $newData = [];
+
+        foreach ($data as $_value) {
+            $newData[] = str_replace('\\'.$delimeter, $delimeter, $_value);
+        }
+
+        return $newData;
     }
 
     protected function logUpdated()

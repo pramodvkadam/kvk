@@ -33,32 +33,6 @@ class SettingsManager
     const CATEGORY_CUSTOMERS = 'system::lang.system.categories.customers';
     const CATEGORY_MYSETTINGS = 'system::lang.system.categories.my_settings';
     const CATEGORY_NOTIFICATIONS = 'system::lang.system.categories.notifications';
-
-    /**
-     * @var array Cache of registration callbacks.
-     */
-    protected $callbacks = [];
-
-    /**
-     * @var array List of registered items.
-     */
-    protected $items;
-
-    /**
-     * @var array Grouped collection of all items, by category.
-     */
-    protected $groupedItems;
-
-    /**
-     * @var string Active plugin or module owner.
-     */
-    protected $contextOwner;
-
-    /**
-     * @var string Active item code.
-     */
-    protected $contextItemCode;
-
     /**
      * @var array Settings item defaults.
      */
@@ -73,18 +47,60 @@ class SettingsManager
         'context'     => 'system',
         'keywords'    => null
     ];
-
+    /**
+     * @var array Cache of registration callbacks.
+     */
+    protected $callbacks = [];
+    /**
+     * @var array List of registered items.
+     */
+    protected $items;
+    /**
+     * @var array Grouped collection of all items, by category.
+     */
+    protected $groupedItems;
+    /**
+     * @var string Active plugin or module owner.
+     */
+    protected $contextOwner;
+    /**
+     * @var string Active item code.
+     */
+    protected $contextItemCode;
     /**
      * @var System\Classes\PluginManager
      */
     protected $pluginManager;
 
     /**
-     * Initialize this singleton.
+     * Sets the navigation context.
+     * @param string $owner Specifies the setting items owner plugin or module in the format Vendor.Module.
+     * @param string $code Specifies the settings item code.
      */
-    protected function init()
+    public static function setContext($owner, $code)
     {
-        $this->pluginManager = PluginManager::instance();
+        $instance = self::instance();
+
+        $instance->contextOwner = strtolower($owner);
+        $instance->contextItemCode = strtolower($code);
+    }
+
+    /**
+     * Returns a collection of all settings by group, filtered by context
+     * @param  string $context
+     * @return array
+     */
+    public function listItems($context = null)
+    {
+        if ($this->items === null) {
+            $this->loadItems();
+        }
+
+        if ($context !== null) {
+            return $this->filterByContext($this->groupedItems, $context);
+        }
+
+        return $this->groupedItems;
     }
 
     protected function loadItems()
@@ -142,69 +158,6 @@ class SettingsManager
         }
 
         $this->groupedItems = $catItems;
-    }
-
-    /**
-     * Returns a collection of all settings by group, filtered by context
-     * @param  string $context
-     * @return array
-     */
-    public function listItems($context = null)
-    {
-        if ($this->items === null) {
-            $this->loadItems();
-        }
-
-        if ($context !== null) {
-            return $this->filterByContext($this->groupedItems, $context);
-        }
-
-        return $this->groupedItems;
-    }
-
-    /**
-     * Filters a set of items by a given context.
-     * @param  array $items
-     * @param  string $context
-     * @return array
-     */
-    protected function filterByContext($items, $context)
-    {
-        $filteredItems = [];
-        foreach ($items as $categoryName => $category) {
-
-            $filteredCategory = [];
-            foreach ($category as $item) {
-                $itemContext = is_array($item->context) ? $item->context : [$item->context];
-                if (in_array($context, $itemContext)) {
-                    $filteredCategory[] = $item;
-                }
-            }
-
-            if (count($filteredCategory)) {
-                $filteredItems[$categoryName] = $filteredCategory;
-            }
-        }
-
-        return $filteredItems;
-    }
-
-    /**
-     * Registers a callback function that defines setting items.
-     * The callback function should register setting items by calling the manager's
-     * registerSettingItems() function. The manager instance is passed to the
-     * callback function as an argument.
-     * Usage:
-     *
-     *     SettingsManager::registerCallback(function($manager){
-     *         $manager->registerSettingItems([...]);
-     *     });
-     *
-     * @param callable $callback A callable function.
-     */
-    public function registerCallback(callable $callback)
-    {
-        $this->callbacks[] = $callback;
     }
 
     /**
@@ -287,6 +240,80 @@ class SettingsManager
     }
 
     /**
+     * Internal method to make a unique key for an item.
+     * @param  object $item
+     * @return string
+     */
+    protected function makeItemKey($owner, $code)
+    {
+        return strtoupper($owner).'.'.strtoupper($code);
+    }
+
+    /**
+     * Removes settings items from an array if the supplied user lacks permission.
+     * @param User $user A user object
+     * @param array $items A collection of setting items
+     * @return array The filtered settings items
+     */
+    protected function filterItemPermissions($user, array $items)
+    {
+        $items = array_filter($items, function ($item) use ($user) {
+            if (!$item->permissions || !count($item->permissions)) {
+                return true;
+            }
+
+            return $user->hasAnyAccess($item->permissions);
+        });
+
+        return $items;
+    }
+
+    /**
+     * Filters a set of items by a given context.
+     * @param  array $items
+     * @param  string $context
+     * @return array
+     */
+    protected function filterByContext($items, $context)
+    {
+        $filteredItems = [];
+        foreach ($items as $categoryName => $category) {
+
+            $filteredCategory = [];
+            foreach ($category as $item) {
+                $itemContext = is_array($item->context) ? $item->context : [$item->context];
+                if (in_array($context, $itemContext)) {
+                    $filteredCategory[] = $item;
+                }
+            }
+
+            if (count($filteredCategory)) {
+                $filteredItems[$categoryName] = $filteredCategory;
+            }
+        }
+
+        return $filteredItems;
+    }
+
+    /**
+     * Registers a callback function that defines setting items.
+     * The callback function should register setting items by calling the manager's
+     * registerSettingItems() function. The manager instance is passed to the
+     * callback function as an argument.
+     * Usage:
+     *
+     *     SettingsManager::registerCallback(function($manager){
+     *         $manager->registerSettingItems([...]);
+     *     });
+     *
+     * @param callable $callback A callable function.
+     */
+    public function registerCallback(callable $callback)
+    {
+        $this->callbacks[] = $callback;
+    }
+
+    /**
      * Removes a single setting item
      */
     public function removeSettingItem($owner, $code)
@@ -305,19 +332,6 @@ class SettingsManager
                 }
             }
         }
-    }
-
-    /**
-     * Sets the navigation context.
-     * @param string $owner Specifies the setting items owner plugin or module in the format Vendor.Module.
-     * @param string $code Specifies the settings item code.
-     */
-    public static function setContext($owner, $code)
-    {
-        $instance = self::instance();
-
-        $instance->contextOwner = strtolower($owner);
-        $instance->contextItemCode = strtolower($code);
     }
 
     /**
@@ -359,31 +373,10 @@ class SettingsManager
     }
 
     /**
-     * Removes settings items from an array if the supplied user lacks permission.
-     * @param User $user A user object
-     * @param array $items A collection of setting items
-     * @return array The filtered settings items
+     * Initialize this singleton.
      */
-    protected function filterItemPermissions($user, array $items)
+    protected function init()
     {
-        $items = array_filter($items, function ($item) use ($user) {
-            if (!$item->permissions || !count($item->permissions)) {
-                return true;
-            }
-
-            return $user->hasAnyAccess($item->permissions);
-        });
-
-        return $items;
-    }
-
-    /**
-     * Internal method to make a unique key for an item.
-     * @param  object $item
-     * @return string
-     */
-    protected function makeItemKey($owner, $code)
-    {
-        return strtoupper($owner).'.'.strtoupper($code);
+        $this->pluginManager = PluginManager::instance();
     }
 }

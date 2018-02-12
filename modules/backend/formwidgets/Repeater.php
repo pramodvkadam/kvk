@@ -15,61 +15,50 @@ class Repeater extends FormWidgetBase
     //
     // Configurable properties
     //
-
+    /**
+     * @var bool Stops nested repeaters populating from previous sibling.
+     */
+    protected static $onAddItemCalled = false;
     /**
      * @var array Form field configuration
      */
     public $form;
-
     /**
      * @var string Prompt text for adding new items.
      */
     public $prompt = 'Add new item';
-
     /**
      * @var bool Items can be sorted.
      */
     public $sortable = false;
 
+    //
+    // Object properties
+    //
     /**
      * @var int Maximum repeated items allowable.
      */
     public $maxItems = null;
-
-    //
-    // Object properties
-    //
-
     /**
      * @inheritDoc
      */
     protected $defaultAlias = 'repeater';
-
     /**
      * @var string Form field name for capturing an index.
      */
     protected $indexInputName;
-
     /**
      * @var int Count of repeated items.
      */
     protected $indexCount = 0;
-
     /**
      * @var array Meta data associated to each field, organised by index
      */
     protected $indexMeta = [];
-
     /**
      * @var array Collection of form widgets.
      */
     protected $formWidgets = [];
-
-    /**
-     * @var bool Stops nested repeaters populating from previous sibling.
-     */
-    protected static $onAddItemCalled = false;
-
     protected $useGroups = false;
 
     /**
@@ -107,77 +96,34 @@ class Repeater extends FormWidgetBase
     }
 
     /**
-     * @inheritDoc
+     * Process features related to group mode.
+     * @return void
      */
-    public function render()
+    protected function processGroupMode()
     {
-        $this->prepareVars();
-        return $this->makePartial('repeater');
-    }
+        $palette = [];
 
-    /**
-     * Prepares the form widget view data
-     */
-    public function prepareVars()
-    {
-        // Refresh the loaded data to support being modified by filterFields
-        // @see https://github.com/octobercms/october/issues/2613
-        if (!self::$onAddItemCalled) {
-            $this->processExistingItems();
-        }
-        
-        if ($this->previewMode) {
-            foreach ($this->formWidgets as $widget) {
-                $widget->previewMode = true;
-            }
+        if (!$group = $this->getConfig('groups', [])) {
+            $this->useGroups = false;
+            return;
         }
 
-        $this->vars['indexInputName'] = $this->indexInputName;
-        $this->vars['groupInputName'] = $this->groupInputName;
-
-        $this->vars['prompt'] = $this->prompt;
-        $this->vars['formWidgets'] = $this->formWidgets;
-        $this->vars['maxItems'] = $this->maxItems;
-
-        $this->vars['useGroups'] = $this->useGroups;
-        $this->vars['groupDefinitions'] = $this->groupDefinitions;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function loadAssets()
-    {
-        $this->addCss('css/repeater.css', 'core');
-        $this->addJs('js/repeater.js', 'core');
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getSaveValue($value)
-    {
-        return (array) $this->processSaveValue($value);
-    }
-
-    /**
-     * Splices in some meta data (group and index values) to the dataset.
-     * @param array $value
-     * @return array
-     */
-    protected function processSaveValue($value)
-    {
-        if (!is_array($value) || !$value) {
-            return $value;
+        if (is_string($group)) {
+            $group = $this->makeConfig($group);
         }
 
-        if ($this->useGroups) {
-            foreach ($value as $index => &$data) {
-                $data['_group'] = $this->getGroupCodeFromIndex($index);
-            }
+        foreach ($group as $code => $config) {
+            $palette[$code] = [
+                'code' => $code,
+                'name' => array_get($config, 'name'),
+                'icon' => array_get($config, 'icon', 'icon-square-o'),
+                'description' => array_get($config, 'description'),
+                'fields' => array_get($config, 'fields')
+            ];
         }
 
-        return array_values($value);
+        $this->groupDefinitions = $palette;
+        $this->useGroups = true;
     }
 
     /**
@@ -244,59 +190,6 @@ class Repeater extends FormWidgetBase
     }
 
     /**
-     * Returns the load data at a given index.
-     * @param int $index
-     */
-    protected function getLoadValueFromIndex($index)
-    {
-        $loadValue = $this->getLoadValue();
-        if (!is_array($loadValue)) {
-            $loadValue = [];
-        }
-
-        return array_get($loadValue, $index, []);
-    }
-
-    //
-    // AJAX handlers
-    //
-
-    public function onAddItem()
-    {
-        self::$onAddItemCalled = true;
-
-        $this->indexCount++;
-
-        $groupCode = post('_repeater_group');
-
-        $this->prepareVars();
-        $this->vars['widget'] = $this->makeItemFormWidget($this->indexCount, $groupCode);
-        $this->vars['indexValue'] = $this->indexCount;
-
-        $itemContainer = '@#'.$this->getId('items');
-        return [$itemContainer => $this->makePartial('repeater_item')];
-    }
-
-    public function onRemoveItem()
-    {
-        // Useful for deleting relations
-    }
-
-    public function onRefresh()
-    {
-        $index = post('_repeater_index');
-        $group = post('_repeater_group');
-
-        $widget = $this->makeItemFormWidget($index, $group);
-
-        return $widget->onRefresh();
-    }
-
-    //
-    // Group mode
-    //
-
-    /**
      * Returns the form field configuration for a group, identified by code.
      * @param string $code
      * @return array|null
@@ -317,34 +210,86 @@ class Repeater extends FormWidgetBase
     }
 
     /**
-     * Process features related to group mode.
-     * @return void
+     * Returns the load data at a given index.
+     * @param int $index
      */
-    protected function processGroupMode()
+    protected function getLoadValueFromIndex($index)
     {
-        $palette = [];
-
-        if (!$group = $this->getConfig('groups', [])) {
-            $this->useGroups = false;
-            return;
+        $loadValue = $this->getLoadValue();
+        if (!is_array($loadValue)) {
+            $loadValue = [];
         }
 
-        if (is_string($group)) {
-            $group = $this->makeConfig($group);
+        return array_get($loadValue, $index, []);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function render()
+    {
+        $this->prepareVars();
+        return $this->makePartial('repeater');
+    }
+
+    /**
+     * Prepares the form widget view data
+     */
+    public function prepareVars()
+    {
+        // Refresh the loaded data to support being modified by filterFields
+        // @see https://github.com/octobercms/october/issues/2613
+        if (!self::$onAddItemCalled) {
+            $this->processExistingItems();
         }
 
-        foreach ($group as $code => $config) {
-            $palette[$code] = [
-                'code' => $code,
-                'name' => array_get($config, 'name'),
-                'icon' => array_get($config, 'icon', 'icon-square-o'),
-                'description' => array_get($config, 'description'),
-                'fields' => array_get($config, 'fields')
-            ];
+        if ($this->previewMode) {
+            foreach ($this->formWidgets as $widget) {
+                $widget->previewMode = true;
+            }
         }
 
-        $this->groupDefinitions = $palette;
-        $this->useGroups = true;
+        $this->vars['indexInputName'] = $this->indexInputName;
+        $this->vars['groupInputName'] = $this->groupInputName;
+
+        $this->vars['prompt'] = $this->prompt;
+        $this->vars['formWidgets'] = $this->formWidgets;
+        $this->vars['maxItems'] = $this->maxItems;
+
+        $this->vars['useGroups'] = $this->useGroups;
+        $this->vars['groupDefinitions'] = $this->groupDefinitions;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSaveValue($value)
+    {
+        return (array) $this->processSaveValue($value);
+    }
+
+    //
+    // AJAX handlers
+    //
+
+    /**
+     * Splices in some meta data (group and index values) to the dataset.
+     * @param array $value
+     * @return array
+     */
+    protected function processSaveValue($value)
+    {
+        if (!is_array($value) || !$value) {
+            return $value;
+        }
+
+        if ($this->useGroups) {
+            foreach ($value as $index => &$data) {
+                $data['_group'] = $this->getGroupCodeFromIndex($index);
+            }
+        }
+
+        return array_values($value);
     }
 
     /**
@@ -357,6 +302,41 @@ class Repeater extends FormWidgetBase
         return array_get($this->indexMeta, $index.'.groupCode');
     }
 
+    public function onAddItem()
+    {
+        self::$onAddItemCalled = true;
+
+        $this->indexCount++;
+
+        $groupCode = post('_repeater_group');
+
+        $this->prepareVars();
+        $this->vars['widget'] = $this->makeItemFormWidget($this->indexCount, $groupCode);
+        $this->vars['indexValue'] = $this->indexCount;
+
+        $itemContainer = '@#'.$this->getId('items');
+        return [$itemContainer => $this->makePartial('repeater_item')];
+    }
+
+    //
+    // Group mode
+    //
+
+    public function onRemoveItem()
+    {
+        // Useful for deleting relations
+    }
+
+    public function onRefresh()
+    {
+        $index = post('_repeater_index');
+        $group = post('_repeater_group');
+
+        $widget = $this->makeItemFormWidget($index, $group);
+
+        return $widget->onRefresh();
+    }
+
     /**
      * Returns the group title from its unique code.
      * @param $groupCode string
@@ -365,5 +345,14 @@ class Repeater extends FormWidgetBase
     public function getGroupTitle($groupCode)
     {
         return array_get($this->groupDefinitions, $groupCode.'.name');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function loadAssets()
+    {
+        $this->addCss('css/repeater.css', 'core');
+        $this->addJs('js/repeater.js', 'core');
     }
 }

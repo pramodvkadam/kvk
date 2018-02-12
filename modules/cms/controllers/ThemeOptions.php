@@ -65,6 +65,54 @@ class ThemeOptions extends Controller
         }
     }
 
+    /**
+     * Default to the active theme if user doesn't have access to manage all themes
+     */
+    protected function getDirName($dirName = null)
+    {
+        /*
+         * Only the active theme can be managed without this permission
+         */
+        if ($dirName && !$this->user->hasAccess('cms.manage_themes')) {
+            $dirName = null;
+        }
+
+        if ($dirName === null) {
+            $dirName = CmsTheme::getActiveThemeCode();
+        }
+
+        return $dirName;
+    }
+
+    protected function getThemeData($dirName)
+    {
+        $theme = $this->findThemeObject($dirName);
+        $model = ThemeData::forTheme($theme);
+        return $model;
+    }
+
+    protected function findThemeObject($name = null)
+    {
+        if ($name === null) {
+            $name = post('theme');
+        }
+
+        if (!$name || (!$theme = CmsTheme::load($name))) {
+            throw new ApplicationException(trans('cms::lang.theme.not_found_name', ['name' => $name]));
+        }
+
+        return $theme;
+    }
+
+    //
+    // Helpers
+    //
+
+    protected function hasThemeData($dirName)
+    {
+        return $this->findThemeObject($dirName)->hasCustomData();
+    }
+
     public function update_onSave($dirName = null)
     {
         $model = $this->getThemeData($this->getDirName($dirName));
@@ -99,53 +147,5 @@ class ThemeOptions extends Controller
         if ($fields = array_get($config, 'secondaryTabs.fields')) {
             $form->addSecondaryTabFields($fields);
         }
-    }
-
-    //
-    // Helpers
-    //
-
-    /**
-     * Default to the active theme if user doesn't have access to manage all themes
-     */
-    protected function getDirName($dirName = null)
-    {
-        /*
-         * Only the active theme can be managed without this permission
-         */
-        if ($dirName && !$this->user->hasAccess('cms.manage_themes')) {
-            $dirName = null;
-        }
-
-        if ($dirName === null) {
-            $dirName = CmsTheme::getActiveThemeCode();
-        }
-
-        return $dirName;
-    }
-
-    protected function hasThemeData($dirName)
-    {
-        return $this->findThemeObject($dirName)->hasCustomData();
-    }
-
-    protected function getThemeData($dirName)
-    {
-        $theme = $this->findThemeObject($dirName);
-        $model = ThemeData::forTheme($theme);
-        return $model;
-    }
-
-    protected function findThemeObject($name = null)
-    {
-        if ($name === null) {
-            $name = post('theme');
-        }
-
-        if (!$name || (!$theme = CmsTheme::load($name))) {
-            throw new ApplicationException(trans('cms::lang.theme.not_found_name', ['name' => $name]));
-        }
-
-        return $theme;
     }
 }

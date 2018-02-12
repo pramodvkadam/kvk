@@ -147,27 +147,23 @@ HELP
     }
 
     /**
-     * Extract a range from a string.
+     * Validate that only one of the given $options is set.
      *
-     * @param string $range
-     *
-     * @return array [ start, end ]
+     * @param InputInterface $input
+     * @param array          $options
      */
-    private function extractRange($range)
+    private function validateOnlyOne(InputInterface $input, array $options)
     {
-        if (preg_match('/^\d+$/', $range)) {
-            return array($range, $range + 1);
+        $count = 0;
+        foreach ($options as $opt) {
+            if ($input->getOption($opt)) {
+                $count++;
+            }
         }
 
-        $matches = array();
-        if ($range !== '..' && preg_match('/^(\d*)\.\.(\d*)$/', $range, $matches)) {
-            $start = $matches[1] ? intval($matches[1]) : 0;
-            $end   = $matches[2] ? intval($matches[2]) + 1 : PHP_INT_MAX;
-
-            return array($start, $end);
+        if ($count > 1) {
+            throw new \InvalidArgumentException('Please specify only one of --' . implode(', --', $options));
         }
-
-        throw new \InvalidArgumentException('Unexpected range: ' . $range);
     }
 
     /**
@@ -211,23 +207,32 @@ HELP
     }
 
     /**
-     * Validate that only one of the given $options is set.
+     * Extract a range from a string.
      *
-     * @param InputInterface $input
-     * @param array          $options
+     * @param string $range
+     *
+     * @return array [ start, end ]
      */
-    private function validateOnlyOne(InputInterface $input, array $options)
+    private function extractRange($range)
     {
-        $count = 0;
-        foreach ($options as $opt) {
-            if ($input->getOption($opt)) {
-                $count++;
-            }
+        if (preg_match('/^\d+$/', $range)) {
+            return array($range, $range + 1);
         }
 
-        if ($count > 1) {
-            throw new \InvalidArgumentException('Please specify only one of --' . implode(', --', $options));
+        $matches = array();
+        if ($range !== '..' && preg_match('/^(\d*)\.\.(\d*)$/', $range, $matches)) {
+            $start = $matches[1] ? intval($matches[1]) : 0;
+            $end   = $matches[2] ? intval($matches[2]) + 1 : PHP_INT_MAX;
+
+            return array($start, $end);
         }
+
+        throw new \InvalidArgumentException('Unexpected range: ' . $range);
+    }
+
+    public static function escape($string)
+    {
+        return OutputFormatter::escape($string);
     }
 
     /**
@@ -236,10 +241,5 @@ HELP
     private function clearHistory()
     {
         $this->readline->clearHistory();
-    }
-
-    public static function escape($string)
-    {
-        return OutputFormatter::escape($string);
     }
 }

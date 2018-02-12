@@ -12,15 +12,6 @@ class RedisCacheTest extends CacheTest
 {
     private $_redis;
 
-    protected function setUp()
-    {
-        $this->_redis = new \Redis();
-        $ok = @$this->_redis->connect('127.0.0.1');
-        if (!$ok) {
-            $this->markTestSkipped('Cannot connect to Redis.');
-        }
-    }
-
     public function testHitMissesStatsAreProvided()
     {
         $cache = $this->_getCacheDriver();
@@ -28,6 +19,16 @@ class RedisCacheTest extends CacheTest
 
         $this->assertNotNull($stats[Cache::STATS_HITS]);
         $this->assertNotNull($stats[Cache::STATS_MISSES]);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected function _getCacheDriver()
+    {
+        $driver = new RedisCache();
+        $driver->setRedis($this->_redis);
+        return $driver;
     }
 
     public function testGetRedisReturnsInstanceOfRedis()
@@ -47,13 +48,12 @@ class RedisCacheTest extends CacheTest
         );
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function _getCacheDriver()
+    protected function setUp()
     {
-        $driver = new RedisCache();
-        $driver->setRedis($this->_redis);
-        return $driver;
+        $this->_redis = new \Redis();
+        $ok = @$this->_redis->connect('127.0.0.1');
+        if (!$ok) {
+            $this->markTestSkipped('Cannot connect to Redis.');
+        }
     }
 }
