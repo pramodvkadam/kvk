@@ -1,0 +1,22 @@
+columns:
+    fullname:
+        label: fullname
+        type: text
+    deleted_at:
+        label: deleted_at
+        type: datetime
+    created_at:
+        label: created_at
+        type: datetime
+    designation:
+        label: designation
+        type: text
+    education:
+        label: education
+        type: text
+    mobile:
+        label: mobile
+        type: text
+    image_url:
+        label: image_url
+        type: text

@@ -1,0 +1,43 @@
+description = "home layout"
+
+[staticMenu mainMenu]
+code = "main-menu"
+
+[staticPage]
+useContent = 1
+default = 0
+==
+<!DOCTYPE html>
+<html>
+    <head>
+        {% partial 'meta' %}
+    </head>
+    <body>
+
+            {% partial "header" %}
+
+                {% partial "nav" %}
+       {% partial "home-slideshow" %}
+    
+<div class="container">
+      <!-- Marketing Icons Section -->
+      <div class="row">
+              <div class="col-lg-4 mb-4 left-block">   
+                          {% partial "current-events-sidebar" %}
+
+</div>
+ <div class="col-lg-8 mb-4">
+          <div class="right-block">
+                              {% partial "title" %}
+                        {% page %}
+                </div>
+          </div>
+          </div>
+      </div>
+      
+      </div>
+      
+        <!-- Scripts -->
+        {% partial 'scripts' %}
+    </body>
+</html>

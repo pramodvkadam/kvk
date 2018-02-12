@@ -1,0 +1,255 @@
+/*!
+ * Start Bootstrap - Modern Business (https://startbootstrap.com/template-overviews/modern-business)
+ * Copyright 2013-2017 Start Bootstrap
+ * Licensed under MIT (https://github.com/BlackrockDigital/startbootstrap-logomodern-business-nav/blob/master/LICENSE)
+ */
+
+body {
+  font-family: 'Roboto Slab', serif;
+  color: #525252;
+}
+
+@media (min-width: 992px) {
+  .navbar-expand-lg .navbar-nav .nav-link {
+    padding-right: 1rem;
+    padding-left: 1rem;
+}
+}
+
+.carousel-item {
+  height: 100vh;
+  min-height: 300px;
+  max-height: 530px;
+  background: no-repeat center center scroll;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+}
+
+.carousel {
+    top: -40px;
+    z-index: 0;
+}
+
+.navbar{
+  z-index: 1;
+}
+
+.nav-link {
+    color: rgb(255,255,255) !important;
+    font-weight: normal;
+    text-transform: uppercase;
+    font-size: 14px;
+}
+
+.navbar-dark .navbar-nav .nav-link:focus, .navbar-dark .navbar-nav .nav-link:hover {
+    color: rgba(255,255,255,.75) !important;
+}
+
+.active{
+  background: #dc4213;
+}
+
+.bg-green{
+  background-color: #7fb401;
+}
+
+.portfolio-item {
+  margin-bottom: 30px;
+}
+
+.carousel-caption{
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-top: 0;
+}
+
+.carousel-item img{
+  width: 100%;
+}
+
+.top-header{
+   height: 150px;
+   background: #ffffff;
+   padding: 20px 0;
+}
+
+.top-header img{
+  height: 115px;
+}
+
+.top-header p{
+  margin-bottom: 0;
+  text-align: center;
+  line-height: 36px;
+}
+
+p.head-greeen{
+  color: #048304;
+  font-size: 18px;
+}
+
+p.head-red{
+  color: #dc4213;
+  font-size: 30px;
+}
+
+p.head-grey{
+  color: #525252;
+  font-size: 18px;
+}
+
+.left-block{
+  background-color: #faf8ec;
+}
+
+h4.heading{
+  font-size: 24px;
+  color: #dc4213;
+  text-align: center;
+  background: url(../images/head-bottom.png) no-repeat;
+  background-position: bottom center;
+  line-height: 70px;
+  margin-bottom: 25px;
+}
+
+.left-block p{
+  font-size: 14px;
+  padding: 0 80px;
+}
+
+.right-block p{
+  font-size: 14px;
+  padding: 0 40px;
+}
+
+.bg-image{
+  position: relative;
+  left: -90px;
+}
+
+footer p{
+  font-size: 14px;
+}
+
+.grey-block{
+  background: #f7f7f7;
+  width: 100%;
+  text-align: center;
+}
+
+.image-section{
+  width: 275px;
+  height: 160px;
+  margin: 30px auto;
+}
+
+.image-section img{
+    width: 100%;
+}
+
+.grey-block a{
+  color: #525252;
+  font-size: 14px;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.grey-block a:hover{
+  color: #000;
+}
+
+.slick-slide img {
+    display: block;
+    height: 185px;
+}
+
+.inner-banner{
+  height: 240px;
+   border-bottom: 3px solid #7fb401;
+}
+
+.inner-banner img{
+  width: 100%;
+}
+
+/* staff css */
+.column {
+    float: left;
+    width: 40%;
+    padding: 0 8px;
+    margin: 0 20px 25px 40px;
+}
+
+/* Display the columns below each other instead of side by side on small screens */
+@media (max-width: 650px) {
+    .column {
+        width: 100%;
+        display: block;
+    }
+}
+
+/* Add some shadows to create a card effect */
+.card {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    height: 370px;
+}
+
+.card h2{
+  font-size: 18px;
+}
+
+.card p{
+  padding:0;
+}
+
+/* Some left and right padding inside the container */
+.container {
+    padding: 0 16px;
+}
+
+/* Clear floats */
+.container::after, .row::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+.title {
+    color: grey;
+}
+
+.button {
+    border: none;
+    outline: 0;
+    display: inline-block;
+    padding: 8px;
+    color: white;
+    background-color: #000;
+    text-align: center;
+    cursor: pointer;
+    width: 100%;
+}
+
+.button:hover {
+    background-color: #555;
+}
+
+.staff-photo{
+  width: 65%;
+  height: 150px;
+  margin: 10px auto;
+  border: 1px solid rgb(0,0,0);
+}
+
+.staff-photo img{
+  height: 100%;
+  width: 100%;
+}
+
+.alignC{
+  text-align: center;
+  font-size: 16px;
+}

@@ -1,0 +1,24 @@
+[viewBag]
+snippetCode = "metafiles"
+==
+<meta charset="utf-8">
+<title>KRISHI VIGYAN KENDRA - {{ this.page.title }}</title>
+<meta name="description" content="{{ this.page.meta_description }}">
+
+<meta name="title" content="{{ this.page.meta_title }}">
+<meta name="author" content="Weblogicx">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="{{ 'assets/images/october.png'|theme }}" />
+<meta name="generator" content="KVK" />
+{% styles %}
+
+{# Vendor #}
+<link href="{{ [
+'assets/vendor/bootstrap/css/bootstrap.min.css',
+    'assets/vendor/slick/slick.css',
+        'assets/vendor/slick/slick-theme.css'
+]|theme }}" rel="stylesheet" />
+
+<link href="https://fonts.googleapis.com/css?family=Roboto+Slab" rel="stylesheet">
+{# Theme #}
+<link href="{{ ['assets/css/style.css']|theme }}" rel="stylesheet" />
