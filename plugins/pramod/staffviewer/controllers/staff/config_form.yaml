@@ -1,0 +1,12 @@
+name: Staff
+modelClass: Pramod\StaffViewer\Models\Staff
+form: $/pramod/staffviewer/models/staff/fields.yaml
+defaultRedirect: pramod/staffviewer/staff
+create:
+    title: add
+    redirect: 'pramod/staffviewer/staff/update/:id'
+    redirectClose: pramod/staffviewer/staff
+update:
+    redirect: pramod/staffviewer/staff
+    redirectClose: pramod/staffviewer/staff
+preview: {  }

@@ -1,0 +1,13 @@
+plugin:
+    name: 'pramod.staffviewer::lang.plugin.name'
+    description: 'pramod.staffviewer::lang.plugin.description'
+    author: pramod
+    icon: oc-icon-users
+    homepage: ''
+navigation:
+    add-staff:
+        label: 'Add Staff'
+        url: pramod/staffviewer/staff
+        icon: icon-plus
+        permissions:
+            - add

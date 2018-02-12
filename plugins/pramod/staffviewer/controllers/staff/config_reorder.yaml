@@ -1,0 +1,5 @@
+title: Staff
+modelClass: Pramod\StaffViewer\Models\Staff
+nameFrom: fullname
+toolbar:
+    buttons: reorder_toolbar

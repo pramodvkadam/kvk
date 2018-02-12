@@ -1,0 +1,9 @@
+name: Atma
+description: 'Theme for atma project'
+author: Weblogicx
+homepage: 'https://weblogicx.com'
+code: Atma
+require:
+    - RainLab.User
+    - RainLab.Blog
+    - RainLab.Pages

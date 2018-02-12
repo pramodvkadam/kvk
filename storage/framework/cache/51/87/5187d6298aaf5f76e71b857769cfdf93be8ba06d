@@ -1,0 +1,142 @@
+1518454986a:1:{s:9:"staff.htm";a:12:{s:8:"fileName";s:9:"staff.htm";s:7:"content";s:2720:"title = "Staff"
+url = "/staff"
+layout = "default"
+description = "Staff page"
+meta_title = "Staff details of Krishi Vigyan Kendra"
+is_hidden = 0
+
+[builderList]
+modelClass = "Pramod\StaffViewer\Models\Staff"
+scope = "-"
+displayColumn = "fullname"
+noRecordsMessage = "No records found"
+detailsPage = "-"
+detailsUrlParameter = "id"
+pageNumber = "{{ :page }}"
+==
+<?php
+function onStart()
+{
+        $this->addCss('assets/css/default.css');
+    $this->addCss('assets/css/component.css');
+    $this->addJs('assets/js/modernizr.custom.js');
+}
+?>
+==
+{% set records = builderList.records %}
+{% set displayColumn = builderList.displayColumn %}
+{% set noRecordsMessage = builderList.noRecordsMessage %}
+{% set detailsPage = builderList.detailsPage %}
+{% set detailsKeyColumn = builderList.detailsKeyColumn %}
+{% set detailsUrlParameter = builderList.detailsUrlParameter %}
+
+<div class="row">
+    <ul class="grid cs-style-6">
+    {% for record in records %}
+        <li>
+             <figure>
+                <img src="{{record.image_url|media}}" alt="shete">
+            {# Use spaceless tag to remove spaces inside the A tag. #}
+            {% spaceless %}
+                {% if detailsPage %}
+                    <a href="{{ detailsPage|page({ (detailsUrlParameter): attribute(record, detailsKeyColumn) }) }}">
+                {% endif %}
+
+                {{ attribute(record, displayColumn) }}
+                 <figcaption>
+                    <h3>{{record.fullname}}</h3>
+                    <p>{{record.designation}}</p>
+                    <p>Mobile - {{record.education}}</p>
+                    <p>Qualification - {{record.mobile}}</p>
+                </figcaption>
+
+                {% if detailsPage %}
+                    </a>
+                {% endif %}
+            {% endspaceless %}
+        </figure>
+        </li>
+    {% else %}
+        <li class="no-data">{{ noRecordsMessage }}</li>
+    {% endfor %}
+</ul>
+<div>
+
+{% if records.lastPage > 1 %}
+    <ul class="pagination">
+        {% if records.currentPage > 1 %}
+            <li><a href="{{ this.page.baseFileName|page({ (pageParam): (records.currentPage-1) }) }}">&larr; Prev</a></li>
+        {% endif %}
+
+        {% for page in 1..records.lastPage %}
+            <li class="{{ records.currentPage == page ? 'active' : null }}">
+                <a href="{{ this.page.baseFileName|page({ (pageParam): page }) }}">{{ page }}</a>
+            </li>
+        {% endfor %}
+
+        {% if records.lastPage > records.currentPage %}
+            <li><a href="{{ this.page.baseFileName|page({ (pageParam): (records.currentPage+1) }) }}">Next &rarr;</a></li>
+        {% endif %}
+    </ul>
+{% endif %}";s:5:"mtime";i:1518451725;s:6:"markup";s:2155:"{% set records = builderList.records %}
+{% set displayColumn = builderList.displayColumn %}
+{% set noRecordsMessage = builderList.noRecordsMessage %}
+{% set detailsPage = builderList.detailsPage %}
+{% set detailsKeyColumn = builderList.detailsKeyColumn %}
+{% set detailsUrlParameter = builderList.detailsUrlParameter %}
+
+<div class="row">
+    <ul class="grid cs-style-6">
+    {% for record in records %}
+        <li>
+             <figure>
+                <img src="{{record.image_url|media}}" alt="shete">
+            {# Use spaceless tag to remove spaces inside the A tag. #}
+            {% spaceless %}
+                {% if detailsPage %}
+                    <a href="{{ detailsPage|page({ (detailsUrlParameter): attribute(record, detailsKeyColumn) }) }}">
+                {% endif %}
+
+                {{ attribute(record, displayColumn) }}
+                 <figcaption>
+                    <h3>{{record.fullname}}</h3>
+                    <p>{{record.designation}}</p>
+                    <p>Mobile - {{record.education}}</p>
+                    <p>Qualification - {{record.mobile}}</p>
+                </figcaption>
+
+                {% if detailsPage %}
+                    </a>
+                {% endif %}
+            {% endspaceless %}
+        </figure>
+        </li>
+    {% else %}
+        <li class="no-data">{{ noRecordsMessage }}</li>
+    {% endfor %}
+</ul>
+<div>
+
+{% if records.lastPage > 1 %}
+    <ul class="pagination">
+        {% if records.currentPage > 1 %}
+            <li><a href="{{ this.page.baseFileName|page({ (pageParam): (records.currentPage-1) }) }}">&larr; Prev</a></li>
+        {% endif %}
+
+        {% for page in 1..records.lastPage %}
+            <li class="{{ records.currentPage == page ? 'active' : null }}">
+                <a href="{{ this.page.baseFileName|page({ (pageParam): page }) }}">{{ page }}</a>
+            </li>
+        {% endfor %}
+
+        {% if records.lastPage > records.currentPage %}
+            <li><a href="{{ this.page.baseFileName|page({ (pageParam): (records.currentPage+1) }) }}">Next &rarr;</a></li>
+        {% endif %}
+    </ul>
+{% endif %}";s:4:"code";s:177:"
+function onStart()
+{
+        $this->addCss('assets/css/default.css');
+    $this->addCss('assets/css/component.css');
+    $this->addJs('assets/js/modernizr.custom.js');
+}";s:5:"title";s:5:"Staff";s:3:"url";s:6:"/staff";s:6:"layout";s:7:"default";s:11:"description";s:10:"Staff page";s:10:"meta_title";s:37:"Staff details of Krishi Vigyan Kendra";s:9:"is_hidden";s:1:"0";s:11:"builderList";a:7:{s:10:"modelClass";s:31:"Pramod\StaffViewer\Models\Staff";s:5:"scope";s:1:"-";s:13:"displayColumn";s:8:"fullname";s:16:"noRecordsMessage";s:16:"No records found";s:11:"detailsPage";s:1:"-";s:19:"detailsUrlParameter";s:2:"id";s:10:"pageNumber";s:11:"{{ :page }}";}}}
