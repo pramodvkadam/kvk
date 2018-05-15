@@ -99,26 +99,6 @@ class DatabaseTokenRepository implements TokenRepositoryInterface
     }
 
     /**
-     * Begin a new database query against the table.
-     *
-     * @return \Illuminate\Database\Query\Builder
-     */
-    protected function getTable()
-    {
-        return $this->connection->table($this->table);
-    }
-
-    /**
-     * Create a new token for the user.
-     *
-     * @return string
-     */
-    public function createNewToken()
-    {
-        return hash_hmac('sha256', Str::random(40), $this->hashKey);
-    }
-
-    /**
      * Build the record payload for the table.
      *
      * @param  string  $email
@@ -183,6 +163,16 @@ class DatabaseTokenRepository implements TokenRepositoryInterface
     }
 
     /**
+     * Create a new token for the user.
+     *
+     * @return string
+     */
+    public function createNewToken()
+    {
+        return hash_hmac('sha256', Str::random(40), $this->hashKey);
+    }
+
+    /**
      * Get the database connection instance.
      *
      * @return \Illuminate\Database\ConnectionInterface
@@ -190,6 +180,16 @@ class DatabaseTokenRepository implements TokenRepositoryInterface
     public function getConnection()
     {
         return $this->connection;
+    }
+
+    /**
+     * Begin a new database query against the table.
+     *
+     * @return \Illuminate\Database\Query\Builder
+     */
+    protected function getTable()
+    {
+        return $this->connection->table($this->table);
     }
 
     /**

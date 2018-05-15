@@ -21,6 +21,17 @@ class Controller
     protected $theme;
 
     /**
+     * Initialize this singleton.
+     */
+    protected function init()
+    {
+        $this->theme = Theme::getActiveTheme();
+        if (!$this->theme) {
+            throw new CmsException(Lang::get('cms::lang.theme.active.not_found'));
+        }
+    }
+
+    /**
      * Creates a CMS page from a static page and configures it.
      * @param string $url Specifies the static page URL.
      * @return \Cms\Classes\Page Returns the CMS page object or NULL of the requested page was not found.
@@ -104,17 +115,6 @@ class Controller
         }
         catch (Exception $ex) {
             return $content;
-        }
-    }
-
-    /**
-     * Initialize this singleton.
-     */
-    protected function init()
-    {
-        $this->theme = Theme::getActiveTheme();
-        if (!$this->theme) {
-            throw new CmsException(Lang::get('cms::lang.theme.active.not_found'));
         }
     }
 }

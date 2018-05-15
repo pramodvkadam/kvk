@@ -45,6 +45,17 @@ class ComponentList extends WidgetBase
      * Event handlers
      */
 
+    public function onSearch()
+    {
+        $this->setSearchTerm(Input::get('search'));
+
+        return $this->updateList();
+    }
+
+    /*
+     * Methods for th internal use
+     */
+
     protected function getData()
     {
         $searchTerm = Str::lower($this->getSearchTerm());
@@ -143,21 +154,6 @@ class ComponentList extends WidgetBase
         return $items;
     }
 
-    /*
-     * Methods for th internal use
-     */
-
-    protected function getSearchTerm()
-    {
-        return $this->searchTerm !== false ? $this->searchTerm : $this->getSession('search');
-    }
-
-    protected function setSearchTerm($term)
-    {
-        $this->searchTerm = trim($term);
-        $this->putSession('search', $this->searchTerm);
-    }
-
     protected function prepareComponentList()
     {
         $pluginManager = PluginManager::instance();
@@ -204,6 +200,24 @@ class ComponentList extends WidgetBase
         return $result;
     }
 
+    protected function getSearchTerm()
+    {
+        return $this->searchTerm !== false ? $this->searchTerm : $this->getSession('search');
+    }
+
+    protected function setSearchTerm($term)
+    {
+        $this->searchTerm = trim($term);
+        $this->putSession('search', $this->searchTerm);
+    }
+
+    protected function updateList()
+    {
+        return ['#'.$this->getId('component-list') => $this->makePartial('items', [
+            'items' => $this->getData()]
+        )];
+    }
+
     protected function itemMatchesSearch(&$words, $item)
     {
         foreach ($words as $word) {
@@ -235,19 +249,5 @@ class ComponentList extends WidgetBase
         }
 
         return false;
-    }
-
-    public function onSearch()
-    {
-        $this->setSearchTerm(Input::get('search'));
-
-        return $this->updateList();
-    }
-
-    protected function updateList()
-    {
-        return ['#'.$this->getId('component-list') => $this->makePartial('items', [
-            'items' => $this->getData()]
-        )];
     }
 }

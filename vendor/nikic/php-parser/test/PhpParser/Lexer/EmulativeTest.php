@@ -9,6 +9,10 @@ require_once __DIR__ . '/../LexerTest.php';
 
 class EmulativeTest extends LexerTest
 {
+    protected function getLexer(array $options = array()) {
+        return new Emulative($options);
+    }
+
     /**
      * @dataProvider provideTestReplaceKeywords
      */
@@ -18,10 +22,6 @@ class EmulativeTest extends LexerTest
 
         $this->assertSame($expectedToken, $lexer->getNextToken());
         $this->assertSame(0, $lexer->getNextToken());
-    }
-
-    protected function getLexer(array $options = array()) {
-        return new Emulative($options);
     }
 
     /**

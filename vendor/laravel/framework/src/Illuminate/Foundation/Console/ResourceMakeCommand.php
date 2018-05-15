@@ -44,17 +44,6 @@ class ResourceMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Determine if the command is generating a resource collection.
-     *
-     * @return bool
-     */
-    protected function collection()
-    {
-        return $this->option('collection') ||
-               Str::endsWith($this->argument('name'), 'Collection');
-    }
-
-    /**
      * Get the stub file for the generator.
      *
      * @return string
@@ -64,6 +53,17 @@ class ResourceMakeCommand extends GeneratorCommand
         return $this->collection()
                     ? __DIR__.'/stubs/resource-collection.stub'
                     : __DIR__.'/stubs/resource.stub';
+    }
+
+    /**
+     * Determine if the command is generating a resource collection.
+     *
+     * @return bool
+     */
+    protected function collection()
+    {
+        return $this->option('collection') ||
+               Str::endsWith($this->argument('name'), 'Collection');
     }
 
     /**

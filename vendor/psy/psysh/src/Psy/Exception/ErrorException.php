@@ -72,6 +72,16 @@ class ErrorException extends \ErrorException implements Exception
     }
 
     /**
+     * Get the raw (unformatted) message for this error.
+     *
+     * @return string
+     */
+    public function getRawMessage()
+    {
+        return $this->rawMessage;
+    }
+
+    /**
      * Helper for throwing an ErrorException.
      *
      * This allows us to:
@@ -100,15 +110,5 @@ class ErrorException extends \ErrorException implements Exception
     public static function fromError(\Error $e)
     {
         return new self($e->getMessage(), $e->getCode(), 1, $e->getFile(), $e->getLine(), $e);
-    }
-
-    /**
-     * Get the raw (unformatted) message for this error.
-     *
-     * @return string
-     */
-    public function getRawMessage()
-    {
-        return $this->rawMessage;
     }
 }

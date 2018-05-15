@@ -28,25 +28,6 @@ class UrlGeneratorTest extends TestCase
         $this->assertEquals('http://localhost/app.php/testing', $url);
     }
 
-    protected function getRoutes($name, Route $route)
-    {
-        $routes = new RouteCollection();
-        $routes->add($name, $route);
-
-        return $routes;
-    }
-
-    protected function getGenerator(RouteCollection $routes, array $parameters = array(), $logger = null)
-    {
-        $context = new RequestContext('/app.php');
-        foreach ($parameters as $key => $value) {
-            $method = 'set'.$key;
-            $context->$method($value);
-        }
-
-        return new UrlGenerator($routes, $context, $logger);
-    }
-
     public function testAbsoluteSecureUrlWithPort443()
     {
         $routes = $this->getRoutes('test', new Route('/testing'));
@@ -497,6 +478,38 @@ class UrlGeneratorTest extends TestCase
         $this->assertSame('//EN.FooBar.com/app.php/', $generator->generate('test', array('locale' => 'EN'), UrlGeneratorInterface::NETWORK_PATH));
     }
 
+    public function testDefaultHostIsUsedWhenContextHostIsEmpty()
+    {
+        $routes = $this->getRoutes('test', new Route('/route', array('domain' => 'my.fallback.host'), array('domain' => '.+'), array(), '{domain}', array('http')));
+
+        $generator = $this->getGenerator($routes);
+        $generator->getContext()->setHost('');
+
+        $this->assertSame('http://my.fallback.host/app.php/route', $generator->generate('test', array(), UrlGeneratorInterface::ABSOLUTE_URL));
+    }
+
+    public function testDefaultHostIsUsedWhenContextHostIsEmptyAndSchemeIsNot()
+    {
+        $routes = $this->getRoutes('test', new Route('/route', array('domain' => 'my.fallback.host'), array('domain' => '.+'), array(), '{domain}', array('http', 'https')));
+
+        $generator = $this->getGenerator($routes);
+        $generator->getContext()->setHost('');
+        $generator->getContext()->setScheme('https');
+
+        $this->assertSame('https://my.fallback.host/app.php/route', $generator->generate('test', array(), UrlGeneratorInterface::ABSOLUTE_URL));
+    }
+
+    public function testAbsoluteUrlFallbackToRelativeIfHostIsEmptyAndSchemeIsNot()
+    {
+        $routes = $this->getRoutes('test', new Route('/route', array(), array(), array(), '', array('http', 'https')));
+
+        $generator = $this->getGenerator($routes);
+        $generator->getContext()->setHost('');
+        $generator->getContext()->setScheme('https');
+
+        $this->assertSame('/app.php/route', $generator->generate('test', array(), UrlGeneratorInterface::ABSOLUTE_URL));
+    }
+
     public function testGenerateNetworkPath()
     {
         $routes = $this->getRoutes('test', new Route('/{name}', array(), array(), array(), '{locale}.example.com', array('http')));
@@ -688,5 +701,24 @@ class UrlGeneratorTest extends TestCase
         $url = $this->getGenerator($routes)->generate('test', array(), UrlGeneratorInterface::ABSOLUTE_PATH);
 
         $this->assertEquals('/app.php/testing#fragment', $url);
+    }
+
+    protected function getGenerator(RouteCollection $routes, array $parameters = array(), $logger = null)
+    {
+        $context = new RequestContext('/app.php');
+        foreach ($parameters as $key => $value) {
+            $method = 'set'.$key;
+            $context->$method($value);
+        }
+
+        return new UrlGenerator($routes, $context, $logger);
+    }
+
+    protected function getRoutes($name, Route $route)
+    {
+        $routes = new RouteCollection();
+        $routes->add($name, $route);
+
+        return $routes;
     }
 }

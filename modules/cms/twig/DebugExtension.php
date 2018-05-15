@@ -174,6 +174,247 @@ class DebugExtension extends Twig_Extension
     }
 
     /**
+     * Builds the HTML used for the table header.
+     * @param mixed $caption Caption [and subcaption] of the dump
+     * @return string
+     */
+    protected function makeTableHeader($caption)
+    {
+        if (is_array($caption)) {
+            list($caption, $subcaption) = $caption;
+        }
+
+        $output = [];
+        $output[] = '<tr>';
+        $output[] = '<th colspan="3" colspan="100" style="'.$this->getHeaderCss().'">';
+        $output[] = $caption;
+
+        if (isset($subcaption)) {
+            $output[] = '<div style="'.$this->getSubheaderCss().'">'.$subcaption.'</div>';
+        }
+
+        $output[] = '</td>';
+        $output[] = '</tr>';
+        return implode(PHP_EOL, $output);
+    }
+
+    /**
+     * Builds the HTML used for each table row.
+     * @param  mixed $key
+     * @param  mixed $variable
+     * @return string
+     */
+    protected function makeTableRow($key, $variable)
+    {
+        $this->zebra = $this->zebra ? 0 : 1;
+        $css = $this->getDataCss($variable);
+        $output = [];
+        $output[] = '<tr>';
+        $output[] = '<td style="'.$css.';cursor:pointer" onclick="'.$this->evalToggleDumpOnClick().'">'.$this->evalKeyLabel($key).'</td>';
+        $output[] = '<td style="'.$css.'">'.$this->evalVarLabel($variable).'</td>';
+        $output[] = '<td style="'.$css.'">'.$this->evalVarDesc($variable, $key).'</td>';
+        $output[] = '</tr>';
+        $output[] = '<tr>';
+        $output[] = '<td colspan="3">'.$this->evalVarDump($variable).'</td>';
+        $output[] = '</tr>';
+        return implode(PHP_EOL, $output);
+    }
+
+    /**
+     * Builds JavaScript for toggling the dump container
+     * @return string
+     */
+    protected function evalToggleDumpOnClick()
+    {
+        $output = "var d=this.parentElement.nextElementSibling.getElementsByTagName('div')[0];";
+        $output .= "d.style.display=='none'?d.style.display='block':d.style.display='none'";
+        return $output;
+    }
+
+    /**
+     * Dumps a variable using HTML Dumper, wrapped in a hidden DIV element.
+     * @param  mixed $variable
+     * @return string
+     */
+    protected function evalVarDump($variable)
+    {
+        $dumper = new HtmlDumper;
+        $cloner = new VarCloner;
+
+        $output = '<div style="display:none">';
+        $output .= $dumper->dump($cloner->cloneVar($variable), true);
+        $output .= '</div>';
+
+        return $output;
+    }
+
+    /**
+     * Returns a variable name as HTML friendly.
+     * @param  string $key
+     * @return string
+     */
+    protected function evalKeyLabel($key)
+    {
+        if ($this->variablePrefix === true) {
+            $output = '{{ <span>%s</span> }}';
+        }
+        elseif (is_array($this->variablePrefix)) {
+            $prefix = implode('.', $this->variablePrefix);
+            $output = '{{ <span>'.$prefix.'.%s</span> }}';
+        }
+        elseif ($this->variablePrefix) {
+            $output = '{{ <span>'.$this->variablePrefix.'.%s</span> }}';
+        }
+        else {
+            $output = '%s';
+        }
+
+        return sprintf($output, $key);
+    }
+
+    /**
+     * Evaluate the variable description
+     * @param  mixed $variable
+     * @return string
+     */
+    protected function evalVarLabel($variable)
+    {
+        $type = $this->getType($variable);
+        switch ($type) {
+            case 'object':
+                return $this->evalObjLabel($variable);
+
+            case 'array':
+                return $type . '('.count($variable).')';
+
+            default:
+                return $type;
+        }
+    }
+
+    /**
+     * Evaluate an object type for label
+     * @param  object $variable
+     * @return string
+     */
+    protected function getType($variable)
+    {
+        $type = gettype($variable);
+        if ($type == 'string' && substr($variable, 0, 12) == '___METHOD___') {
+            return 'method';
+        }
+
+        return $type;
+    }
+
+    /**
+     * Evaluate an object type for label
+     * @param  object $variable
+     * @return string
+     */
+    protected function evalObjLabel($variable)
+    {
+        $class = get_class($variable);
+        $label = class_basename($variable);
+
+        if ($variable instanceof ComponentBase) {
+            $label = '<strong>Component</strong>';
+        }
+        elseif ($variable instanceof Collection) {
+            $label = 'Collection('.$variable->count().')';
+        }
+        elseif ($variable instanceof Paginator) {
+            $label = 'Paged Collection('.$variable->count().')';
+        }
+        elseif ($variable instanceof Model) {
+            $label = 'Model';
+        }
+
+        return '<abbr title="'.e($class).'">'.$label.'</abbr>';
+    }
+
+    /**
+     * Evaluate the variable description
+     * @param  mixed $variable
+     * @return string
+     */
+    protected function evalVarDesc($variable, $key)
+    {
+        $type = $this->getType($variable);
+
+        if ($type == 'method') {
+            return $this->evalMethodDesc($variable);
+        }
+
+        if (isset($this->commentMap[$key])) {
+            return $this->commentMap[$key];
+        }
+
+        if ($type == 'array') {
+            return $this->evalArrDesc($variable);
+        }
+
+        if ($type == 'object') {
+            return $this->evalObjDesc($variable);
+        }
+
+        return '';
+    }
+
+    /**
+     * Evaluate an method type for description
+     * @param  object $variable
+     * @return string
+     */
+    protected function evalMethodDesc($variable)
+    {
+        $parts = explode('|', $variable);
+        if (count($parts) < 2) {
+            return null;
+        }
+
+        $method = $parts[1];
+        return isset($this->commentMap[$method]) ?  $this->commentMap[$method] : null;
+    }
+
+    /**
+     * Evaluate an array type for description
+     * @param  array $variable
+     * @return string
+     */
+    protected function evalArrDesc($variable)
+    {
+        $output = [];
+        foreach ($variable as $key => $value) {
+            $output[] = '<abbr title="'.e(gettype($value)).'">'.$key.'</abbr>';
+        }
+
+        return implode(', ', $output);
+    }
+
+    /**
+     * Evaluate an object type for description
+     * @param  array $variable
+     * @return string
+     */
+    protected function evalObjDesc($variable)
+    {
+        $output = [];
+        if ($variable instanceof ComponentBase) {
+            $details = $variable->componentDetails();
+            $output[] = '<abbr title="'.array_get($details, 'description').'">';
+            $output[] = array_get($details, 'name');
+            $output[] = '</abbr>';
+        }
+
+        return implode('', $output);
+    }
+
+    //
+    // Object helpers
+    //
+
+    /**
      * Returns default comment information for a paginator object.
      * @param  Illuminate\Pagination\Paginator $paginator
      * @return array
@@ -278,101 +519,9 @@ class DebugExtension extends Twig_Extension
         return $comment;
     }
 
-    /**
-     * Builds the HTML used for the table header.
-     * @param mixed $caption Caption [and subcaption] of the dump
-     * @return string
-     */
-    protected function makeTableHeader($caption)
-    {
-        if (is_array($caption)) {
-            list($caption, $subcaption) = $caption;
-        }
-
-        $output = [];
-        $output[] = '<tr>';
-        $output[] = '<th colspan="3" colspan="100" style="'.$this->getHeaderCss().'">';
-        $output[] = $caption;
-
-        if (isset($subcaption)) {
-            $output[] = '<div style="'.$this->getSubheaderCss().'">'.$subcaption.'</div>';
-        }
-
-        $output[] = '</td>';
-        $output[] = '</tr>';
-        return implode(PHP_EOL, $output);
-    }
-
-    /**
-     * Get the CSS string for the output header
-     * @return string
-     */
-    protected function getHeaderCss()
-    {
-        return $this->arrayToCss([
-            'font-size'        => '18px',
-            'font-weight'      => 'normal',
-            'margin'           => '0',
-            'padding'          => '10px',
-            'background-color' => '#7B8892',
-            'color'            => '#FFF',
-        ]);
-    }
-
-    /**
-     * Convert a key/value pair array into a CSS string
-     * @param array $rules List of rules to process
-     * @return string
-     */
-    protected function arrayToCss(array $rules)
-    {
-        $strings = [];
-
-        foreach ($rules as $key => $value) {
-            $strings[] = $key . ': ' . $value;
-        }
-
-        return join('; ', $strings);
-    }
-
-    /**
-     * Get the CSS string for the output subheader
-     * @return string
-     */
-    protected function getSubheaderCss()
-    {
-        return $this->arrayToCss([
-            'font-size'        => '12px',
-            'font-weight'      => 'normal',
-            'font-style'       => 'italic',
-            'margin'           => '0',
-            'padding'          => '0',
-            'background-color' => '#7B8892',
-            'color'            => '#FFF',
-        ]);
-    }
-
-    /**
-     * Builds the HTML used for each table row.
-     * @param  mixed $key
-     * @param  mixed $variable
-     * @return string
-     */
-    protected function makeTableRow($key, $variable)
-    {
-        $this->zebra = $this->zebra ? 0 : 1;
-        $css = $this->getDataCss($variable);
-        $output = [];
-        $output[] = '<tr>';
-        $output[] = '<td style="'.$css.';cursor:pointer" onclick="'.$this->evalToggleDumpOnClick().'">'.$this->evalKeyLabel($key).'</td>';
-        $output[] = '<td style="'.$css.'">'.$this->evalVarLabel($variable).'</td>';
-        $output[] = '<td style="'.$css.'">'.$this->evalVarDesc($variable, $key).'</td>';
-        $output[] = '</tr>';
-        $output[] = '<tr>';
-        $output[] = '<td colspan="3">'.$this->evalVarDump($variable).'</td>';
-        $output[] = '</tr>';
-        return implode(PHP_EOL, $output);
-    }
+    //
+    // Style helpers
+    //
 
     /**
      * Get the CSS string for the output data
@@ -396,204 +545,6 @@ class DebugExtension extends Twig_Extension
     }
 
     /**
-     * Builds JavaScript for toggling the dump container
-     * @return string
-     */
-    protected function evalToggleDumpOnClick()
-    {
-        $output = "var d=this.parentElement.nextElementSibling.getElementsByTagName('div')[0];";
-        $output .= "d.style.display=='none'?d.style.display='block':d.style.display='none'";
-        return $output;
-    }
-
-    /**
-     * Returns a variable name as HTML friendly.
-     * @param  string $key
-     * @return string
-     */
-    protected function evalKeyLabel($key)
-    {
-        if ($this->variablePrefix === true) {
-            $output = '{{ <span>%s</span> }}';
-        }
-        elseif (is_array($this->variablePrefix)) {
-            $prefix = implode('.', $this->variablePrefix);
-            $output = '{{ <span>'.$prefix.'.%s</span> }}';
-        }
-        elseif ($this->variablePrefix) {
-            $output = '{{ <span>'.$this->variablePrefix.'.%s</span> }}';
-        }
-        else {
-            $output = '%s';
-        }
-
-        return sprintf($output, $key);
-    }
-
-    /**
-     * Evaluate the variable description
-     * @param  mixed $variable
-     * @return string
-     */
-    protected function evalVarLabel($variable)
-    {
-        $type = $this->getType($variable);
-        switch ($type) {
-            case 'object':
-                return $this->evalObjLabel($variable);
-
-            case 'array':
-                return $type . '('.count($variable).')';
-
-            default:
-                return $type;
-        }
-    }
-
-    //
-    // Object helpers
-    //
-
-    /**
-     * Evaluate an object type for label
-     * @param  object $variable
-     * @return string
-     */
-    protected function getType($variable)
-    {
-        $type = gettype($variable);
-        if ($type == 'string' && substr($variable, 0, 12) == '___METHOD___') {
-            return 'method';
-        }
-
-        return $type;
-    }
-
-    /**
-     * Evaluate an object type for label
-     * @param  object $variable
-     * @return string
-     */
-    protected function evalObjLabel($variable)
-    {
-        $class = get_class($variable);
-        $label = class_basename($variable);
-
-        if ($variable instanceof ComponentBase) {
-            $label = '<strong>Component</strong>';
-        }
-        elseif ($variable instanceof Collection) {
-            $label = 'Collection('.$variable->count().')';
-        }
-        elseif ($variable instanceof Paginator) {
-            $label = 'Paged Collection('.$variable->count().')';
-        }
-        elseif ($variable instanceof Model) {
-            $label = 'Model';
-        }
-
-        return '<abbr title="'.e($class).'">'.$label.'</abbr>';
-    }
-
-    /**
-     * Evaluate the variable description
-     * @param  mixed $variable
-     * @return string
-     */
-    protected function evalVarDesc($variable, $key)
-    {
-        $type = $this->getType($variable);
-
-        if ($type == 'method') {
-            return $this->evalMethodDesc($variable);
-        }
-
-        if (isset($this->commentMap[$key])) {
-            return $this->commentMap[$key];
-        }
-
-        if ($type == 'array') {
-            return $this->evalArrDesc($variable);
-        }
-
-        if ($type == 'object') {
-            return $this->evalObjDesc($variable);
-        }
-
-        return '';
-    }
-
-    //
-    // Style helpers
-    //
-
-    /**
-     * Evaluate an method type for description
-     * @param  object $variable
-     * @return string
-     */
-    protected function evalMethodDesc($variable)
-    {
-        $parts = explode('|', $variable);
-        if (count($parts) < 2) {
-            return null;
-        }
-
-        $method = $parts[1];
-        return isset($this->commentMap[$method]) ?  $this->commentMap[$method] : null;
-    }
-
-    /**
-     * Evaluate an array type for description
-     * @param  array $variable
-     * @return string
-     */
-    protected function evalArrDesc($variable)
-    {
-        $output = [];
-        foreach ($variable as $key => $value) {
-            $output[] = '<abbr title="'.e(gettype($value)).'">'.$key.'</abbr>';
-        }
-
-        return implode(', ', $output);
-    }
-
-    /**
-     * Evaluate an object type for description
-     * @param  array $variable
-     * @return string
-     */
-    protected function evalObjDesc($variable)
-    {
-        $output = [];
-        if ($variable instanceof ComponentBase) {
-            $details = $variable->componentDetails();
-            $output[] = '<abbr title="'.array_get($details, 'description').'">';
-            $output[] = array_get($details, 'name');
-            $output[] = '</abbr>';
-        }
-
-        return implode('', $output);
-    }
-
-    /**
-     * Dumps a variable using HTML Dumper, wrapped in a hidden DIV element.
-     * @param  mixed $variable
-     * @return string
-     */
-    protected function evalVarDump($variable)
-    {
-        $dumper = new HtmlDumper;
-        $cloner = new VarCloner;
-
-        $output = '<div style="display:none">';
-        $output .= $dumper->dump($cloner->cloneVar($variable), true);
-        $output .= '</div>';
-
-        return $output;
-    }
-
-    /**
      * Get the CSS string for the output container
      * @return string
      */
@@ -609,5 +560,54 @@ class DebugExtension extends Twig_Extension
             'padding'               => '7px',
             'display'               => 'inline-block',
         ]);
+    }
+
+    /**
+     * Get the CSS string for the output header
+     * @return string
+     */
+    protected function getHeaderCss()
+    {
+        return $this->arrayToCss([
+            'font-size'        => '18px',
+            'font-weight'      => 'normal',
+            'margin'           => '0',
+            'padding'          => '10px',
+            'background-color' => '#7B8892',
+            'color'            => '#FFF',
+        ]);
+    }
+
+    /**
+     * Get the CSS string for the output subheader
+     * @return string
+     */
+    protected function getSubheaderCss()
+    {
+        return $this->arrayToCss([
+            'font-size'        => '12px',
+            'font-weight'      => 'normal',
+            'font-style'       => 'italic',
+            'margin'           => '0',
+            'padding'          => '0',
+            'background-color' => '#7B8892',
+            'color'            => '#FFF',
+        ]);
+    }
+
+    /**
+     * Convert a key/value pair array into a CSS string
+     * @param array $rules List of rules to process
+     * @return string
+     */
+    protected function arrayToCss(array $rules)
+    {
+        $strings = [];
+
+        foreach ($rules as $key => $value) {
+            $strings[] = $key . ': ' . $value;
+        }
+
+        return join('; ', $strings);
     }
 }

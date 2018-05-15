@@ -27,34 +27,6 @@ class ErrorHandler
     protected static $maskLayers = [];
 
     /**
-     * Prepares a mask exception to be used when any exception fires.
-     * @param Exception $exception The mask exception.
-     * @return void
-     */
-    public static function applyMask(Exception $exception)
-    {
-        if (static::$activeMask !== null) {
-            array_push(static::$maskLayers, static::$activeMask);
-        }
-
-        static::$activeMask = $exception;
-    }
-
-    /**
-     * Destroys the prepared mask by applyMask()
-     * @return void
-     */
-    public static function removeMask()
-    {
-        if (count(static::$maskLayers) > 0) {
-            static::$activeMask = array_pop(static::$maskLayers);
-        }
-        else {
-            static::$activeMask = null;
-        }
-    }
-
-    /**
      * All exceptions are piped through this method from the framework workflow. This method will mask
      * any foreign exceptions with a "scent" of the native application's exception, so it can render
      * correctly when displayed on the error page.
@@ -103,6 +75,34 @@ class ErrorHandler
         }
 
         return $this->handleDetailedError($exception);
+    }
+
+    /**
+     * Prepares a mask exception to be used when any exception fires.
+     * @param Exception $exception The mask exception.
+     * @return void
+     */
+    public static function applyMask(Exception $exception)
+    {
+        if (static::$activeMask !== null) {
+            array_push(static::$maskLayers, static::$activeMask);
+        }
+
+        static::$activeMask = $exception;
+    }
+
+    /**
+     * Destroys the prepared mask by applyMask()
+     * @return void
+     */
+    public static function removeMask()
+    {
+        if (count(static::$maskLayers) > 0) {
+            static::$activeMask = array_pop(static::$maskLayers);
+        }
+        else {
+            static::$activeMask = null;
+        }
     }
 
     /**

@@ -18,6 +18,11 @@ class Swift_CharacterReader_UsAsciiReaderTest extends \PHPUnit\Framework\TestCas
 
     private $reader;
 
+    protected function setUp()
+    {
+        $this->reader = new Swift_CharacterReader_UsAsciiReader();
+    }
+
     public function testAllValidAsciiCharactersReturnZero()
     {
         for ($ordinal = 0x00; $ordinal <= 0x7F; ++$ordinal) {
@@ -43,10 +48,5 @@ class Swift_CharacterReader_UsAsciiReaderTest extends \PHPUnit\Framework\TestCas
                 -1, $this->reader->validateByteSequence(array($ordinal), 1)
                 );
         }
-    }
-
-    protected function setUp()
-    {
-        $this->reader = new Swift_CharacterReader_UsAsciiReader();
     }
 }

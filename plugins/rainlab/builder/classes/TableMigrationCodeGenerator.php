@@ -75,72 +75,45 @@ class TableMigrationCodeGenerator extends BaseModel
         return $this->generateCreateOrUpdateCode($tableDiff, !$existingTable, $updatedTable);
     }
 
-    protected function tableHasNameOrColumnChanges($tableDiff, $columnChangesOnly = false)
+    /**
+     * Wrap migration's up() and down() functions into a complete migration class declaration
+     * @param string $scriptFilename Specifies the migration script file name
+     * @param string $code Specifies the migration code
+     * @param PluginCode $pluginCodeObj The plugin code object
+     * @return TextParser
+     */
+    public function wrapMigrationCode($scriptFilename, $code, $pluginCodeObj)
     {
-        $result = $tableDiff->addedColumns
-                || $tableDiff->changedColumns
-                || $tableDiff->removedColumns
-                || $tableDiff->renamedColumns;
+        $templatePath = '$/rainlab/builder/classes/databasetablemodel/templates/full-migration-code.php.tpl';
+        $templatePath = File::symbolizePath($templatePath);
 
-        if ($columnChangesOnly) {
-            return $result;
-        }
+        $fileContents = File::get($templatePath);
 
-        return $result || $tableDiff->getNewName();
+        return TextParser::parse($fileContents, [
+            'className' => Str::studly($scriptFilename),
+            'migrationCode' => $this->indent($code),
+            'namespace' => $pluginCodeObj->toUpdatesNamespace()
+        ]);
     }
 
-    protected function tableHasPrimaryKeyChanges($tableDiff)
+    /**
+     * Generates code for dropping a database table.
+     * @param \Doctrine\DBAL\Schema\Table $existingTable Specifies the existing table schema.
+     * @return string Returns the migration up() and down() methods code. 
+     */
+    public function dropTable($existingTable)
     {
-        return $this->findPrimaryKeyIndex($tableDiff->addedIndexes, $tableDiff->fromTable) ||
-                $this->findPrimaryKeyIndex($tableDiff->changedIndexes, $tableDiff->fromTable) ||
-                $this->findPrimaryKeyIndex($tableDiff->removedIndexes, $tableDiff->fromTable);
-    }
-
-    protected function findPrimaryKeyIndex($indexes, $table)
-    {
-        /*
-         * This method ignores auto-increment primary keys
-         * as they are managed with the increments() method
-         * instead of the primary().
-         */
-        foreach ($indexes as $index) {
-            if (!$index->isPrimary()) {
-                continue;
-            }
-
-            if ($this->indexHasAutoincrementColumns($index, $table)) {
-                continue;
-            }
-
-            return $index;
-        }
-
-        return null;
-    }
-
-    protected function indexHasAutoincrementColumns($index, $table)
-    {
-        $indexColumns = $index->getColumns();
-
-        foreach ($indexColumns as $indexColumn) {
-            if (!$table->hasColumn($indexColumn)) {
-                continue;
-            }
-
-            $tableColumn = $table->getColumn($indexColumn);
-            if ($tableColumn->getAutoincrement()) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->generateMigrationCode(
+            $this->generateDropUpCode($existingTable),
+            $this->generateDropDownCode($existingTable)
+        );
     }
 
     protected function generateCreateOrUpdateCode($tableDiff, $isNewTable, $newOrUpdatedTable)
     {
         /*
          * Although it might seem that a reverse diff could be used
-         * for the down() method, that's not so. The up and down operations
+         * for the down() method, that's not so. The up and down operations 
          * are not fully symmetrical.
          */
 
@@ -207,7 +180,7 @@ class TableMigrationCodeGenerator extends BaseModel
         }
 
         $primaryKey = $changedPrimaryKey ?
-            $this->findPrimaryKeyIndex($tableDiff->changedIndexes, $newOrUpdatedTable) :
+            $this->findPrimaryKeyIndex($tableDiff->changedIndexes, $newOrUpdatedTable) : 
             $this->findPrimaryKeyIndex($tableDiff->addedIndexes, $newOrUpdatedTable);
 
         if ($primaryKey) {
@@ -217,276 +190,6 @@ class TableMigrationCodeGenerator extends BaseModel
         $result .= $this->generateSchemaTableMethodEnd();
 
         return $this->makeTabs($result);
-    }
-
-    protected function getChangedOrRemovedPrimaryKey($tableDiff)
-    {
-        foreach ($tableDiff->changedIndexes as $index) {
-            if ($index->isPrimary()) {
-                return $index;
-            }
-        }
-
-        foreach ($tableDiff->removedIndexes as $index) {
-            if ($index->isPrimary()) {
-                return $index;
-            }
-        }
-
-        return null;
-    }
-
-    protected function generateTableRenameCode($fromName, $toName)
-    {
-        return sprintf('\tSchema::rename(\'%s\', \'%s\');', $fromName, $toName);
-    }
-
-    protected function makeTabs($str)
-    {
-        return str_replace('\t', '    ', $str);
-    }
-
-    protected function generateSchemaTableMethodStart($tableName, $isNewTable)
-    {
-        $tableFunction = $isNewTable ? 'create' : 'table';
-        $result = sprintf('\tSchema::%s(\'%s\', function($table)', $tableFunction, $tableName).$this->eol;
-        $result .= '\t{'.$this->eol;
-
-        if ($isNewTable) {
-            $result .= '\t\t$table->engine = \'InnoDB\';'.$this->eol;
-        }
-
-        return $result;
-    }
-
-    protected function generatePrimaryKeyDrop($table)
-    {
-        $index = $this->findPrimaryKeyIndex($table->getIndexes(), $table);
-        if (!$index) {
-            return;
-        }
-
-        $indexColumns = $index->getColumns();
-        return sprintf('\t\t$table->dropPrimary([%s]);', $this->implodeColumnList($indexColumns)).$this->eol;
-    }
-
-    protected function implodeColumnList($columnNames)
-    {
-        foreach ($columnNames as &$columnName) {
-            $columnName = '\''.$columnName.'\'';
-        }
-
-        return implode(',', $columnNames);
-    }
-
-    protected function generateColumnCode($columnData, $mode)
-    {
-        $forceFlagsChange = false;
-
-        switch ($mode) {
-            case self::COLUMN_MODE_CREATE:
-                $column = $columnData;
-                $changeMode = false;
-            break;
-            case self::COLUMN_MODE_CHANGE:
-                $column = $columnData->column;
-                $changeMode = true;
-
-                $forceFlagsChange = in_array('type', $columnData->changedProperties);
-            break;
-            case self::COLUMN_MODE_REVERT:
-                $column = $columnData->fromColumn;
-                $changeMode = true;
-
-                $forceFlagsChange = in_array('type', $columnData->changedProperties);
-            break;
-        }
-
-        $result = $this->generateColumnMethodCall($column);
-        $result .= $this->generateNullable($column, $changeMode, $columnData, $forceFlagsChange);
-        $result .= $this->generateUnsigned($column, $changeMode, $columnData, $forceFlagsChange);
-        $result .= $this->generateDefault($column, $changeMode, $columnData, $forceFlagsChange);
-
-        if ($changeMode) {
-            $result .= '->change()';
-        }
-
-        $result .= ';'.$this->eol;
-
-        return $result;
-    }
-
-    protected function generateColumnMethodCall($column)
-    {
-        $columnName = $column->getName();
-        $typeName = $column->getType()->getName();
-
-        $method = MigrationColumnType::toMigrationMethodName($typeName, $columnName);
-        $method = $this->applyMethodIncrements($method, $column);
-
-        $lengthStr = $this->formatLengthParameters($column, $method);
-        return sprintf('\t\t$table->%s(\'%s\'%s)', $method, $columnName, $lengthStr);
-    }
-
-    protected function applyMethodIncrements($method, $column)
-    {
-        if (!$column->getAutoincrement()) {
-            return $method;
-        }
-
-        if ($method == MigrationColumnType::TYPE_BIGINTEGER) {
-            return 'bigIncrements';
-        }
-
-        return 'increments';
-    }
-
-    protected function formatLengthParameters($column, $method)
-    {
-        $length = $column->getLength();
-        $precision = $column->getPrecision();
-        $scale = $column->getScale();
-
-        if (!strlen($length) && !strlen($precision)) {
-            return null;
-        }
-
-        if ($method == MigrationColumnType::TYPE_STRING) {
-            if (!strlen($length)) {
-                return null;
-            }
-
-            return ', '.$length;
-        }
-
-        if ($method == MigrationColumnType::TYPE_DECIMAL || $method == MigrationColumnType::TYPE_DOUBLE) {
-            if (!strlen($precision)) {
-                return null;
-            }
-
-            if (strlen($scale)) {
-                return ', '.$precision.', '.$scale;
-            }
-
-            return ', '.$precision;
-        }
-    }
-
-    protected function generateNullable($column, $changeMode, $columnData, $forceFlagsChange)
-    {
-        $result = null;
-
-        if (!$changeMode) {
-            if (!$column->getNotnull()) {
-                $result = $this->generateBooleanMethod('nullable', true);
-            }
-        }
-        elseif (in_array('notnull', $columnData->changedProperties) || $forceFlagsChange) {
-            $result = $this->generateBooleanMethod('nullable', !$column->getNotnull());
-        }
-
-        return $result;
-    }
-
-    protected function generateBooleanMethod($methodName, $value)
-    {
-        if ($value) {
-            return '->'.$methodName.'()';
-        }
-
-        return '->'.$methodName.'('.$this->generateBooleanString($value).')';
-    }
-
-    protected function generateBooleanString($value)
-    {
-        $result = $value ? 'true' : 'false';
-
-        return$result;
-    }
-
-    protected function generateUnsigned($column, $changeMode, $columnData, $forceFlagsChange)
-    {
-        $result = null;
-
-        if (!$changeMode) {
-            if ($column->getUnsigned()) {
-                $result = $this->generateBooleanMethod('unsigned', true);
-            }
-        }
-        elseif (in_array('unsigned', $columnData->changedProperties) || $forceFlagsChange) {
-            $result = $this->generateBooleanMethod('unsigned', $column->getUnsigned());
-        }
-
-        return $result;
-    }
-
-    protected function generateDefault($column, $changeMode, $columnData, $forceFlagsChange)
-    {
-        /*
-         * See a note about empty strings as default values in
-         * DatabaseTableSchemaCreator::formatOptions() method.
-         */
-        $result = null;
-        $default = $column->getDefault();
-
-        if (!$changeMode) {
-            if (strlen($default)) {
-                $result = $this->generateDefaultMethodCall($default, $column);
-            }
-        }
-        elseif (in_array('default', $columnData->changedProperties) || $forceFlagsChange) {
-            if (strlen($default)) {
-                $result = $this->generateDefaultMethodCall($default, $column);
-            }
-            elseif ($changeMode) {
-                $result = sprintf('->default(null)');
-            }
-        }
-
-        return $result;
-    }
-
-    protected function generateDefaultMethodCall($default, $column)
-    {
-        $columnName = $column->getName();
-        $typeName = $column->getType()->getName();
-
-        $type = MigrationColumnType::toMigrationMethodName($typeName, $columnName);
-
-        if (in_array($type, MigrationColumnType::getIntegerTypes()) ||
-            in_array($type, MigrationColumnType::getDecimalTypes()) ||
-            $type == MigrationColumnType::TYPE_BOOLEAN) {
-            return sprintf('->default(%s)', $default);
-        }
-
-        return sprintf('->default(\'%s\')', $this->quoteParameter($default));
-    }
-
-    protected function quoteParameter($str)
-    {
-        return str_replace("'", "\'", $str);
-    }
-
-    protected function generateColumnRenameCode($fromName, $toName)
-    {
-        return sprintf('\t\t$table->renameColumn(\'%s\', \'%s\');', $fromName, $toName).$this->eol;
-    }
-
-    protected function generateColumnRemoveCode($name)
-    {
-        return sprintf('\t\t$table->dropColumn(\'%s\');', $name).$this->eol;
-    }
-
-    protected function generatePrimaryKeyCode($index)
-    {
-        $columns = $index->getColumns();
-
-        return sprintf('\t\t$table->primary([%s]);', $this->implodeColumnList($columns)).$this->eol;
-    }
-
-    protected function generateSchemaTableMethodEnd()
-    {
-        return '\t});';
     }
 
     protected function generateCreateOrUpdateDownCode($tableDiff, $isNewTable, $newOrUpdatedTable)
@@ -551,55 +254,6 @@ class TableMigrationCodeGenerator extends BaseModel
         return $this->makeTabs($result);
     }
 
-    protected function generateTableDropCode($name)
-    {
-        return sprintf('\tSchema::dropIfExists(\'%s\');', $name);
-    }
-
-    protected function generateColumnDrop($column)
-    {
-        return sprintf('\t\t$table->dropColumn(\'%s\');', $column->getName()).$this->eol;
-    }
-
-    /**
-     * Wrap migration's up() and down() functions into a complete migration class declaration
-     * @param string $scriptFilename Specifies the migration script file name
-     * @param string $code Specifies the migration code
-     * @param PluginCode $pluginCodeObj The plugin code object
-     * @return TextParser
-     */
-    public function wrapMigrationCode($scriptFilename, $code, $pluginCodeObj)
-    {
-        $templatePath = '$/rainlab/builder/classes/databasetablemodel/templates/full-migration-code.php.tpl';
-        $templatePath = File::symbolizePath($templatePath);
-
-        $fileContents = File::get($templatePath);
-
-        return TextParser::parse($fileContents, [
-            'className' => Str::studly($scriptFilename),
-            'migrationCode' => $this->indent($code),
-            'namespace' => $pluginCodeObj->toUpdatesNamespace()
-        ]);
-    }
-
-    protected function indent($str)
-    {
-        return $this->indent . str_replace($this->eol, $this->eol . $this->indent, $str);
-    }
-
-    /**
-     * Generates code for dropping a database table.
-     * @param \Doctrine\DBAL\Schema\Table $existingTable Specifies the existing table schema.
-     * @return string Returns the migration up() and down() methods code.
-     */
-    public function dropTable($existingTable)
-    {
-        return $this->generateMigrationCode(
-            $this->generateDropUpCode($existingTable),
-            $this->generateDropDownCode($existingTable)
-        );
-    }
-
     protected function generateDropUpCode($table)
     {
         $result = $this->generateTableDropCode($table->getName());
@@ -619,8 +273,354 @@ class TableMigrationCodeGenerator extends BaseModel
         return $this->generateCreateOrUpdateUpCode($tableDiff, true, $table);
     }
 
+    protected function formatLengthParameters($column, $method)
+    {
+        $length = $column->getLength();
+        $precision = $column->getPrecision();
+        $scale = $column->getScale();
+
+        if (!strlen($length) && !strlen($precision)) {
+            return null;
+        }
+
+        if ($method == MigrationColumnType::TYPE_STRING) {
+            if (!strlen($length)) {
+                return null;
+            }
+
+            return ', '.$length;
+        }
+
+        if ($method == MigrationColumnType::TYPE_DECIMAL || $method == MigrationColumnType::TYPE_DOUBLE) {
+            if (!strlen($precision)) {
+                return null;
+            }
+
+            if (strlen($scale)) {
+                return ', '.$precision.', '.$scale;
+            }
+
+            return ', '.$precision;
+        }
+    }
+
+    protected function applyMethodIncrements($method, $column)
+    {
+        if (!$column->getAutoincrement()) {
+            return $method;
+        }
+
+        if ($method == MigrationColumnType::TYPE_BIGINTEGER) {
+            return 'bigIncrements';
+        }
+
+        return 'increments';
+    }
+
+    protected function generateSchemaTableMethodStart($tableName, $isNewTable)
+    {
+        $tableFunction = $isNewTable ? 'create' : 'table';
+        $result = sprintf('\tSchema::%s(\'%s\', function($table)', $tableFunction, $tableName).$this->eol;
+        $result .= '\t{'.$this->eol;
+
+        if ($isNewTable) {
+            $result .= '\t\t$table->engine = \'InnoDB\';'.$this->eol;
+        }
+
+        return $result;
+    }
+
+    protected function generateSchemaTableMethodEnd()
+    {
+        return '\t});';
+    }
+
+    protected function generateColumnDrop($column)
+    {
+        return sprintf('\t\t$table->dropColumn(\'%s\');', $column->getName()).$this->eol;
+    }
+
     protected function generateIndexDrop($index)
     {
         return sprintf('\t\t$table->dropIndex(\'%s\');', $index->getName()).$this->eol;
+    }
+
+    protected function generatePrimaryKeyDrop($table)
+    {
+        $index = $this->findPrimaryKeyIndex($table->getIndexes(), $table);
+        if (!$index) {
+            return;
+        }
+
+        $indexColumns = $index->getColumns();
+        return sprintf('\t\t$table->dropPrimary([%s]);', $this->implodeColumnList($indexColumns)).$this->eol;
+    }
+
+    protected function generateColumnCode($columnData, $mode)
+    {
+        $forceFlagsChange = false;
+
+        switch ($mode) {
+            case self::COLUMN_MODE_CREATE: 
+                $column = $columnData;
+                $changeMode = false;
+            break;
+            case self::COLUMN_MODE_CHANGE: 
+                $column = $columnData->column;
+                $changeMode = true;
+
+                $forceFlagsChange = in_array('type', $columnData->changedProperties);
+            break;
+            case self::COLUMN_MODE_REVERT: 
+                $column = $columnData->fromColumn;
+                $changeMode = true;
+
+                $forceFlagsChange = in_array('type', $columnData->changedProperties);
+            break;
+        }
+
+        $result = $this->generateColumnMethodCall($column);
+        $result .= $this->generateNullable($column, $changeMode, $columnData, $forceFlagsChange);
+        $result .= $this->generateUnsigned($column, $changeMode, $columnData, $forceFlagsChange);
+        $result .= $this->generateDefault($column, $changeMode, $columnData, $forceFlagsChange);
+
+        if ($changeMode) {
+            $result .= '->change()';
+        }
+
+        $result .= ';'.$this->eol;
+
+        return $result;
+    }
+
+    protected function generateColumnRenameCode($fromName, $toName)
+    {
+        return sprintf('\t\t$table->renameColumn(\'%s\', \'%s\');', $fromName, $toName).$this->eol;
+    }
+
+    protected function generateTableRenameCode($fromName, $toName)
+    {
+        return sprintf('\tSchema::rename(\'%s\', \'%s\');', $fromName, $toName);
+    }
+
+    protected function generateTableDropCode($name)
+    {
+        return sprintf('\tSchema::dropIfExists(\'%s\');', $name);
+    }
+
+    protected function generateColumnRemoveCode($name)
+    {
+        return sprintf('\t\t$table->dropColumn(\'%s\');', $name).$this->eol;
+    }
+
+    protected function generateColumnMethodCall($column)
+    {
+        $columnName = $column->getName();
+        $typeName = $column->getType()->getName();
+
+        $method = MigrationColumnType::toMigrationMethodName($typeName, $columnName);
+        $method = $this->applyMethodIncrements($method, $column);
+
+        $lengthStr = $this->formatLengthParameters($column, $method);
+        return sprintf('\t\t$table->%s(\'%s\'%s)', $method, $columnName, $lengthStr);
+    }
+
+    protected function generateNullable($column, $changeMode, $columnData, $forceFlagsChange)
+    {
+        $result = null;
+
+        if (!$changeMode) {
+            if (!$column->getNotnull()) {
+                $result = $this->generateBooleanMethod('nullable', true);
+            }
+        }
+        elseif (in_array('notnull', $columnData->changedProperties) || $forceFlagsChange) {
+            $result = $this->generateBooleanMethod('nullable', !$column->getNotnull());
+        }
+
+        return $result;
+    }
+
+    protected function generateUnsigned($column, $changeMode, $columnData, $forceFlagsChange)
+    {
+        $result = null;
+
+        if (!$changeMode) {
+            if ($column->getUnsigned()) {
+                $result = $this->generateBooleanMethod('unsigned', true);
+            }
+        }
+        elseif (in_array('unsigned', $columnData->changedProperties) || $forceFlagsChange) {
+            $result = $this->generateBooleanMethod('unsigned', $column->getUnsigned());
+        }
+
+        return $result;
+    }
+
+    protected function generateDefault($column, $changeMode, $columnData, $forceFlagsChange)
+    {
+        /*
+         * See a note about empty strings as default values in
+         * DatabaseTableSchemaCreator::formatOptions() method.
+         */
+        $result = null;
+        $default = $column->getDefault();
+
+        if (!$changeMode) {
+            if (strlen($default)) {
+                $result = $this->generateDefaultMethodCall($default, $column);
+            }
+        }
+        elseif (in_array('default', $columnData->changedProperties) || $forceFlagsChange) {
+            if (strlen($default)) {
+                $result = $this->generateDefaultMethodCall($default, $column);
+            }
+            elseif ($changeMode) {
+                $result = sprintf('->default(null)');
+            }
+        }
+
+        return $result;
+    }
+
+    protected function generateDefaultMethodCall($default, $column)
+    {
+        $columnName = $column->getName();
+        $typeName = $column->getType()->getName();
+
+        $type = MigrationColumnType::toMigrationMethodName($typeName, $columnName);
+
+        if (in_array($type, MigrationColumnType::getIntegerTypes()) || 
+            in_array($type, MigrationColumnType::getDecimalTypes()) ||
+            $type == MigrationColumnType::TYPE_BOOLEAN) {
+            return sprintf('->default(%s)', $default);
+        }
+
+        return sprintf('->default(\'%s\')', $this->quoteParameter($default));
+    }
+
+    protected function generatePrimaryKeyCode($index)
+    {
+        $columns = $index->getColumns();
+
+        return sprintf('\t\t$table->primary([%s]);', $this->implodeColumnList($columns)).$this->eol;
+    }
+
+    protected function generateBooleanString($value)
+    {
+        $result = $value ? 'true' : 'false';
+
+        return$result;
+    }
+
+    protected function generateBooleanMethod($methodName, $value)
+    {
+        if ($value) {
+            return '->'.$methodName.'()';
+        }
+
+        return '->'.$methodName.'('.$this->generateBooleanString($value).')';
+    }
+
+    protected function quoteParameter($str)
+    {
+        return str_replace("'", "\'", $str);
+    }
+
+    protected function makeTabs($str)
+    {
+        return str_replace('\t', '    ', $str);
+    }
+
+    protected function indent($str)
+    {
+        return $this->indent . str_replace($this->eol, $this->eol . $this->indent, $str);
+    }
+
+    protected function implodeColumnList($columnNames)
+    {
+        foreach ($columnNames as &$columnName) {
+            $columnName = '\''.$columnName.'\'';
+        }
+
+        return implode(',', $columnNames);
+    }
+
+    protected function tableHasNameOrColumnChanges($tableDiff, $columnChangesOnly = false)
+    {
+        $result = $tableDiff->addedColumns 
+                || $tableDiff->changedColumns 
+                || $tableDiff->removedColumns 
+                || $tableDiff->renamedColumns;
+
+        if ($columnChangesOnly) {
+            return $result;
+        }
+
+        return $result || $tableDiff->getNewName();
+    }
+
+    protected function tableHasPrimaryKeyChanges($tableDiff)
+    {
+        return $this->findPrimaryKeyIndex($tableDiff->addedIndexes, $tableDiff->fromTable) || 
+                $this->findPrimaryKeyIndex($tableDiff->changedIndexes, $tableDiff->fromTable) ||
+                $this->findPrimaryKeyIndex($tableDiff->removedIndexes, $tableDiff->fromTable);
+    }
+
+    protected function getChangedOrRemovedPrimaryKey($tableDiff)
+    {
+        foreach ($tableDiff->changedIndexes as $index) {
+            if ($index->isPrimary()) {
+                return $index;
+            }
+        }
+
+        foreach ($tableDiff->removedIndexes as $index) {
+            if ($index->isPrimary()) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    protected function findPrimaryKeyIndex($indexes, $table)
+    {
+        /*
+         * This method ignores auto-increment primary keys
+         * as they are managed with the increments() method
+         * instead of the primary().
+         */
+        foreach ($indexes as $index) {
+            if (!$index->isPrimary()) {
+                continue;
+            }
+
+            if ($this->indexHasAutoincrementColumns($index, $table)) {
+                continue;
+            }
+
+            return $index;
+        }
+
+        return null;
+    }
+
+    protected function indexHasAutoincrementColumns($index, $table)
+    {
+        $indexColumns = $index->getColumns();
+
+        foreach ($indexColumns as $indexColumn) {
+            if (!$table->hasColumn($indexColumn)) {
+                continue;
+            }
+
+            $tableColumn = $table->getColumn($indexColumn);
+            if ($tableColumn->getAutoincrement()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

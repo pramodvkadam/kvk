@@ -2,6 +2,11 @@
 
 class Swift_Mime_SimpleMessageAcceptanceTest extends \PHPUnit\Framework\TestCase
 {
+    protected function setUp()
+    {
+        Swift_Preferences::getInstance()->setCharset(null); //TODO: Test with the charset defined
+    }
+
     public function testBasicHeaders()
     {
         /* -- RFC 2822, 3.6.
@@ -20,11 +25,6 @@ class Swift_Mime_SimpleMessageAcceptanceTest extends \PHPUnit\Framework\TestCase
             $message->toString(),
             '%s: Only required headers, and non-empty headers should be displayed'
             );
-    }
-
-    protected function createMessage()
-    {
-        return new Swift_Message();
     }
 
     public function testSubjectIsDisplayedIfSet()
@@ -653,11 +653,6 @@ class Swift_Mime_SimpleMessageAcceptanceTest extends \PHPUnit\Framework\TestCase
             );
     }
 
-    protected function createMimePart()
-    {
-        return new Swift_MimePart();
-    }
-
     public function testAttachmentsBeingAttached()
     {
         $message = $this->createMessage();
@@ -718,11 +713,6 @@ class Swift_Mime_SimpleMessageAcceptanceTest extends \PHPUnit\Framework\TestCase
             '$~D',
             $message->toString()
             );
-    }
-
-    protected function createAttachment()
-    {
-        return new Swift_Attachment();
     }
 
     public function testAttachmentsAndEmbeddedFilesBeingAttached()
@@ -809,11 +799,6 @@ class Swift_Mime_SimpleMessageAcceptanceTest extends \PHPUnit\Framework\TestCase
             '$~D',
             $message->toString()
             );
-    }
-
-    protected function createEmbeddedFile()
-    {
-        return new Swift_EmbeddedFile();
     }
 
     public function testComplexEmbeddingOfContent()
@@ -1243,8 +1228,23 @@ class Swift_Mime_SimpleMessageAcceptanceTest extends \PHPUnit\Framework\TestCase
             );
     }
 
-    protected function setUp()
+    protected function createMessage()
     {
-        Swift_Preferences::getInstance()->setCharset(null); //TODO: Test with the charset defined
+        return new Swift_Message();
+    }
+
+    protected function createMimePart()
+    {
+        return new Swift_MimePart();
+    }
+
+    protected function createAttachment()
+    {
+        return new Swift_Attachment();
+    }
+
+    protected function createEmbeddedFile()
+    {
+        return new Swift_EmbeddedFile();
     }
 }

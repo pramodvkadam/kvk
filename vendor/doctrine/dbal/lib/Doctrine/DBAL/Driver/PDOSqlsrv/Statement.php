@@ -30,14 +30,6 @@ class Statement extends PDOStatement
     /**
      * {@inheritdoc}
      */
-    public function bindValue($param, $value, $type = PDO::PARAM_STR)
-    {
-        return $this->bindParam($param, $value, $type);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function bindParam($column, &$variable, $type = PDO::PARAM_STR, $length = null, $driverOptions = null)
     {
         if ($type === PDO::PARAM_LOB && $driverOptions === null) {
@@ -45,5 +37,13 @@ class Statement extends PDOStatement
         }
 
         return parent::bindParam($column, $variable, $type, $length, $driverOptions);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function bindValue($param, $value, $type = PDO::PARAM_STR)
+    {
+        return $this->bindParam($param, $value, $type);
     }
 }

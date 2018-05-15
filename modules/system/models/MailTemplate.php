@@ -18,6 +18,21 @@ class MailTemplate extends Model
     use \October\Rain\Database\Traits\Validation;
 
     /**
+     * @var string The database table used by the model.
+     */
+    protected $table = 'system_mail_templates';
+
+    /**
+     * @var array Guarded fields
+     */
+    protected $guarded = [];
+
+    /**
+     * @var array Fillable fields
+     */
+    protected $fillable = [];
+
+    /**
      * @var array Validation rules
      */
     public $rules = [
@@ -26,21 +41,23 @@ class MailTemplate extends Model
         'description'           => 'required',
         'content_html'          => 'required',
     ];
+
     public $belongsTo = [
         'layout' => MailLayout::class
     ];
+
     /**
-     * @var string The database table used by the model.
+     * Returns an array of template codes and descriptions.
+     * @return array
      */
-    protected $table = 'system_mail_templates';
-    /**
-     * @var array Guarded fields
-     */
-    protected $guarded = [];
-    /**
-     * @var array Fillable fields
-     */
-    protected $fillable = [];
+    public static function listAllTemplates()
+    {
+        $fileTemplates = (array) MailManager::instance()->listRegisteredTemplates();
+        $dbTemplates = (array) self::lists('code', 'code');
+        $templates = $fileTemplates + $dbTemplates;
+        ksort($templates);
+        return $templates;
+    }
 
     /**
      * Returns a list of all mail templates.
@@ -56,52 +73,6 @@ class MailTemplate extends Model
         }
 
         return $result;
-    }
-
-    /**
-     * Returns an array of template codes and descriptions.
-     * @return array
-     */
-    public static function listAllTemplates()
-    {
-        $fileTemplates = (array) MailManager::instance()->listRegisteredTemplates();
-        $dbTemplates = (array) self::lists('code', 'code');
-        $templates = $fileTemplates + $dbTemplates;
-        ksort($templates);
-        return $templates;
-    }
-
-    public static function findOrMakeTemplate($code)
-    {
-        $template = self::whereCode($code)->first();
-
-        if (!$template && View::exists($code)) {
-            $template = new self;
-            $template->code = $code;
-            $template->fillFromView($code);
-        }
-
-        return $template;
-    }
-
-    public function fillFromView($path)
-    {
-        $this->fillFromSections(self::getTemplateSections($path));
-    }
-
-    protected function fillFromSections($sections)
-    {
-        $this->content_html = $sections['html'];
-        $this->content_text = $sections['text'];
-        $this->subject = array_get($sections, 'settings.subject', 'No subject');
-
-        $layoutCode = array_get($sections, 'settings.layout', 'default');
-        $this->layout_id = MailLayout::getIdFromCode($layoutCode);
-    }
-
-    protected static function getTemplateSections($code)
-    {
-        return MailParser::parse(FileHelper::get(View::make($code)->getPath()));
     }
 
     /**
@@ -147,16 +118,6 @@ class MailTemplate extends Model
         }
     }
 
-    /**
-     * @deprecated see System\Classes\MailManager::registerCallback
-     * Remove if year >= 2019
-     */
-    public static function registerCallback(callable $callback)
-    {
-        traceLog('MailTemplate::registerCallback is deprecated, use System\Classes\MailManager::registerCallback instead');
-        MailManager::instance()->registerCallback($callback);
-    }
-
     public function afterFetch()
     {
         if (!$this->is_custom) {
@@ -167,5 +128,48 @@ class MailTemplate extends Model
     public function fillFromContent($content)
     {
         $this->fillFromSections(MailParser::parse($content));
+    }
+
+    public function fillFromView($path)
+    {
+        $this->fillFromSections(self::getTemplateSections($path));
+    }
+
+    protected function fillFromSections($sections)
+    {
+        $this->content_html = $sections['html'];
+        $this->content_text = $sections['text'];
+        $this->subject = array_get($sections, 'settings.subject', 'No subject');
+
+        $layoutCode = array_get($sections, 'settings.layout', 'default');
+        $this->layout_id = MailLayout::getIdFromCode($layoutCode);
+    }
+
+    protected static function getTemplateSections($code)
+    {
+        return MailParser::parse(FileHelper::get(View::make($code)->getPath()));
+    }
+
+    public static function findOrMakeTemplate($code)
+    {
+        $template = self::whereCode($code)->first();
+
+        if (!$template && View::exists($code)) {
+            $template = new self;
+            $template->code = $code;
+            $template->fillFromView($code);
+        }
+
+        return $template;
+    }
+
+    /**
+     * @deprecated see System\Classes\MailManager::registerCallback
+     * Remove if year >= 2019
+     */
+    public static function registerCallback(callable $callback)
+    {
+        traceLog('MailTemplate::registerCallback is deprecated, use ' . MailManager::class . '::registerCallback instead');
+        MailManager::instance()->registerCallback($callback);
     }
 }

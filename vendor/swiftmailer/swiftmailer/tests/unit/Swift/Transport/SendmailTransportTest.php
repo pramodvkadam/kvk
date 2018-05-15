@@ -2,15 +2,15 @@
 
 class Swift_Transport_SendmailTransportTest extends Swift_Transport_AbstractSmtpEventSupportTest
 {
-    public function testCommandCanBeSetAndFetched()
+    protected function getTransport($buf, $dispatcher = null, $command = '/usr/sbin/sendmail -bs')
     {
-        $buf = $this->getBuffer();
-        $sendmail = $this->getSendmail($buf);
+        if (!$dispatcher) {
+            $dispatcher = $this->createEventDispatcher();
+        }
+        $transport = new Swift_Transport_SendmailTransport($buf, $dispatcher, 'example.org');
+        $transport->setCommand($command);
 
-        $sendmail->setCommand('/usr/sbin/sendmail -bs');
-        $this->assertEquals('/usr/sbin/sendmail -bs', $sendmail->getCommand());
-        $sendmail->setCommand('/usr/sbin/sendmail -oi -t');
-        $this->assertEquals('/usr/sbin/sendmail -oi -t', $sendmail->getCommand());
+        return $transport;
     }
 
     protected function getSendmail($buf, $dispatcher = null)
@@ -20,6 +20,17 @@ class Swift_Transport_SendmailTransportTest extends Swift_Transport_AbstractSmtp
         }
 
         return new Swift_Transport_SendmailTransport($buf, $dispatcher);
+    }
+
+    public function testCommandCanBeSetAndFetched()
+    {
+        $buf = $this->getBuffer();
+        $sendmail = $this->getSendmail($buf);
+
+        $sendmail->setCommand('/usr/sbin/sendmail -bs');
+        $this->assertEquals('/usr/sbin/sendmail -bs', $sendmail->getCommand());
+        $sendmail->setCommand('/usr/sbin/sendmail -oi -t');
+        $this->assertEquals('/usr/sbin/sendmail -oi -t', $sendmail->getCommand());
     }
 
     public function testSendingMessageIn_t_ModeUsesSimplePipe()
@@ -135,16 +146,5 @@ class Swift_Transport_SendmailTransportTest extends Swift_Transport_AbstractSmtp
 
         $ref = $sendmail->setCommand('/foo');
         $this->assertEquals($ref, $sendmail);
-    }
-
-    protected function getTransport($buf, $dispatcher = null, $command = '/usr/sbin/sendmail -bs')
-    {
-        if (!$dispatcher) {
-            $dispatcher = $this->createEventDispatcher();
-        }
-        $transport = new Swift_Transport_SendmailTransport($buf, $dispatcher, 'example.org');
-        $transport->setCommand($command);
-
-        return $transport;
     }
 }

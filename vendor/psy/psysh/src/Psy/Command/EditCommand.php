@@ -45,16 +45,6 @@ class EditCommand extends Command implements ContextAware
         $this->runtimeDir = $runtimeDir;
     }
 
-    /**
-     * Set the Context reference.
-     *
-     * @param Context $context
-     */
-    public function setContext(Context $context)
-    {
-        $this->context = $context;
-    }
-
     protected function configure()
     {
         $this
@@ -117,25 +107,6 @@ class EditCommand extends Command implements ContextAware
     }
 
     /**
-     * @param string|null $fileArgument
-     *
-     * @return string|null The file path to edit, null if the input was null, or the value of the referenced variable
-     *
-     * @throws \InvalidArgumentException If the variable is not found in the current context
-     */
-    private function extractFilePath($fileArgument)
-    {
-        // If the file argument was a variable, get it from the context
-        if ($fileArgument !== null &&
-            strlen($fileArgument) > 0 &&
-            $fileArgument[0] === '$') {
-            $fileArgument = $this->context->get(preg_replace('/^\$/', '', $fileArgument));
-        }
-
-        return $fileArgument;
-    }
-
-    /**
      * @param bool        $execOption
      * @param bool        $noExecOption
      * @param string|null $filePath
@@ -154,6 +125,25 @@ class EditCommand extends Command implements ContextAware
 
         // By default, code that is edited is executed if there was no given input file path
         return $filePath === null;
+    }
+
+    /**
+     * @param string|null $fileArgument
+     *
+     * @return string|null The file path to edit, null if the input was null, or the value of the referenced variable
+     *
+     * @throws \InvalidArgumentException If the variable is not found in the current context
+     */
+    private function extractFilePath($fileArgument)
+    {
+        // If the file argument was a variable, get it from the context
+        if ($fileArgument !== null &&
+            strlen($fileArgument) > 0 &&
+            $fileArgument[0] === '$') {
+            $fileArgument = $this->context->get(preg_replace('/^\$/', '', $fileArgument));
+        }
+
+        return $fileArgument;
     }
 
     /**
@@ -183,5 +173,15 @@ class EditCommand extends Command implements ContextAware
         }
 
         return $editedContent;
+    }
+
+    /**
+     * Set the Context reference.
+     *
+     * @param Context $context
+     */
+    public function setContext(Context $context)
+    {
+        $this->context = $context;
     }
 }

@@ -51,16 +51,6 @@ trait SendsPasswordResetEmails
     }
 
     /**
-     * Get the broker to be used during password reset.
-     *
-     * @return \Illuminate\Contracts\Auth\PasswordBroker
-     */
-    public function broker()
-    {
-        return Password::broker();
-    }
-
-    /**
      * Get the response for a successful password reset link.
      *
      * @param  string  $response
@@ -83,5 +73,15 @@ trait SendsPasswordResetEmails
         return back()->withErrors(
             ['email' => trans($response)]
         );
+    }
+
+    /**
+     * Get the broker to be used during password reset.
+     *
+     * @return \Illuminate\Contracts\Auth\PasswordBroker
+     */
+    public function broker()
+    {
+        return Password::broker();
     }
 }

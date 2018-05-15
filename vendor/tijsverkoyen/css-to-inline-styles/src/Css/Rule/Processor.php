@@ -8,27 +8,6 @@ use \TijsVerkoyen\CssToInlineStyles\Css\Property\Processor as PropertyProcessor;
 class Processor
 {
     /**
-     * Sort an array on the specificity element in an ascending way
-     * Lower specificity will be sorted to the beginning of the array
-     *
-     * @return int
-     * @param  Rule $e1 The first element.
-     * @param  Rule $e2 The second element.
-     */
-    public static function sortOnSpecificity(Rule $e1, Rule $e2)
-    {
-        $e1Specificity = $e1->getSpecificity();
-        $value = $e1Specificity->compareTo($e2->getSpecificity());
-
-        // if the specificity is the same, use the order in which the element appeared
-        if ($value === 0) {
-            $value = $e1->getOrder() - $e2->getOrder();
-        }
-
-        return $value;
-    }
-
-    /**
      * Split a string into seperate rules
      *
      * @param string $rulesString
@@ -57,21 +36,6 @@ class Processor
         $string = rtrim($string, '}');
 
         return $string;
-    }
-
-    /**
-     * @param array $rules
-     * @return Rule[]
-     */
-    public function convertArrayToObjects(array $rules, array $objects = array())
-    {
-        $order = 1;
-        foreach ($rules as $rule) {
-            $objects = array_merge($objects, $this->convertToObjects($rule, $order));
-            $order++;
-        }
-
-        return $objects;
     }
 
     /**
@@ -151,5 +115,41 @@ class Processor
             preg_match_all("/{$classAttributesPseudoClassesSelectorsPattern}/ix", $selector, $matches),
             preg_match_all("/{$typePseudoElementsSelectorPattern}/ix", $selector, $matches)
         );
+    }
+
+    /**
+     * @param array $rules
+     * @return Rule[]
+     */
+    public function convertArrayToObjects(array $rules, array $objects = array())
+    {
+        $order = 1;
+        foreach ($rules as $rule) {
+            $objects = array_merge($objects, $this->convertToObjects($rule, $order));
+            $order++;
+        }
+
+        return $objects;
+    }
+
+    /**
+     * Sort an array on the specificity element in an ascending way
+     * Lower specificity will be sorted to the beginning of the array
+     *
+     * @return int
+     * @param  Rule $e1 The first element.
+     * @param  Rule $e2 The second element.
+     */
+    public static function sortOnSpecificity(Rule $e1, Rule $e2)
+    {
+        $e1Specificity = $e1->getSpecificity();
+        $value = $e1Specificity->compareTo($e2->getSpecificity());
+
+        // if the specificity is the same, use the order in which the element appeared
+        if ($value === 0) {
+            $value = $e1->getOrder() - $e2->getOrder();
+        }
+
+        return $value;
     }
 }

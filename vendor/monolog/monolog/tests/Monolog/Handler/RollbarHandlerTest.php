@@ -25,13 +25,21 @@ use PHPUnit_Framework_MockObject_MockObject as MockObject;
 class RollbarHandlerTest extends TestCase
 {
     /**
-     * @var array
-     */
-    public $reportedExceptionArguments = null;
-    /**
      * @var MockObject
      */
     private $rollbarNotifier;
+
+    /**
+     * @var array
+     */
+    public $reportedExceptionArguments = null;
+
+    protected function setUp()
+    {
+        parent::setUp();
+
+        $this->setupRollbarNotifierMock();
+    }
 
     /**
      * When reporting exceptions to Rollbar the
@@ -44,25 +52,6 @@ class RollbarHandlerTest extends TestCase
         $handler->handle($this->createExceptionRecord(Logger::DEBUG));
 
         $this->assertEquals('debug', $this->reportedExceptionArguments['payload']['level']);
-    }
-
-    private function createHandler()
-    {
-        return new RollbarHandler($this->rollbarNotifier, Logger::DEBUG);
-    }
-
-    private function createExceptionRecord($level = Logger::DEBUG, $message = 'test', $exception = null)
-    {
-        return $this->getRecord($level, $message, array(
-            'exception' => $exception ?: new Exception()
-        ));
-    }
-
-    protected function setUp()
-    {
-        parent::setUp();
-
-        $this->setupRollbarNotifierMock();
     }
 
     private function setupRollbarNotifierMock()
@@ -79,5 +68,17 @@ class RollbarHandlerTest extends TestCase
             ->willReturnCallback(function ($exception, $context, $payload) use ($that) {
                 $that->reportedExceptionArguments = compact('exception', 'context', 'payload');
             });
+    }
+
+    private function createHandler()
+    {
+        return new RollbarHandler($this->rollbarNotifier, Logger::DEBUG);
+    }
+
+    private function createExceptionRecord($level = Logger::DEBUG, $message = 'test', $exception = null)
+    {
+        return $this->getRecord($level, $message, array(
+            'exception' => $exception ?: new Exception()
+        ));
     }
 }

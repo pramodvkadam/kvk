@@ -51,26 +51,6 @@ abstract class AbstractLazyCollection implements Collection
     }
 
     /**
-     * Initialize the collection
-     *
-     * @return void
-     */
-    protected function initialize()
-    {
-        if ( ! $this->initialized) {
-            $this->doInitialize();
-            $this->initialized = true;
-        }
-    }
-
-    /**
-     * Do the initialization logic
-     *
-     * @return void
-     */
-    abstract protected function doInitialize();
-
-    /**
      * {@inheritDoc}
      */
     public function add($element)
@@ -340,4 +320,24 @@ abstract class AbstractLazyCollection implements Collection
     {
         return $this->initialized;
     }
+
+    /**
+     * Initialize the collection
+     *
+     * @return void
+     */
+    protected function initialize()
+    {
+        if ( ! $this->initialized) {
+            $this->doInitialize();
+            $this->initialized = true;
+        }
+    }
+
+    /**
+     * Do the initialization logic
+     *
+     * @return void
+     */
+    abstract protected function doInitialize();
 }

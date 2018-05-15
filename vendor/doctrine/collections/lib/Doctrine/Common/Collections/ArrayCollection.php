@@ -56,6 +56,21 @@ class ArrayCollection implements Collection, Selectable
     }
 
     /**
+     * Creates a new instance from the specified elements.
+     *
+     * This method is provided for derived classes to specify how a new
+     * instance should be created when constructor semantics have changed.
+     *
+     * @param array $elements Elements.
+     *
+     * @return static
+     */
+    protected function createFrom(array $elements)
+    {
+        return new static($elements);
+    }
+
+    /**
      * {@inheritDoc}
      */
     public function toArray()
@@ -106,6 +121,21 @@ class ArrayCollection implements Collection, Selectable
     /**
      * {@inheritDoc}
      */
+    public function remove($key)
+    {
+        if ( ! isset($this->elements[$key]) && ! array_key_exists($key, $this->elements)) {
+            return null;
+        }
+
+        $removed = $this->elements[$key];
+        unset($this->elements[$key]);
+
+        return $removed;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function removeElement($element)
     {
         $key = array_search($element, $this->elements, true);
@@ -130,14 +160,6 @@ class ArrayCollection implements Collection, Selectable
     }
 
     /**
-     * {@inheritDoc}
-     */
-    public function containsKey($key)
-    {
-        return isset($this->elements[$key]) || array_key_exists($key, $this->elements);
-    }
-
-    /**
      * Required by interface ArrayAccess.
      *
      * {@inheritDoc}
@@ -145,14 +167,6 @@ class ArrayCollection implements Collection, Selectable
     public function offsetGet($offset)
     {
         return $this->get($offset);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function get($key)
-    {
-        return isset($this->elements[$key]) ? $this->elements[$key] : null;
     }
 
     /**
@@ -170,24 +184,6 @@ class ArrayCollection implements Collection, Selectable
     }
 
     /**
-     * {@inheritDoc}
-     */
-    public function add($element)
-    {
-        $this->elements[] = $element;
-
-        return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function set($key, $value)
-    {
-        $this->elements[$key] = $value;
-    }
-
-    /**
      * Required by interface ArrayAccess.
      *
      * {@inheritDoc}
@@ -200,16 +196,9 @@ class ArrayCollection implements Collection, Selectable
     /**
      * {@inheritDoc}
      */
-    public function remove($key)
+    public function containsKey($key)
     {
-        if ( ! isset($this->elements[$key]) && ! array_key_exists($key, $this->elements)) {
-            return null;
-        }
-
-        $removed = $this->elements[$key];
-        unset($this->elements[$key]);
-
-        return $removed;
+        return isset($this->elements[$key]) || array_key_exists($key, $this->elements);
     }
 
     /**
@@ -245,6 +234,14 @@ class ArrayCollection implements Collection, Selectable
     /**
      * {@inheritDoc}
      */
+    public function get($key)
+    {
+        return isset($this->elements[$key]) ? $this->elements[$key] : null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function getKeys()
     {
         return array_keys($this->elements);
@@ -264,6 +261,24 @@ class ArrayCollection implements Collection, Selectable
     public function count()
     {
         return count($this->elements);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function set($key, $value)
+    {
+        $this->elements[$key] = $value;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function add($element)
+    {
+        $this->elements[] = $element;
+
+        return true;
     }
 
     /**
@@ -290,21 +305,6 @@ class ArrayCollection implements Collection, Selectable
     public function map(Closure $func)
     {
         return $this->createFrom(array_map($func, $this->elements));
-    }
-
-    /**
-     * Creates a new instance from the specified elements.
-     *
-     * This method is provided for derived classes to specify how a new
-     * instance should be created when constructor semantics have changed.
-     *
-     * @param array $elements Elements.
-     *
-     * @return static
-     */
-    protected function createFrom(array $elements)
-    {
-        return new static($elements);
     }
 
     /**

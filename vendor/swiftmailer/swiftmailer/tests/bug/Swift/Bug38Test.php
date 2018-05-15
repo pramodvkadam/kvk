@@ -6,6 +6,14 @@ class Swift_Bug38Test extends \PHPUnit\Framework\TestCase
     private $attFileName;
     private $attFileType;
 
+    protected function setUp()
+    {
+        $this->attFileName = 'data.txt';
+        $this->attFileType = 'text/plain';
+        $this->attFile = __DIR__.'/../../_samples/files/data.txt';
+        Swift_Preferences::getInstance()->setCharset('utf-8');
+    }
+
     public function testWritingMessageToByteStreamProducesCorrectStructure()
     {
         $message = new Swift_Message();
@@ -58,15 +66,6 @@ class Swift_Bug38Test extends \PHPUnit\Framework\TestCase
             '$~D',
             $stream
         );
-    }
-
-    public function assertPatternInStream($pattern, $stream, $message = '%s')
-    {
-        $string = '';
-        while (false !== $bytes = $stream->read(8192)) {
-            $string .= $bytes;
-        }
-        $this->assertRegExp($pattern, $string, $message);
     }
 
     public function testWritingMessageToByteStreamTwiceProducesCorrectStructure()
@@ -182,11 +181,12 @@ class Swift_Bug38Test extends \PHPUnit\Framework\TestCase
         $this->assertPatternInStream($pattern, $streamB);
     }
 
-    protected function setUp()
+    public function assertPatternInStream($pattern, $stream, $message = '%s')
     {
-        $this->attFileName = 'data.txt';
-        $this->attFileType = 'text/plain';
-        $this->attFile = __DIR__.'/../../_samples/files/data.txt';
-        Swift_Preferences::getInstance()->setCharset('utf-8');
+        $string = '';
+        while (false !== $bytes = $stream->read(8192)) {
+            $string .= $bytes;
+        }
+        $this->assertRegExp($pattern, $string, $message);
     }
 }

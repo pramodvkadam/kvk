@@ -169,18 +169,6 @@ class NodeExtension extends AbstractExtension
     }
 
     /**
-     * Tests if given name is safe.
-     *
-     * @param string $name
-     *
-     * @return bool
-     */
-    private function isSafeName($name)
-    {
-        return 0 < preg_match('~^[a-zA-Z_][a-zA-Z0-9_.-]*$~', $name);
-    }
-
-    /**
      * @return XPathExpr
      */
     public function translateClass(Node\ClassNode $node, Translator $translator)
@@ -238,5 +226,17 @@ class NodeExtension extends AbstractExtension
     public function getName()
     {
         return 'node';
+    }
+
+    /**
+     * Tests if given name is safe.
+     *
+     * @param string $name
+     *
+     * @return bool
+     */
+    private function isSafeName($name)
+    {
+        return 0 < preg_match('~^[a-zA-Z_][a-zA-Z0-9_.-]*$~', $name);
     }
 }

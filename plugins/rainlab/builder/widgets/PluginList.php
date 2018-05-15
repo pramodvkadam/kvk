@@ -20,8 +20,9 @@ class PluginList extends WidgetBase
 {
     use \Backend\Traits\SearchableWidget;
 
-    public $noRecordsMessage = 'rainlab.builder::lang.plugin.no_records';
     protected $theme;
+
+    public $noRecordsMessage = 'rainlab.builder::lang.plugin.no_records';
 
     public function __construct($controller, $alias)
     {
@@ -40,12 +41,74 @@ class PluginList extends WidgetBase
         return $this->makePartial('body', $this->getRenderData());
     }
 
-    protected function getRenderData()
+    public function setActivePlugin($pluginCode)
     {
-        return [
-            'items'=>$this->getData()
-        ];
+        $pluginCodeObj = new PluginCode($pluginCode);
+
+        $this->putSession('activePlugin', $pluginCodeObj->toCode());
     }
+
+    public function getActivePluginVector()
+    {
+        $pluginCode = $this->getActivePluginCode();
+
+        try {
+            if (strlen($pluginCode)) {
+                $pluginCodeObj = new PluginCode($pluginCode);
+                $path = $pluginCodeObj->toPluginInformationFilePath();
+                if (!File::isFile(File::symbolizePath($path))) {
+                    return null;
+                }
+
+                $plugins = PluginManager::instance()->getPlugins();
+                foreach ($plugins as $code=>$plugin) {
+                    if ($code == $pluginCode) {
+                        return new PluginVector($plugin, $pluginCodeObj);
+                    }
+                }
+            }
+        }
+        catch (Exception $ex) {
+            return null;
+        }
+
+        return null;
+    }
+
+    public function updateList()
+    {
+        return ['#'.$this->getId('plugin-list') => $this->makePartial('items', $this->getRenderData())];
+    }
+
+    /*
+     * Event handlers
+     */
+
+    public function onUpdate()
+    {
+        return $this->updateList();
+    }
+
+    public function onSearch()
+    {
+        $this->setSearchTerm(Input::get('search'));
+        return $this->updateList();
+    }
+
+    public function onToggleFilter()
+    {
+        $mode = $this->getFilterMode();
+        $this->setFilterMode($mode == 'my' ? 'all' : 'my');
+
+        $result = $this->updateList();
+        $result['#'.$this->getId('toolbar-buttons')] = $this->makePartial('toolbar-buttons');
+
+        return $result;
+    }
+
+    /*
+     * Methods for the internal use
+     */
 
     protected function getData()
     {
@@ -114,87 +177,25 @@ class PluginList extends WidgetBase
         return $result;
     }
 
-    /*
-     * Event handlers
-     */
+    protected function setFilterMode($mode)
+    {
+        $this->putSession('filter', $mode);
+    }
 
     protected function getFilterMode()
     {
         return $this->getSession('filter', 'my');
     }
 
-    public function setActivePlugin($pluginCode)
-    {
-        $pluginCodeObj = new PluginCode($pluginCode);
-
-        $this->putSession('activePlugin', $pluginCodeObj->toCode());
-    }
-
-    public function getActivePluginVector()
-    {
-        $pluginCode = $this->getActivePluginCode();
-
-        try {
-            if (strlen($pluginCode)) {
-                $pluginCodeObj = new PluginCode($pluginCode);
-                $path = $pluginCodeObj->toPluginInformationFilePath();
-                if (!File::isFile(File::symbolizePath($path))) {
-                    return null;
-                }
-
-                $plugins = PluginManager::instance()->getPlugins();
-                foreach ($plugins as $code=>$plugin) {
-                    if ($code == $pluginCode) {
-                        return new PluginVector($plugin, $pluginCodeObj);
-                    }
-                }
-            }
-        }
-        catch (Exception $ex) {
-            return null;
-        }
-
-        return null;
-    }
-
-    /*
-     * Methods for the internal use
-     */
-
     protected function getActivePluginCode()
     {
         return $this->getSession('activePlugin');
     }
 
-    public function onUpdate()
+    protected function getRenderData()
     {
-        return $this->updateList();
-    }
-
-    public function updateList()
-    {
-        return ['#'.$this->getId('plugin-list') => $this->makePartial('items', $this->getRenderData())];
-    }
-
-    public function onSearch()
-    {
-        $this->setSearchTerm(Input::get('search'));
-        return $this->updateList();
-    }
-
-    public function onToggleFilter()
-    {
-        $mode = $this->getFilterMode();
-        $this->setFilterMode($mode == 'my' ? 'all' : 'my');
-
-        $result = $this->updateList();
-        $result['#'.$this->getId('toolbar-buttons')] = $this->makePartial('toolbar-buttons');
-
-        return $result;
-    }
-
-    protected function setFilterMode($mode)
-    {
-        $this->putSession('filter', $mode);
+        return [
+            'items'=>$this->getData()
+        ];
     }
 }

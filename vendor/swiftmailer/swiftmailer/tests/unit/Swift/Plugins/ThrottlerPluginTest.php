@@ -35,6 +35,37 @@ class Swift_Plugins_ThrottlerPluginTest extends \SwiftMailerTestCase
         }
     }
 
+    public function testMessagesPerMinuteThrottling()
+    {
+        $sleeper = $this->createSleeper();
+        $timer = $this->createTimer();
+
+        //60/min
+        $plugin = new Swift_Plugins_ThrottlerPlugin(
+            60, Swift_Plugins_ThrottlerPlugin::MESSAGES_PER_MINUTE,
+            $sleeper, $timer
+            );
+
+        $timer->shouldReceive('getTimestamp')->once()->andReturn(0);
+        $timer->shouldReceive('getTimestamp')->once()->andReturn(0); //expected 1 (sleep 1)
+        $timer->shouldReceive('getTimestamp')->once()->andReturn(2); //expected 2
+        $timer->shouldReceive('getTimestamp')->once()->andReturn(2); //expected 3 (sleep 1)
+        $timer->shouldReceive('getTimestamp')->once()->andReturn(4); //expected 4
+        $sleeper->shouldReceive('sleep')->twice()->with(1);
+
+        //60 messages per minute
+        //1 message per second
+
+        $message = $this->createMessageWithByteCount(10);
+
+        $evt = $this->createSendEvent($message);
+
+        for ($i = 0; $i < 5; ++$i) {
+            $plugin->beforeSendPerformed($evt);
+            $plugin->sendPerformed($evt);
+        }
+    }
+
     private function createSleeper()
     {
         return $this->getMockery('Swift_Plugins_Sleeper');
@@ -67,36 +98,5 @@ class Swift_Plugins_ThrottlerPluginTest extends \SwiftMailerTestCase
             ->andReturn($message);
 
         return $evt;
-    }
-
-    public function testMessagesPerMinuteThrottling()
-    {
-        $sleeper = $this->createSleeper();
-        $timer = $this->createTimer();
-
-        //60/min
-        $plugin = new Swift_Plugins_ThrottlerPlugin(
-            60, Swift_Plugins_ThrottlerPlugin::MESSAGES_PER_MINUTE,
-            $sleeper, $timer
-            );
-
-        $timer->shouldReceive('getTimestamp')->once()->andReturn(0);
-        $timer->shouldReceive('getTimestamp')->once()->andReturn(0); //expected 1 (sleep 1)
-        $timer->shouldReceive('getTimestamp')->once()->andReturn(2); //expected 2
-        $timer->shouldReceive('getTimestamp')->once()->andReturn(2); //expected 3 (sleep 1)
-        $timer->shouldReceive('getTimestamp')->once()->andReturn(4); //expected 4
-        $sleeper->shouldReceive('sleep')->twice()->with(1);
-
-        //60 messages per minute
-        //1 message per second
-
-        $message = $this->createMessageWithByteCount(10);
-
-        $evt = $this->createSendEvent($message);
-
-        for ($i = 0; $i < 5; ++$i) {
-            $plugin->beforeSendPerformed($evt);
-            $plugin->sendPerformed($evt);
-        }
     }
 }

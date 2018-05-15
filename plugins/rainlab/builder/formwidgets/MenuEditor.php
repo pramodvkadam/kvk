@@ -96,17 +96,22 @@ class MenuEditor extends FormWidgetBase
         return null;
     }
 
-    protected function getSideMenuConfigurationSchema()
+    protected function getIconList()
     {
-        $result = $this->getCommonMenuItemConfigurationSchema();
+        if ($this->iconList !== null) {
+            return $this->iconList;
+        }
 
-        $result[] = [
-                'title' => Lang::get('rainlab.builder::lang.menu.property_attributes'),
-                'property' => 'attributes',
-                'type' => 'stringList'
-        ];
+        $icons = IconList::getList();
+        $this->iconList = [];
 
-        return json_encode($result);
+        foreach ($icons as $iconCode=>$iconInfo) {
+            $iconCode = preg_replace('/^oc\-/', '', $iconCode);
+
+            $this->iconList[$iconCode] = $iconInfo;
+        }
+
+        return $this->iconList;
     }
 
     protected function getCommonMenuItemConfigurationSchema()
@@ -164,22 +169,17 @@ class MenuEditor extends FormWidgetBase
         return $result;
     }
 
-    protected function getIconList()
+    protected function getSideMenuConfigurationSchema()
     {
-        if ($this->iconList !== null) {
-            return $this->iconList;
-        }
+        $result = $this->getCommonMenuItemConfigurationSchema();
 
-        $icons = IconList::getList();
-        $this->iconList = [];
+        $result[] = [
+                'title' => Lang::get('rainlab.builder::lang.menu.property_attributes'),
+                'property' => 'attributes',
+                'type' => 'stringList'
+        ];
 
-        foreach ($icons as $iconCode=>$iconInfo) {
-            $iconCode = preg_replace('/^oc\-/', '', $iconCode);
-
-            $this->iconList[$iconCode] = $iconInfo;
-        }
-
-        return $this->iconList;
+        return json_encode($result);
     }
 
     protected function getSideMenuConfiguration($item)

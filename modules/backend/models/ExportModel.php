@@ -17,6 +17,19 @@ use SplTempFileObject;
 abstract class ExportModel extends Model
 {
     /**
+     * Called when data is being exported.
+     * The return value should be an array in the format of:
+     *
+     *   [
+     *       'db_name1' => 'Some attribute value',
+     *       'db_name2' => 'Another attribute value'
+     *   ],
+     *   [...]
+     *
+     */
+    abstract public function exportData($columns, $sessionKey = null);
+
+    /**
      * Export data based on column names and labels.
      * The $columns array should be in the format of:
      *
@@ -35,17 +48,27 @@ abstract class ExportModel extends Model
     }
 
     /**
-     * Called when data is being exported.
-     * The return value should be an array in the format of:
-     *
-     *   [
-     *       'db_name1' => 'Some attribute value',
-     *       'db_name2' => 'Another attribute value'
-     *   ],
-     *   [...]
-     *
+     * Download a previously compiled export file.
+     * @return void
      */
-    abstract public function exportData($columns, $sessionKey = null);
+    public function download($name, $outputName = null)
+    {
+        if (!preg_match('/^oc[0-9a-z]*$/i', $name)) {
+            throw new ApplicationException(Lang::get('backend::lang.import_export.file_not_found_error'));
+        }
+
+        $csvPath = temp_path() . '/' . $name;
+        if (!file_exists($csvPath)) {
+            throw new ApplicationException(Lang::get('backend::lang.import_export.file_not_found_error'));
+        }
+
+        $headers = Response::download($csvPath, $outputName)->headers->all();
+        $result = Response::make(File::get($csvPath), 200, $headers);
+
+        @unlink($csvPath);
+
+        return $result;
+    }
 
     /**
      * Converts a data collection to a CSV file.
@@ -78,7 +101,7 @@ abstract class ExportModel extends Model
          * Prepare CSV
          */
         $csv = CsvWriter::createFromFileObject(new SplTempFileObject);
-
+        
         $csv->setOutputBOM(CsvWriter::BOM_UTF8);
 
         if ($options['delimiter'] !== null) {
@@ -162,29 +185,6 @@ abstract class ExportModel extends Model
         }
 
         return $results;
-    }
-
-    /**
-     * Download a previously compiled export file.
-     * @return void
-     */
-    public function download($name, $outputName = null)
-    {
-        if (!preg_match('/^oc[0-9a-z]*$/i', $name)) {
-            throw new ApplicationException(Lang::get('backend::lang.import_export.file_not_found_error'));
-        }
-
-        $csvPath = temp_path() . '/' . $name;
-        if (!file_exists($csvPath)) {
-            throw new ApplicationException(Lang::get('backend::lang.import_export.file_not_found_error'));
-        }
-
-        $headers = Response::download($csvPath, $outputName)->headers->all();
-        $result = Response::make(File::get($csvPath), 200, $headers);
-
-        @unlink($csvPath);
-
-        return $result;
     }
 
     /**

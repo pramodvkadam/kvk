@@ -16,38 +16,29 @@
 class Swift_Transport_LoadBalancedTransport implements Swift_Transport
 {
     /**
-     * The Transports which are used in rotation.
-     *
-     * @var Swift_Transport[]
-     */
-    protected $transports = array();
-    /**
-     * The Transport used in the last successful send operation.
-     *
-     * @var Swift_Transport
-     */
-    protected $lastUsedTransport = null;
-    /**
      * Transports which are deemed useless.
      *
      * @var Swift_Transport[]
      */
     private $deadTransports = array();
 
-    // needed as __construct is called from elsewhere explicitly
-
-    public function __construct()
-    {
-    }
+    /**
+     * The Transports which are used in rotation.
+     *
+     * @var Swift_Transport[]
+     */
+    protected $transports = array();
 
     /**
-     * Get $transports to delegate to.
+     * The Transport used in the last successful send operation.
      *
-     * @return Swift_Transport[]
+     * @var Swift_Transport
      */
-    public function getTransports()
+    protected $lastUsedTransport = null;
+
+    // needed as __construct is called from elsewhere explicitly
+    public function __construct()
     {
-        return array_merge($this->transports, $this->deadTransports);
     }
 
     /**
@@ -59,6 +50,16 @@ class Swift_Transport_LoadBalancedTransport implements Swift_Transport
     {
         $this->transports = $transports;
         $this->deadTransports = array();
+    }
+
+    /**
+     * Get $transports to delegate to.
+     *
+     * @return Swift_Transport[]
+     */
+    public function getTransports()
+    {
+        return array_merge($this->transports, $this->deadTransports);
     }
 
     /**
@@ -114,20 +115,6 @@ class Swift_Transport_LoadBalancedTransport implements Swift_Transport
     }
 
     /**
-     * Tag the currently used (top of stack) transport as dead/useless.
-     */
-    protected function killCurrentTransport()
-    {
-        if ($transport = array_pop($this->transports)) {
-            try {
-                $transport->stop();
-            } catch (Exception $e) {
-            }
-            $this->deadTransports[] = $transport;
-        }
-    }
-
-    /**
      * Send the given Message.
      *
      * Recipient/sender data will be retrieved from the Message API.
@@ -169,6 +156,18 @@ class Swift_Transport_LoadBalancedTransport implements Swift_Transport
     }
 
     /**
+     * Register a plugin.
+     *
+     * @param Swift_Events_EventListener $plugin
+     */
+    public function registerPlugin(Swift_Events_EventListener $plugin)
+    {
+        foreach ($this->transports as $transport) {
+            $transport->registerPlugin($plugin);
+        }
+    }
+
+    /**
      * Rotates the transport list around and returns the first instance.
      *
      * @return Swift_Transport
@@ -183,14 +182,16 @@ class Swift_Transport_LoadBalancedTransport implements Swift_Transport
     }
 
     /**
-     * Register a plugin.
-     *
-     * @param Swift_Events_EventListener $plugin
+     * Tag the currently used (top of stack) transport as dead/useless.
      */
-    public function registerPlugin(Swift_Events_EventListener $plugin)
+    protected function killCurrentTransport()
     {
-        foreach ($this->transports as $transport) {
-            $transport->registerPlugin($plugin);
+        if ($transport = array_pop($this->transports)) {
+            try {
+                $transport->stop();
+            } catch (Exception $e) {
+            }
+            $this->deadTransports[] = $transport;
         }
     }
 }

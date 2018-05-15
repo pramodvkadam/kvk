@@ -40,6 +40,28 @@ abstract class AbstractSessionHandler implements \SessionHandlerInterface, \Sess
     }
 
     /**
+     * @param string $sessionId
+     *
+     * @return string
+     */
+    abstract protected function doRead($sessionId);
+
+    /**
+     * @param string $sessionId
+     * @param string $data
+     *
+     * @return bool
+     */
+    abstract protected function doWrite($sessionId, $data);
+
+    /**
+     * @param string $sessionId
+     *
+     * @return bool
+     */
+    abstract protected function doDestroy($sessionId);
+
+    /**
      * {@inheritdoc}
      */
     public function validateId($sessionId)
@@ -75,13 +97,6 @@ abstract class AbstractSessionHandler implements \SessionHandlerInterface, \Sess
 
         return $data;
     }
-
-    /**
-     * @param string $sessionId
-     *
-     * @return string
-     */
-    abstract protected function doRead($sessionId);
 
     /**
      * {@inheritdoc}
@@ -141,7 +156,7 @@ abstract class AbstractSessionHandler implements \SessionHandlerInterface, \Sess
             if ($sessionCookieFound) {
                 header_remove('Set-Cookie');
                 foreach ($otherCookies as $h) {
-                    header('Set-Cookie:'.$h, false);
+                    header($h, false);
                 }
             } else {
                 setcookie($this->sessionName, '', 0, ini_get('session.cookie_path'), ini_get('session.cookie_domain'), ini_get('session.cookie_secure'), ini_get('session.cookie_httponly'));
@@ -150,19 +165,4 @@ abstract class AbstractSessionHandler implements \SessionHandlerInterface, \Sess
 
         return $this->newSessionId === $sessionId || $this->doDestroy($sessionId);
     }
-
-    /**
-     * @param string $sessionId
-     *
-     * @return bool
-     */
-    abstract protected function doDestroy($sessionId);
-
-    /**
-     * @param string $sessionId
-     * @param string $data
-     *
-     * @return bool
-     */
-    abstract protected function doWrite($sessionId, $data);
 }

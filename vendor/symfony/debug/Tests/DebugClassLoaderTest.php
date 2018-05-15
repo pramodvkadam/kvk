@@ -24,6 +24,21 @@ class DebugClassLoaderTest extends TestCase
 
     private $loader;
 
+    protected function setUp()
+    {
+        $this->errorReporting = error_reporting(E_ALL);
+        $this->loader = new ClassLoader();
+        spl_autoload_register(array($this->loader, 'loadClass'), true, true);
+        DebugClassLoader::enable();
+    }
+
+    protected function tearDown()
+    {
+        DebugClassLoader::disable();
+        spl_autoload_unregister(array($this->loader, 'loadClass'));
+        error_reporting($this->errorReporting);
+    }
+
     public function testIdempotence()
     {
         DebugClassLoader::enable();
@@ -351,21 +366,6 @@ class DebugClassLoaderTest extends TestCase
             'The "Symfony\Component\Debug\Tests\Fixtures\InternalTrait" trait is considered internal. It may change without further notice. You should not use it from "Test\Symfony\Component\Debug\Tests\ExtendsInternals".',
             'The "Symfony\Component\Debug\Tests\Fixtures\InternalTrait2::internalMethod()" method is considered internal since version 3.4. It may change without further notice. You should not extend it from "Test\Symfony\Component\Debug\Tests\ExtendsInternals".',
         ));
-    }
-
-    protected function setUp()
-    {
-        $this->errorReporting = error_reporting(E_ALL);
-        $this->loader = new ClassLoader();
-        spl_autoload_register(array($this->loader, 'loadClass'), true, true);
-        DebugClassLoader::enable();
-    }
-
-    protected function tearDown()
-    {
-        DebugClassLoader::disable();
-        spl_autoload_unregister(array($this->loader, 'loadClass'));
-        error_reporting($this->errorReporting);
     }
 }
 

@@ -50,24 +50,6 @@ class Graphviz extends AbstractVisitor
     }
 
     /**
-     * @param string $node1
-     * @param string $node2
-     * @param array  $options
-     *
-     * @return string
-     */
-    private function createNodeRelation($node1, $node2, $options)
-    {
-        $relation = $node1 . ' -> ' . $node2 . ' [';
-        foreach ($options as $key => $value) {
-            $relation .= $key . '=' . $value . ' ';
-        }
-        $relation .= "]\n";
-
-        return $relation;
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function acceptSchema(Schema $schema)
@@ -92,23 +74,6 @@ class Graphviz extends AbstractVisitor
                 'shape' => 'plaintext',
             )
         );
-    }
-
-    /**
-     * @param string $name
-     * @param array  $options
-     *
-     * @return string
-     */
-    private function createNode($name, $options)
-    {
-        $node = $name . " [";
-        foreach ($options as $key => $value) {
-            $node .= $key . '=' . $value . ' ';
-        }
-        $node .= "]\n";
-
-        return $node;
     }
 
     /**
@@ -146,6 +111,51 @@ class Graphviz extends AbstractVisitor
     }
 
     /**
+     * @param string $name
+     * @param array  $options
+     *
+     * @return string
+     */
+    private function createNode($name, $options)
+    {
+        $node = $name . " [";
+        foreach ($options as $key => $value) {
+            $node .= $key . '=' . $value . ' ';
+        }
+        $node .= "]\n";
+
+        return $node;
+    }
+
+    /**
+     * @param string $node1
+     * @param string $node2
+     * @param array  $options
+     *
+     * @return string
+     */
+    private function createNodeRelation($node1, $node2, $options)
+    {
+        $relation = $node1 . ' -> ' . $node2 . ' [';
+        foreach ($options as $key => $value) {
+            $relation .= $key . '=' . $value . ' ';
+        }
+        $relation .= "]\n";
+
+        return $relation;
+    }
+
+    /**
+     * Get Graphviz Output
+     *
+     * @return string
+     */
+    public function getOutput()
+    {
+        return $this->output . "}";
+    }
+
+    /**
      * Writes dot language output to a file. This should usually be a *.dot file.
      *
      * You have to convert the output into a viewable format. For example use "neato" on linux systems
@@ -160,15 +170,5 @@ class Graphviz extends AbstractVisitor
     public function write($filename)
     {
         file_put_contents($filename, $this->getOutput());
-    }
-
-    /**
-     * Get Graphviz Output
-     *
-     * @return string
-     */
-    public function getOutput()
-    {
-        return $this->output . "}";
     }
 }

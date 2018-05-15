@@ -160,28 +160,6 @@ class SsiTest extends TestCase
         $this->assertEquals('foo', $ssi->handle($cache, '/', '/alt', true));
     }
 
-    protected function getCache($request, $response)
-    {
-        $cache = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpCache\HttpCache')->setMethods(array('getRequest', 'handle'))->disableOriginalConstructor()->getMock();
-        $cache->expects($this->any())
-              ->method('getRequest')
-              ->will($this->returnValue($request))
-        ;
-        if (is_array($response)) {
-            $cache->expects($this->any())
-                  ->method('handle')
-                  ->will(call_user_func_array(array($this, 'onConsecutiveCalls'), $response))
-            ;
-        } else {
-            $cache->expects($this->any())
-                  ->method('handle')
-                  ->will($this->returnValue($response))
-            ;
-        }
-
-        return $cache;
-    }
-
     /**
      * @expectedException \RuntimeException
      */
@@ -211,5 +189,27 @@ class SsiTest extends TestCase
         $response2 = new Response('bar');
         $cache = $this->getCache(Request::create('/'), array($response1, $response2));
         $this->assertEquals('bar', $ssi->handle($cache, '/', '/alt', false));
+    }
+
+    protected function getCache($request, $response)
+    {
+        $cache = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpCache\HttpCache')->setMethods(array('getRequest', 'handle'))->disableOriginalConstructor()->getMock();
+        $cache->expects($this->any())
+              ->method('getRequest')
+              ->will($this->returnValue($request))
+        ;
+        if (is_array($response)) {
+            $cache->expects($this->any())
+                  ->method('handle')
+                  ->will(call_user_func_array(array($this, 'onConsecutiveCalls'), $response))
+            ;
+        } else {
+            $cache->expects($this->any())
+                  ->method('handle')
+                  ->will($this->returnValue($response))
+            ;
+        }
+
+        return $cache;
     }
 }

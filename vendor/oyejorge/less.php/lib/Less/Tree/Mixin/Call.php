@@ -151,29 +151,6 @@ class Less_Tree_Mixin_Call extends Less_Tree{
 	}
 
 	/**
-	 * Are we in a recursive mixin call?
-	 *
-	 * @return bool
-	 */
-	private function IsRecursive( $env, $mixin ){
-
-		foreach($env->frames as $recur_frame){
-			if( !($mixin instanceof Less_Tree_Mixin_Definition) ){
-
-				if( $mixin === $recur_frame ){
-					return true;
-				}
-
-				if( isset($recur_frame->originalRuleset) && $mixin->ruleset_id === $recur_frame->originalRuleset ){
-					return true;
-				}
-			}
-		}
-
-		return false;
-	}
-
-	/**
 	 * Format the args for use in exception messages
 	 *
 	 */
@@ -194,6 +171,30 @@ class Less_Tree_Mixin_Call extends Less_Tree{
 			}
 		}
 		return implode(', ',$message);
+	}
+
+
+	/**
+	 * Are we in a recursive mixin call?
+	 *
+	 * @return bool
+	 */
+	private function IsRecursive( $env, $mixin ){
+
+		foreach($env->frames as $recur_frame){
+			if( !($mixin instanceof Less_Tree_Mixin_Definition) ){
+
+				if( $mixin === $recur_frame ){
+					return true;
+				}
+
+				if( isset($recur_frame->originalRuleset) && $mixin->ruleset_id === $recur_frame->originalRuleset ){
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 }

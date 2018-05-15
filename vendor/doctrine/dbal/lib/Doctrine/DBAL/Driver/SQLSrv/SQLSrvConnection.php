@@ -80,6 +80,14 @@ class SQLSrvConnection implements Connection, ServerInfoAwareConnection
     /**
      * {@inheritDoc}
      */
+    public function prepare($sql)
+    {
+        return new SQLSrvStatement($this->conn, $sql, $this->lastInsertId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function query()
     {
         $args = func_get_args();
@@ -88,14 +96,6 @@ class SQLSrvConnection implements Connection, ServerInfoAwareConnection
         $stmt->execute();
 
         return $stmt;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function prepare($sql)
-    {
-        return new SQLSrvStatement($this->conn, $sql, $this->lastInsertId);
     }
 
     /**

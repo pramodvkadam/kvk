@@ -15,12 +15,6 @@ class SlideShows extends Controller
         'peterhegman.slickslider.*'
     ];
 
-    public function __construct()
-    {
-        parent::__construct();
-        BackendMenu::setContext('PeterHegman.SlickSlider', 'slide_shows');
-    }
-
     public function formExtendFields($form)
     {
         $backendUser = BackendAuth::getUser();
@@ -36,5 +30,11 @@ class SlideShows extends Controller
                 $form->removeField($fieldToRemove->fieldName);
             }
         }
+    }
+
+    public function __construct()
+    {
+        parent::__construct();
+        BackendMenu::setContext('PeterHegman.SlickSlider', 'slide_shows');
     }
 }

@@ -37,6 +37,19 @@ class Content extends CmsCompoundObject
     }
 
     /**
+     * Returns a default value for parsedMarkup attribute.
+     * @return string
+     */
+    public function getParsedMarkupAttribute()
+    {
+        if (array_key_exists('parsedMarkup', $this->attributes)) {
+            return $this->attributes['parsedMarkup'];
+        }
+
+        return $this->attributes['parsedMarkup'] = $this->parseMarkup();
+    }
+
+    /**
      * Parses the content markup according to the file type.
      * @return string
      */
@@ -56,19 +69,6 @@ class Content extends CmsCompoundObject
         }
 
         return $result;
-    }
-
-    /**
-     * Returns a default value for parsedMarkup attribute.
-     * @return string
-     */
-    public function getParsedMarkupAttribute()
-    {
-        if (array_key_exists('parsedMarkup', $this->attributes)) {
-            return $this->attributes['parsedMarkup'];
-        }
-
-        return $this->attributes['parsedMarkup'] = $this->parseMarkup();
     }
 
 }

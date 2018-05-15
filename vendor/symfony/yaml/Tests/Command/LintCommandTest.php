@@ -37,31 +37,6 @@ class LintCommandTest extends TestCase
         $this->assertRegExp('/^\/\/ OK in /', trim($tester->getDisplay()));
     }
 
-    /**
-     * @return CommandTester
-     */
-    protected function createCommandTester()
-    {
-        $application = new Application();
-        $application->add(new LintCommand());
-        $command = $application->find('lint:yaml');
-
-        return new CommandTester($command);
-    }
-
-    /**
-     * @return string Path to the new file
-     */
-    private function createFile($content)
-    {
-        $filename = tempnam(sys_get_temp_dir().'/framework-yml-lint-test', 'sf-');
-        file_put_contents($filename, $content);
-
-        $this->files[] = $filename;
-
-        return $filename;
-    }
-
     public function testLintIncorrectFile()
     {
         $incorrectContent = '
@@ -113,6 +88,31 @@ YAML;
         unlink($filename);
 
         $ret = $tester->execute(array('filename' => $filename), array('decorated' => false));
+    }
+
+    /**
+     * @return string Path to the new file
+     */
+    private function createFile($content)
+    {
+        $filename = tempnam(sys_get_temp_dir().'/framework-yml-lint-test', 'sf-');
+        file_put_contents($filename, $content);
+
+        $this->files[] = $filename;
+
+        return $filename;
+    }
+
+    /**
+     * @return CommandTester
+     */
+    protected function createCommandTester()
+    {
+        $application = new Application();
+        $application->add(new LintCommand());
+        $command = $application->find('lint:yaml');
+
+        return new CommandTester($command);
     }
 
     protected function setUp()

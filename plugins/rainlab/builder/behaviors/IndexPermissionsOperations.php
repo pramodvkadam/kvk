@@ -40,11 +40,6 @@ class IndexPermissionsOperations extends IndexOperationsBehaviorBase
         return $result;
     }
 
-    protected function getTabId($pluginCode)
-    {
-        return 'permissions-'.$pluginCode;
-    }
-
     public function onPermissionsSave()
     {
         $pluginCodeObj = new PluginCode(Request::input('plugin_code'));
@@ -64,6 +59,11 @@ class IndexPermissionsOperations extends IndexOperationsBehaviorBase
         ];
 
         return $result;
+    }
+
+    protected function getTabId($pluginCode)
+    {
+        return 'permissions-'.$pluginCode;
     }
 
     protected function loadOrCreateBaseModel($pluginCode, $options = [])

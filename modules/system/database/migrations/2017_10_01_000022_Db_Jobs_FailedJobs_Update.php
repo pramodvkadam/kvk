@@ -22,16 +22,6 @@ class DbJobsFailedJobsUpdate extends Migration
         });
     }
 
-    protected function getTableName()
-    {
-        return Config::get('queue.connections.database.table', 'jobs');
-    }
-
-    protected function getFailedTableName()
-    {
-        return Config::get('queue.failed.table', 'failed_jobs');
-    }
-
     /**
      * Reverse the migrations.
      *
@@ -47,5 +37,15 @@ class DbJobsFailedJobsUpdate extends Migration
         Schema::table($this->getFailedTableName(), function (Blueprint $table) {
             $table->dropColumn('exception');
         });
+    }
+
+    protected function getTableName()
+    {
+        return Config::get('queue.connections.database.table', 'jobs');
+    }
+
+    protected function getFailedTableName()
+    {
+        return Config::get('queue.failed.table', 'failed_jobs');
     }
 }

@@ -45,6 +45,18 @@ class Str extends StrHelper
     }
 
     /**
+     * Removes the starting slash from a class namespace \
+     */
+    public static function normalizeClassName($name)
+    {
+        if (is_object($name))
+            $name = get_class($name);
+
+        $name = '\\'.ltrim($name, '\\');
+        return $name;
+    }
+
+    /**
      * Generates a class ID from either an object or a string of the class name.
      */
     public static function getClassId($name)
@@ -65,17 +77,5 @@ class Str extends StrHelper
     {
         $name = static::normalizeClassName($name);
         return substr($name, 0, strrpos($name, "\\"));
-    }
-
-    /**
-     * Removes the starting slash from a class namespace \
-     */
-    public static function normalizeClassName($name)
-    {
-        if (is_object($name))
-            $name = get_class($name);
-
-        $name = '\\'.ltrim($name, '\\');
-        return $name;
     }
 }

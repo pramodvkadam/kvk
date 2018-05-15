@@ -51,6 +51,26 @@ abstract class Twig_Tests_Profiler_Dumper_AbstractTest extends \PHPUnit\Framewor
         return $this->generateProfile('main', 1, true, 'template', 'index.twig', $subProfiles);
     }
 
+    private function getEmbeddedBlockProfile(array $subProfiles = array())
+    {
+        return $this->generateProfile('body', 0.0001, false, 'block', 'embedded.twig', $subProfiles);
+    }
+
+    private function getEmbeddedTemplateProfile(array $subProfiles = array())
+    {
+        return $this->generateProfile('main', 0.0001, true, 'template', 'embedded.twig', $subProfiles);
+    }
+
+    private function getIncludedTemplateProfile(array $subProfiles = array())
+    {
+        return $this->generateProfile('main', 0.0001, true, 'template', 'included.twig', $subProfiles);
+    }
+
+    private function getMacroProfile(array $subProfiles = array())
+    {
+        return $this->generateProfile('foo', 0.0001, false, 'macro', 'index.twig', $subProfiles);
+    }
+
     /**
      * @param string $name
      * @param float  $duration
@@ -77,25 +97,5 @@ abstract class Twig_Tests_Profiler_Dumper_AbstractTest extends \PHPUnit\Framewor
         $profile->expects($this->any())->method('getIterator')->will($this->returnValue(new ArrayIterator($subProfiles)));
 
         return $profile;
-    }
-
-    private function getEmbeddedBlockProfile(array $subProfiles = array())
-    {
-        return $this->generateProfile('body', 0.0001, false, 'block', 'embedded.twig', $subProfiles);
-    }
-
-    private function getEmbeddedTemplateProfile(array $subProfiles = array())
-    {
-        return $this->generateProfile('main', 0.0001, true, 'template', 'embedded.twig', $subProfiles);
-    }
-
-    private function getIncludedTemplateProfile(array $subProfiles = array())
-    {
-        return $this->generateProfile('main', 0.0001, true, 'template', 'included.twig', $subProfiles);
-    }
-
-    private function getMacroProfile(array $subProfiles = array())
-    {
-        return $this->generateProfile('foo', 0.0001, false, 'macro', 'index.twig', $subProfiles);
     }
 }

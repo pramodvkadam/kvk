@@ -15,6 +15,11 @@ use Psy\CodeCleaner\InstanceOfPass;
 
 class InstanceOfPassTest extends CodeCleanerTestCase
 {
+    protected function setUp()
+    {
+        $this->setPass(new InstanceOfPass());
+    }
+
     /**
      * @dataProvider invalidStatements
      * @expectedException \Psy\Exception\FatalErrorException
@@ -49,6 +54,9 @@ class InstanceOfPassTest extends CodeCleanerTestCase
     {
         $stmts = $this->parse($code);
         $this->traverser->traverse($stmts);
+
+        // @todo a better thing to assert here?
+        $this->assertTrue(true);
     }
 
     public function validStatements()
@@ -64,10 +72,5 @@ class InstanceOfPassTest extends CodeCleanerTestCase
         );
 
         return $data;
-    }
-
-    protected function setUp()
-    {
-        $this->setPass(new InstanceOfPass());
     }
 }

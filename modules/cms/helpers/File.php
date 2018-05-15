@@ -9,6 +9,18 @@
 class File
 {
     /**
+     * Validates a CMS object file or directory name.
+     * CMS object file names can contain only alphanumeric symbols, dashes, underscores and dots.
+     * Name can also begin with a component name, eg: MyComponent::filename.
+     * @param string $fileName Specifies a path to validate
+     * @return boolean Returns true if the file name is valid. Otherwise returns false.
+     */
+    public static function validateName($fileName)
+    {
+        return preg_match('/^[a-z0-9\_\-\.\/]+$/i', $fileName) ? true : false;
+    }
+
+    /**
      * Validates whether a file has an allowed extension.
      * @param string $fileName Specifies a path to validate
      * @param array $allowedExtensions A list of allowed file extensions
@@ -55,17 +67,5 @@ class File
         }
 
         return true;
-    }
-
-    /**
-     * Validates a CMS object file or directory name.
-     * CMS object file names can contain only alphanumeric symbols, dashes, underscores and dots.
-     * Name can also begin with a component name, eg: MyComponent::filename.
-     * @param string $fileName Specifies a path to validate
-     * @return boolean Returns true if the file name is valid. Otherwise returns false.
-     */
-    public static function validateName($fileName)
-    {
-        return preg_match('/^[a-z0-9\_\-\.\/]+$/i', $fileName) ? true : false;
     }
 }

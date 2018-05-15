@@ -5,6 +5,12 @@ class Swift_Encoder_QpEncoderAcceptanceTest extends \PHPUnit\Framework\TestCase
     private $samplesDir;
     private $factory;
 
+    protected function setUp()
+    {
+        $this->samplesDir = realpath(__DIR__.'/../../../_samples/charsets');
+        $this->factory = new Swift_CharacterReaderFactory_SimpleCharacterReaderFactory();
+    }
+
     public function testEncodingAndDecodingSamples()
     {
         $sampleFp = opendir($this->samplesDir);
@@ -44,11 +50,5 @@ class Swift_Encoder_QpEncoderAcceptanceTest extends \PHPUnit\Framework\TestCase
             }
         }
         closedir($sampleFp);
-    }
-
-    protected function setUp()
-    {
-        $this->samplesDir = realpath(__DIR__.'/../../../_samples/charsets');
-        $this->factory = new Swift_CharacterReaderFactory_SimpleCharacterReaderFactory();
     }
 }

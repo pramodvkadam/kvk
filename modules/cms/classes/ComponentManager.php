@@ -41,53 +41,6 @@ class ComponentManager
     protected $detailsCache;
 
     /**
-     * Manually registers a component for consideration.
-     * Usage:
-     *
-     *     ComponentManager::registerComponents(function($manager){
-     *         $manager->registerComponent('October\Demo\Components\Test', 'testComponent');
-     *     });
-     *
-     * @param callable $definitions
-     * @return array Array values are class names.
-     */
-    public function registerComponents(callable $definitions)
-    {
-        $this->callbacks[] = $definitions;
-    }
-
-    /**
-     * Returns an array of all component detail definitions.
-     * @return array Array keys are component codes, values are the details defined in the component.
-     */
-    public function listComponentDetails()
-    {
-        if ($this->detailsCache !== null) {
-            return $this->detailsCache;
-        }
-
-        $details = [];
-        foreach ($this->listComponents() as $componentAlias => $componentClass) {
-            $details[$componentAlias] = $this->makeComponent($componentClass)->componentDetails();
-        }
-
-        return $this->detailsCache = $details;
-    }
-
-    /**
-     * Returns a list of registered components.
-     * @return array Array keys are codes, values are class names.
-     */
-    public function listComponents()
-    {
-        if ($this->codeMap === null) {
-            $this->loadComponents();
-        }
-
-        return $this->codeMap;
-    }
-
-    /**
      * Scans each plugin an loads it's components.
      * @return void
      */
@@ -116,6 +69,22 @@ class ComponentManager
                 $this->registerComponent($className, $code, $plugin);
             }
         }
+    }
+
+    /**
+     * Manually registers a component for consideration.
+     * Usage:
+     *
+     *     ComponentManager::registerComponents(function($manager){
+     *         $manager->registerComponent('October\Demo\Components\Test', 'testComponent');
+     *     });
+     *
+     * @param callable $definitions
+     * @return array Array values are class names.
+     */
+    public function registerComponents(callable $definitions)
+    {
+        $this->callbacks[] = $definitions;
     }
 
     /**
@@ -151,33 +120,34 @@ class ComponentManager
     }
 
     /**
-     * Makes a component object with properties set.
-     * @param string $name A component class name or code.
-     * @param CmsObject $cmsObject The Cms object that spawned this component.
-     * @param array $properties The properties set by the Page or Layout.
-     * @return ComponentBase The component object.
+     * Returns a list of registered components.
+     * @return array Array keys are codes, values are class names.
      */
-    public function makeComponent($name, $cmsObject = null, $properties = [])
+    public function listComponents()
     {
-        $className = $this->resolve($name);
-        if (!$className) {
-            throw new SystemException(sprintf(
-                'Class name is not registered for the component "%s". Check the component plugin.',
-                $name
-            ));
+        if ($this->codeMap === null) {
+            $this->loadComponents();
         }
 
-        if (!class_exists($className)) {
-            throw new SystemException(sprintf(
-                'Component class not found "%s". Check the component plugin.',
-                $className
-            ));
+        return $this->codeMap;
+    }
+
+    /**
+     * Returns an array of all component detail definitions.
+     * @return array Array keys are component codes, values are the details defined in the component.
+     */
+    public function listComponentDetails()
+    {
+        if ($this->detailsCache !== null) {
+            return $this->detailsCache;
         }
 
-        $component = App::make($className, [$cmsObject, $properties]);
-        $component->name = $name;
+        $details = [];
+        foreach ($this->listComponents() as $componentAlias => $componentClass) {
+            $details[$componentAlias] = $this->makeComponent($componentClass)->componentDetails();
+        }
 
-        return $component;
+        return $this->detailsCache = $details;
     }
 
     /**
@@ -214,6 +184,36 @@ class ComponentManager
         }
 
         return isset($this->classMap[$className]);
+    }
+
+    /**
+     * Makes a component object with properties set.
+     * @param string $name A component class name or code.
+     * @param CmsObject $cmsObject The Cms object that spawned this component.
+     * @param array $properties The properties set by the Page or Layout.
+     * @return ComponentBase The component object.
+     */
+    public function makeComponent($name, $cmsObject = null, $properties = [])
+    {
+        $className = $this->resolve($name);
+        if (!$className) {
+            throw new SystemException(sprintf(
+                'Class name is not registered for the component "%s". Check the component plugin.',
+                $name
+            ));
+        }
+
+        if (!class_exists($className)) {
+            throw new SystemException(sprintf(
+                'Component class not found "%s". Check the component plugin.',
+                $className
+            ));
+        }
+
+        $component = App::make($className, [$cmsObject, $properties]);
+        $component->name = $name;
+
+        return $component;
     }
 
     /**

@@ -9,6 +9,9 @@ use PhpParser\Node\Scalar\String_;
 
 abstract class ParserTest extends \PHPUnit_Framework_TestCase
 {
+    /** @returns Parser */
+    abstract protected function getParser(Lexer $lexer);
+
     /**
      * @expectedException \PhpParser\Error
      * @expectedExceptionMessage Syntax error, unexpected EOF on line 1
@@ -17,9 +20,6 @@ abstract class ParserTest extends \PHPUnit_Framework_TestCase
         $parser = $this->getParser(new Lexer());
         $parser->parse('<?php foo');
     }
-
-    /** @returns Parser */
-    abstract protected function getParser(Lexer $lexer);
 
     /**
      * @expectedException \PhpParser\Error

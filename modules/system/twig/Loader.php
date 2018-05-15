@@ -24,11 +24,6 @@ class Loader implements Twig_LoaderInterface
      */
     protected $cache = [];
 
-    public function getSourceContext($name)
-    {
-        return new Twig_Source(File::get($this->findTemplate($name)), $name);
-    }
-
     /**
      * Gets the path of a view file
      * @param  string $name
@@ -53,6 +48,11 @@ class Loader implements Twig_LoaderInterface
 
         $path = $finder->find($view);
         return $this->cache[$name] = $path;
+    }
+
+    public function getSourceContext($name)
+    {
+        return new Twig_Source(File::get($this->findTemplate($name)), $name);
     }
 
     public function getCacheKey($name)

@@ -6,15 +6,17 @@ class Swift_Transport_Esmtp_Auth_NTLMAuthenticatorTest extends \SwiftMailerTestC
     private $message2 = '4e544c4d53535000020000000c000c003000000035828980514246973ea892c10000000000000000460046003c00000054004500530054004e00540002000c0054004500530054004e00540001000c004d0045004d0042004500520003001e006d0065006d006200650072002e0074006500730074002e0063006f006d0000000000';
     private $message3 = '4e544c4d5353500003000000180018006000000076007600780000000c000c0040000000080008004c0000000c000c0054000000000000009a0000000102000054004500530054004e00540074006500730074004d0045004d00420045005200bf2e015119f6bdb3f6fdb768aa12d478f5ce3d2401c8f6e9caa4da8f25d5e840974ed8976d3ada46010100000000000030fa7e3c677bc301f5ce3d2401c8f6e90000000002000c0054004500530054004e00540001000c004d0045004d0042004500520003001e006d0065006d006200650072002e0074006500730074002e0063006f006d000000000000000000';
 
+    protected function setUp()
+    {
+        if (!function_exists('openssl_encrypt') || !function_exists('bcmul') || !function_exists('iconv')) {
+            $this->markTestSkipped('One of the required functions is not available.');
+        }
+    }
+
     public function testKeywordIsNtlm()
     {
         $login = $this->getAuthenticator();
         $this->assertEquals('NTLM', $login->getAuthKeyword());
-    }
-
-    private function getAuthenticator()
-    {
-        return new Swift_Transport_Esmtp_Auth_NTLMAuthenticator();
     }
 
     public function testMessage1Generator()
@@ -23,14 +25,6 @@ class Swift_Transport_Esmtp_Auth_NTLMAuthenticatorTest extends \SwiftMailerTestC
         $message1 = $this->invokePrivateMethod('createMessage1', $login);
 
         $this->assertEquals($this->message1, bin2hex($message1), '%s: We send the smallest ntlm message which should never fail.');
-    }
-
-    private function invokePrivateMethod($method, $instance, array $args = array())
-    {
-        $methodC = new ReflectionMethod($instance, trim($method));
-        $methodC->setAccessible(true);
-
-        return $methodC->invokeArgs($instance, $args);
     }
 
     public function testLMv1Generator()
@@ -166,11 +160,6 @@ class Swift_Transport_Esmtp_Auth_NTLMAuthenticatorTest extends \SwiftMailerTestC
         $this->assertTrue($ntlm->authenticate($agent, $username.'@'.$domain, $secret, hex2bin('30fa7e3c677bc301'), hex2bin('f5ce3d2401c8f6e9')), '%s: The buffer accepted all commands authentication should succeed');
     }
 
-    private function getAgent()
-    {
-        return $this->getMockery('Swift_Transport_SmtpAgent')->shouldIgnoreMissing();
-    }
-
     public function testAuthenticationFailureSendRsetAndReturnFalse()
     {
         $domain = 'TESTNT';
@@ -192,10 +181,21 @@ class Swift_Transport_Esmtp_Auth_NTLMAuthenticatorTest extends \SwiftMailerTestC
         $this->assertFalse($ntlm->authenticate($agent, $username.'@'.$domain, $secret, hex2bin('30fa7e3c677bc301'), hex2bin('f5ce3d2401c8f6e9')), '%s: Authentication fails, so RSET should be sent');
     }
 
-    protected function setUp()
+    private function getAuthenticator()
     {
-        if (!function_exists('openssl_encrypt') || !function_exists('bcmul') || !function_exists('iconv')) {
-            $this->markTestSkipped('One of the required functions is not available.');
-        }
+        return new Swift_Transport_Esmtp_Auth_NTLMAuthenticator();
+    }
+
+    private function getAgent()
+    {
+        return $this->getMockery('Swift_Transport_SmtpAgent')->shouldIgnoreMissing();
+    }
+
+    private function invokePrivateMethod($method, $instance, array $args = array())
+    {
+        $methodC = new ReflectionMethod($instance, trim($method));
+        $methodC->setAccessible(true);
+
+        return $methodC->invokeArgs($instance, $args);
     }
 }

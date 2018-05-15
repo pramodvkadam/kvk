@@ -31,33 +31,6 @@ class DrizzleSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritdoc}
      */
-    public function _getPortableTableForeignKeyDefinition($tableForeignKey)
-    {
-        $columns = array();
-        foreach (explode(',', $tableForeignKey['CONSTRAINT_COLUMNS']) as $value) {
-            $columns[] = trim($value, ' `');
-        }
-
-        $refColumns = array();
-        foreach (explode(',', $tableForeignKey['REFERENCED_TABLE_COLUMNS']) as $value) {
-            $refColumns[] = trim($value, ' `');
-        }
-
-        return new ForeignKeyConstraint(
-            $columns,
-            $tableForeignKey['REFERENCED_TABLE_NAME'],
-            $refColumns,
-            $tableForeignKey['CONSTRAINT_NAME'],
-            array(
-                'onUpdate' => $tableForeignKey['UPDATE_RULE'],
-                'onDelete' => $tableForeignKey['DELETE_RULE'],
-            )
-        );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     protected function _getPortableTableColumnDefinition($tableColumn)
     {
         $dbType = strtolower($tableColumn['DATA_TYPE']);
@@ -101,6 +74,33 @@ class DrizzleSchemaManager extends AbstractSchemaManager
     protected function _getPortableTableDefinition($table)
     {
         return $table['TABLE_NAME'];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function _getPortableTableForeignKeyDefinition($tableForeignKey)
+    {
+        $columns = array();
+        foreach (explode(',', $tableForeignKey['CONSTRAINT_COLUMNS']) as $value) {
+            $columns[] = trim($value, ' `');
+        }
+
+        $refColumns = array();
+        foreach (explode(',', $tableForeignKey['REFERENCED_TABLE_COLUMNS']) as $value) {
+            $refColumns[] = trim($value, ' `');
+        }
+
+        return new ForeignKeyConstraint(
+            $columns,
+            $tableForeignKey['REFERENCED_TABLE_NAME'],
+            $refColumns,
+            $tableForeignKey['CONSTRAINT_NAME'],
+            array(
+                'onUpdate' => $tableForeignKey['UPDATE_RULE'],
+                'onDelete' => $tableForeignKey['DELETE_RULE'],
+            )
+        );
     }
 
     /**

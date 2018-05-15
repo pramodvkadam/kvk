@@ -34,26 +34,6 @@ class Swift_Plugins_AntiFloodPluginTest extends \PHPUnit\Framework\TestCase
         }
     }
 
-    private function createTransport()
-    {
-        return $this->getMockBuilder('Swift_Transport')->getMock();
-    }
-
-    private function createSendEvent($transport)
-    {
-        $evt = $this->getMockBuilder('Swift_Events_SendEvent')
-                    ->disableOriginalConstructor()
-                    ->getMock();
-        $evt->expects($this->any())
-            ->method('getSource')
-            ->will($this->returnValue($transport));
-        $evt->expects($this->any())
-            ->method('getTransport')
-            ->will($this->returnValue($transport));
-
-        return $evt;
-    }
-
     public function testPluginCanStopAndStartMultipleTimes()
     {
         $transport = $this->createTransport();
@@ -89,5 +69,25 @@ class Swift_Plugins_AntiFloodPluginTest extends \PHPUnit\Framework\TestCase
         for ($i = 0; $i < 101; ++$i) {
             $plugin->sendPerformed($evt);
         }
+    }
+
+    private function createTransport()
+    {
+        return $this->getMockBuilder('Swift_Transport')->getMock();
+    }
+
+    private function createSendEvent($transport)
+    {
+        $evt = $this->getMockBuilder('Swift_Events_SendEvent')
+                    ->disableOriginalConstructor()
+                    ->getMock();
+        $evt->expects($this->any())
+            ->method('getSource')
+            ->will($this->returnValue($transport));
+        $evt->expects($this->any())
+            ->method('getTransport')
+            ->will($this->returnValue($transport));
+
+        return $evt;
     }
 }

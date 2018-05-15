@@ -126,20 +126,6 @@ class TwigTestTokenParser_§ extends Twig_TokenParser
 
 class TwigTestExtension extends Twig_Extension
 {
-    public static function staticCall($value)
-    {
-        return "*$value*";
-    }
-
-    public static function __callStatic($method, $arguments)
-    {
-        if ('magicStaticCall' !== $method) {
-            throw new BadMethodCallException('Unexpected call to __callStatic');
-        }
-
-        return 'static_magic_'.$arguments[0];
-    }
-
     public function getTokenParsers()
     {
         return array(
@@ -235,6 +221,11 @@ class TwigTestExtension extends Twig_Extension
         return strtoupper($value);
     }
 
+    public static function staticCall($value)
+    {
+        return "*$value*";
+    }
+
     public function br()
     {
         return '<br />';
@@ -252,6 +243,15 @@ class TwigTestExtension extends Twig_Extension
         }
 
         return 'magic_'.$arguments[0];
+    }
+
+    public static function __callStatic($method, $arguments)
+    {
+        if ('magicStaticCall' !== $method) {
+            throw new BadMethodCallException('Unexpected call to __callStatic');
+        }
+
+        return 'static_magic_'.$arguments[0];
     }
 }
 

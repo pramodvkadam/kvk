@@ -45,11 +45,6 @@ class PhpFileCacheTest extends BaseFileCacheTest
         $this->assertTrue($cache->contains('test_set_state'));
     }
 
-    protected function _getCacheDriver()
-    {
-        return new PhpFileCache($this->directory);
-    }
-
     public function testNotImplementsSetState()
     {
         $cache = $this->_getCacheDriver();
@@ -68,6 +63,11 @@ class PhpFileCacheTest extends BaseFileCacheTest
         $this->assertNull($stats[Cache::STATS_UPTIME]);
         $this->assertEquals(0, $stats[Cache::STATS_MEMORY_USAGE]);
         $this->assertGreaterThan(0, $stats[Cache::STATS_MEMORY_AVAILABLE]);
+    }
+
+    protected function _getCacheDriver()
+    {
+        return new PhpFileCache($this->directory);
     }
 }
 

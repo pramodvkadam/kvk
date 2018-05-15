@@ -39,6 +39,26 @@ class Dotenv
     }
 
     /**
+     * Load environment file in given directory.
+     *
+     * @return array
+     */
+    public function load()
+    {
+        return $this->loadData();
+    }
+
+    /**
+     * Load environment file in given directory.
+     *
+     * @return array
+     */
+    public function overload()
+    {
+        return $this->loadData(true);
+    }
+
+    /**
      * Returns the full path to the file.
      *
      * @param string $path
@@ -58,16 +78,6 @@ class Dotenv
     }
 
     /**
-     * Load environment file in given directory.
-     *
-     * @return array
-     */
-    public function load()
-    {
-        return $this->loadData();
-    }
-
-    /**
      * Actually load the data.
      *
      * @param bool $overload
@@ -79,16 +89,6 @@ class Dotenv
         $this->loader = new Loader($this->filePath, !$overload);
 
         return $this->loader->load();
-    }
-
-    /**
-     * Load environment file in given directory.
-     *
-     * @return array
-     */
-    public function overload()
-    {
-        return $this->loadData(true);
     }
 
     /**

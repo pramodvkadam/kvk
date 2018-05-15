@@ -58,6 +58,16 @@ class SqlServerConnection extends Connection
     }
 
     /**
+     * Get the default query grammar instance.
+     *
+     * @return \Illuminate\Database\Query\Grammars\SqlServerGrammar
+     */
+    protected function getDefaultQueryGrammar()
+    {
+        return $this->withTablePrefix(new QueryGrammar);
+    }
+
+    /**
      * Get a schema builder instance for the connection.
      *
      * @return \Illuminate\Database\Schema\SqlServerBuilder
@@ -69,16 +79,6 @@ class SqlServerConnection extends Connection
         }
 
         return new SqlServerBuilder($this);
-    }
-
-    /**
-     * Get the default query grammar instance.
-     *
-     * @return \Illuminate\Database\Query\Grammars\SqlServerGrammar
-     */
-    protected function getDefaultQueryGrammar()
-    {
-        return $this->withTablePrefix(new QueryGrammar);
     }
 
     /**

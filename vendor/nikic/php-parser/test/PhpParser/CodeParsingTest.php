@@ -56,15 +56,15 @@ class CodeParsingTest extends CodeTestAbstract
         return canonicalize($output);
     }
 
+    public function provideTestParse() {
+        return $this->getTests(__DIR__ . '/../code/parser', 'test');
+    }
+
     private function formatErrorMessage(Error $e, $code) {
         if ($e->hasColumnInfo()) {
             return $e->getMessageWithColumnInfo($code);
         } else {
             return $e->getMessage();
         }
-    }
-
-    public function provideTestParse() {
-        return $this->getTests(__DIR__ . '/../code/parser', 'test');
     }
 }

@@ -81,57 +81,6 @@ class MysqliConnection implements Connection, PingableConnection, ServerInfoAwar
     }
 
     /**
-     * Apply the driver options to the connection.
-     *
-     * @param array $driverOptions
-     *
-     * @throws MysqliException When one of of the options is not supported.
-     * @throws MysqliException When applying doesn't work - e.g. due to incorrect value.
-     */
-    private function setDriverOptions(array $driverOptions = array())
-    {
-        $supportedDriverOptions = array(
-            \MYSQLI_OPT_CONNECT_TIMEOUT,
-            \MYSQLI_OPT_LOCAL_INFILE,
-            \MYSQLI_INIT_COMMAND,
-            \MYSQLI_READ_DEFAULT_FILE,
-            \MYSQLI_READ_DEFAULT_GROUP,
-        );
-
-        if (defined('MYSQLI_SERVER_PUBLIC_KEY')) {
-            $supportedDriverOptions[] = \MYSQLI_SERVER_PUBLIC_KEY;
-        }
-
-        $exceptionMsg = "%s option '%s' with value '%s'";
-
-        foreach ($driverOptions as $option => $value) {
-
-            if ($option === static::OPTION_FLAGS) {
-                continue;
-            }
-
-            if (!in_array($option, $supportedDriverOptions, true)) {
-                throw new MysqliException(
-                    sprintf($exceptionMsg, 'Unsupported', $option, $value)
-                );
-            }
-
-            if (@mysqli_options($this->_conn, $option, $value)) {
-                continue;
-            }
-
-            $msg  = sprintf($exceptionMsg, 'Failed to set', $option, $value);
-            $msg .= sprintf(', error: %s (%d)', mysqli_error($this->_conn), mysqli_errno($this->_conn));
-
-            throw new MysqliException(
-                $msg,
-                $this->_conn->sqlstate,
-                $this->_conn->errno
-            );
-        }
-    }
-
-    /**
      * Retrieves mysqli native resource handle.
      *
      * Could be used if part of your application is not using DBAL.
@@ -166,6 +115,14 @@ class MysqliConnection implements Connection, PingableConnection, ServerInfoAwar
     /**
      * {@inheritdoc}
      */
+    public function prepare($prepareString)
+    {
+        return new MysqliStatement($this->_conn, $prepareString);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function query()
     {
         $args = func_get_args();
@@ -174,14 +131,6 @@ class MysqliConnection implements Connection, PingableConnection, ServerInfoAwar
         $stmt->execute();
 
         return $stmt;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function prepare($prepareString)
-    {
-        return new MysqliStatement($this->_conn, $prepareString);
     }
 
     /**
@@ -252,6 +201,57 @@ class MysqliConnection implements Connection, PingableConnection, ServerInfoAwar
     public function errorInfo()
     {
         return $this->_conn->error;
+    }
+
+    /**
+     * Apply the driver options to the connection.
+     *
+     * @param array $driverOptions
+     *
+     * @throws MysqliException When one of of the options is not supported.
+     * @throws MysqliException When applying doesn't work - e.g. due to incorrect value.
+     */
+    private function setDriverOptions(array $driverOptions = array())
+    {
+        $supportedDriverOptions = array(
+            \MYSQLI_OPT_CONNECT_TIMEOUT,
+            \MYSQLI_OPT_LOCAL_INFILE,
+            \MYSQLI_INIT_COMMAND,
+            \MYSQLI_READ_DEFAULT_FILE,
+            \MYSQLI_READ_DEFAULT_GROUP,
+        );
+
+        if (defined('MYSQLI_SERVER_PUBLIC_KEY')) {
+            $supportedDriverOptions[] = \MYSQLI_SERVER_PUBLIC_KEY;
+        }
+
+        $exceptionMsg = "%s option '%s' with value '%s'";
+
+        foreach ($driverOptions as $option => $value) {
+
+            if ($option === static::OPTION_FLAGS) {
+                continue;
+            }
+
+            if (!in_array($option, $supportedDriverOptions, true)) {
+                throw new MysqliException(
+                    sprintf($exceptionMsg, 'Unsupported', $option, $value)
+                );
+            }
+
+            if (@mysqli_options($this->_conn, $option, $value)) {
+                continue;
+            }
+
+            $msg  = sprintf($exceptionMsg, 'Failed to set', $option, $value);
+            $msg .= sprintf(', error: %s (%d)', mysqli_error($this->_conn), mysqli_errno($this->_conn));
+
+            throw new MysqliException(
+                $msg,
+                $this->_conn->sqlstate,
+                $this->_conn->errno
+            );
+        }
     }
 
     /**

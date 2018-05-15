@@ -26,6 +26,32 @@ trait HasOneOrMany
     }
 
     /**
+     * Alias for the addMany() method.
+     * @param  array  $models
+     * @return array
+     */
+    public function saveMany($models, $sessionKey = null)
+    {
+        $this->addMany($models, $sessionKey);
+
+        return $models;
+    }
+
+    /**
+     * Create a new instance of this related model with deferred binding support.
+     */
+    public function create(array $attributes = [], $sessionKey = null)
+    {
+        $model = parent::create($attributes);
+
+        if ($sessionKey !== null) {
+            $this->add($model, $sessionKey);
+        }
+
+        return $model;
+    }
+
+    /**
      * Adds a model to this relationship type.
      */
     public function add(Model $model, $sessionKey = null)
@@ -50,18 +76,6 @@ trait HasOneOrMany
     }
 
     /**
-     * Alias for the addMany() method.
-     * @param  array  $models
-     * @return array
-     */
-    public function saveMany($models, $sessionKey = null)
-    {
-        $this->addMany($models, $sessionKey);
-
-        return $models;
-    }
-
-    /**
      * Attach an array of models to the parent instance with deferred binding support.
      * @param  array  $models
      * @return void
@@ -71,20 +85,6 @@ trait HasOneOrMany
         foreach ($models as $model) {
             $this->add($model, $sessionKey);
         }
-    }
-
-    /**
-     * Create a new instance of this related model with deferred binding support.
-     */
-    public function create(array $attributes = [], $sessionKey = null)
-    {
-        $model = parent::create($attributes);
-
-        if ($sessionKey !== null) {
-            $this->add($model, $sessionKey);
-        }
-
-        return $model;
     }
 
     /**

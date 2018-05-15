@@ -31,18 +31,6 @@ class ShopwareInstaller extends BaseInstaller
     }
 
     /**
-     * Changes the name to a underscore separated name
-     * @param  array $vars
-     * @return array
-     */
-    private function correctThemeName($vars)
-    {
-        $vars['name'] = str_replace('-', '_', $vars['name']);
-
-        return $vars;
-    }
-
-    /**
      * Changes the name to a camelcased combination of vendor and name
      * @param  array $vars
      * @return array
@@ -54,6 +42,18 @@ class ShopwareInstaller extends BaseInstaller
         }, $vars['name']);
 
         $vars['name'] = ucfirst($vars['vendor']) . ucfirst($camelCasedName);
+
+        return $vars;
+    }
+
+    /**
+     * Changes the name to a underscore separated name
+     * @param  array $vars
+     * @return array
+     */
+    private function correctThemeName($vars)
+    {
+        $vars['name'] = str_replace('-', '_', $vars['name']);
 
         return $vars;
     }

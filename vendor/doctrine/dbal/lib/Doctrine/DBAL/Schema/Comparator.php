@@ -156,6 +156,42 @@ class Comparator
     }
 
     /**
+     * @param \Doctrine\DBAL\Schema\Schema   $schema
+     * @param \Doctrine\DBAL\Schema\Sequence $sequence
+     *
+     * @return boolean
+     */
+    private function isAutoIncrementSequenceInSchema($schema, $sequence)
+    {
+        foreach ($schema->getTables() as $table) {
+            if ($sequence->isAutoIncrementsFor($table)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param \Doctrine\DBAL\Schema\Sequence $sequence1
+     * @param \Doctrine\DBAL\Schema\Sequence $sequence2
+     *
+     * @return boolean
+     */
+    public function diffSequence(Sequence $sequence1, Sequence $sequence2)
+    {
+        if ($sequence1->getAllocationSize() != $sequence2->getAllocationSize()) {
+            return true;
+        }
+
+        if ($sequence1->getInitialValue() != $sequence2->getInitialValue()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Returns the difference between the tables $table1 and $table2.
      *
      * If there are no differences this method returns the boolean false.
@@ -270,6 +306,112 @@ class Comparator
     }
 
     /**
+     * Try to find columns that only changed their name, rename operations maybe cheaper than add/drop
+     * however ambiguities between different possibilities should not lead to renaming at all.
+     *
+     * @param \Doctrine\DBAL\Schema\TableDiff $tableDifferences
+     *
+     * @return void
+     */
+    private function detectColumnRenamings(TableDiff $tableDifferences)
+    {
+        $renameCandidates = array();
+        foreach ($tableDifferences->addedColumns as $addedColumnName => $addedColumn) {
+            foreach ($tableDifferences->removedColumns as $removedColumn) {
+                if (count($this->diffColumn($addedColumn, $removedColumn)) == 0) {
+                    $renameCandidates[$addedColumn->getName()][] = array($removedColumn, $addedColumn, $addedColumnName);
+                }
+            }
+        }
+
+        foreach ($renameCandidates as $candidateColumns) {
+            if (count($candidateColumns) == 1) {
+                list($removedColumn, $addedColumn) = $candidateColumns[0];
+                $removedColumnName = strtolower($removedColumn->getName());
+                $addedColumnName = strtolower($addedColumn->getName());
+
+                if ( ! isset($tableDifferences->renamedColumns[$removedColumnName])) {
+                    $tableDifferences->renamedColumns[$removedColumnName] = $addedColumn;
+                    unset($tableDifferences->addedColumns[$addedColumnName]);
+                    unset($tableDifferences->removedColumns[$removedColumnName]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Try to find indexes that only changed their name, rename operations maybe cheaper than add/drop
+     * however ambiguities between different possibilities should not lead to renaming at all.
+     *
+     * @param \Doctrine\DBAL\Schema\TableDiff $tableDifferences
+     *
+     * @return void
+     */
+    private function detectIndexRenamings(TableDiff $tableDifferences)
+    {
+        $renameCandidates = array();
+
+        // Gather possible rename candidates by comparing each added and removed index based on semantics.
+        foreach ($tableDifferences->addedIndexes as $addedIndexName => $addedIndex) {
+            foreach ($tableDifferences->removedIndexes as $removedIndex) {
+                if (! $this->diffIndex($addedIndex, $removedIndex)) {
+                    $renameCandidates[$addedIndex->getName()][] = array($removedIndex, $addedIndex, $addedIndexName);
+                }
+            }
+        }
+
+        foreach ($renameCandidates as $candidateIndexes) {
+            // If the current rename candidate contains exactly one semantically equal index,
+            // we can safely rename it.
+            // Otherwise it is unclear if a rename action is really intended,
+            // therefore we let those ambiguous indexes be added/dropped.
+            if (count($candidateIndexes) === 1) {
+                list($removedIndex, $addedIndex) = $candidateIndexes[0];
+
+                $removedIndexName = strtolower($removedIndex->getName());
+                $addedIndexName = strtolower($addedIndex->getName());
+
+                if (! isset($tableDifferences->renamedIndexes[$removedIndexName])) {
+                    $tableDifferences->renamedIndexes[$removedIndexName] = $addedIndex;
+                    unset($tableDifferences->addedIndexes[$addedIndexName]);
+                    unset($tableDifferences->removedIndexes[$removedIndexName]);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param \Doctrine\DBAL\Schema\ForeignKeyConstraint $key1
+     * @param \Doctrine\DBAL\Schema\ForeignKeyConstraint $key2
+     *
+     * @return boolean
+     */
+    public function diffForeignKey(ForeignKeyConstraint $key1, ForeignKeyConstraint $key2)
+    {
+        if (array_map('strtolower', $key1->getUnquotedLocalColumns()) != array_map('strtolower', $key2->getUnquotedLocalColumns())) {
+            return true;
+        }
+
+        if (array_map('strtolower', $key1->getUnquotedForeignColumns()) != array_map('strtolower', $key2->getUnquotedForeignColumns())) {
+            return true;
+        }
+
+        if ($key1->getUnqualifiedForeignTableName() !== $key2->getUnqualifiedForeignTableName()) {
+            return true;
+        }
+
+        if ($key1->onUpdate() != $key2->onUpdate()) {
+            return true;
+        }
+
+        if ($key1->onDelete() != $key2->onDelete()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Returns the difference between the fields $field1 and $field2.
      *
      * If there are differences this method returns $field2, otherwise the
@@ -356,40 +498,6 @@ class Comparator
     }
 
     /**
-     * Try to find columns that only changed their name, rename operations maybe cheaper than add/drop
-     * however ambiguities between different possibilities should not lead to renaming at all.
-     *
-     * @param \Doctrine\DBAL\Schema\TableDiff $tableDifferences
-     *
-     * @return void
-     */
-    private function detectColumnRenamings(TableDiff $tableDifferences)
-    {
-        $renameCandidates = array();
-        foreach ($tableDifferences->addedColumns as $addedColumnName => $addedColumn) {
-            foreach ($tableDifferences->removedColumns as $removedColumn) {
-                if (count($this->diffColumn($addedColumn, $removedColumn)) == 0) {
-                    $renameCandidates[$addedColumn->getName()][] = array($removedColumn, $addedColumn, $addedColumnName);
-                }
-            }
-        }
-
-        foreach ($renameCandidates as $candidateColumns) {
-            if (count($candidateColumns) == 1) {
-                list($removedColumn, $addedColumn) = $candidateColumns[0];
-                $removedColumnName = strtolower($removedColumn->getName());
-                $addedColumnName = strtolower($addedColumn->getName());
-
-                if ( ! isset($tableDifferences->renamedColumns[$removedColumnName])) {
-                    $tableDifferences->renamedColumns[$removedColumnName] = $addedColumn;
-                    unset($tableDifferences->addedColumns[$addedColumnName]);
-                    unset($tableDifferences->removedColumns[$removedColumnName]);
-                }
-            }
-        }
-    }
-
-    /**
      * Finds the difference between the indexes $index1 and $index2.
      *
      * Compares $index1 with $index2 and returns $index2 if there are any
@@ -407,113 +515,5 @@ class Comparator
         }
 
         return true;
-    }
-
-    /**
-     * Try to find indexes that only changed their name, rename operations maybe cheaper than add/drop
-     * however ambiguities between different possibilities should not lead to renaming at all.
-     *
-     * @param \Doctrine\DBAL\Schema\TableDiff $tableDifferences
-     *
-     * @return void
-     */
-    private function detectIndexRenamings(TableDiff $tableDifferences)
-    {
-        $renameCandidates = array();
-
-        // Gather possible rename candidates by comparing each added and removed index based on semantics.
-        foreach ($tableDifferences->addedIndexes as $addedIndexName => $addedIndex) {
-            foreach ($tableDifferences->removedIndexes as $removedIndex) {
-                if (! $this->diffIndex($addedIndex, $removedIndex)) {
-                    $renameCandidates[$addedIndex->getName()][] = array($removedIndex, $addedIndex, $addedIndexName);
-                }
-            }
-        }
-
-        foreach ($renameCandidates as $candidateIndexes) {
-            // If the current rename candidate contains exactly one semantically equal index,
-            // we can safely rename it.
-            // Otherwise it is unclear if a rename action is really intended,
-            // therefore we let those ambiguous indexes be added/dropped.
-            if (count($candidateIndexes) === 1) {
-                list($removedIndex, $addedIndex) = $candidateIndexes[0];
-
-                $removedIndexName = strtolower($removedIndex->getName());
-                $addedIndexName = strtolower($addedIndex->getName());
-
-                if (! isset($tableDifferences->renamedIndexes[$removedIndexName])) {
-                    $tableDifferences->renamedIndexes[$removedIndexName] = $addedIndex;
-                    unset($tableDifferences->addedIndexes[$addedIndexName]);
-                    unset($tableDifferences->removedIndexes[$removedIndexName]);
-                }
-            }
-        }
-    }
-
-    /**
-     * @param \Doctrine\DBAL\Schema\ForeignKeyConstraint $key1
-     * @param \Doctrine\DBAL\Schema\ForeignKeyConstraint $key2
-     *
-     * @return boolean
-     */
-    public function diffForeignKey(ForeignKeyConstraint $key1, ForeignKeyConstraint $key2)
-    {
-        if (array_map('strtolower', $key1->getUnquotedLocalColumns()) != array_map('strtolower', $key2->getUnquotedLocalColumns())) {
-            return true;
-        }
-
-        if (array_map('strtolower', $key1->getUnquotedForeignColumns()) != array_map('strtolower', $key2->getUnquotedForeignColumns())) {
-            return true;
-        }
-
-        if ($key1->getUnqualifiedForeignTableName() !== $key2->getUnqualifiedForeignTableName()) {
-            return true;
-        }
-
-        if ($key1->onUpdate() != $key2->onUpdate()) {
-            return true;
-        }
-
-        if ($key1->onDelete() != $key2->onDelete()) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param \Doctrine\DBAL\Schema\Schema   $schema
-     * @param \Doctrine\DBAL\Schema\Sequence $sequence
-     *
-     * @return boolean
-     */
-    private function isAutoIncrementSequenceInSchema($schema, $sequence)
-    {
-        foreach ($schema->getTables() as $table) {
-            if ($sequence->isAutoIncrementsFor($table)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param \Doctrine\DBAL\Schema\Sequence $sequence1
-     * @param \Doctrine\DBAL\Schema\Sequence $sequence2
-     *
-     * @return boolean
-     */
-    public function diffSequence(Sequence $sequence1, Sequence $sequence2)
-    {
-        if ($sequence1->getAllocationSize() != $sequence2->getAllocationSize()) {
-            return true;
-        }
-
-        if ($sequence1->getInitialValue() != $sequence2->getInitialValue()) {
-            return true;
-        }
-
-        return false;
     }
 }

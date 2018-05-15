@@ -146,14 +146,6 @@ abstract class AbstractMySQLDriver implements Driver, ExceptionConverterDriver, 
     /**
      * {@inheritdoc}
      */
-    public function getDatabasePlatform()
-    {
-        return new MySqlPlatform();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function getDatabase(\Doctrine\DBAL\Connection $conn)
     {
         $params = $conn->getParams();
@@ -163,6 +155,14 @@ abstract class AbstractMySQLDriver implements Driver, ExceptionConverterDriver, 
         }
 
         return $conn->query('SELECT DATABASE()')->fetchColumn();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getDatabasePlatform()
+    {
+        return new MySqlPlatform();
     }
 
     /**

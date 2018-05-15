@@ -3,6 +3,8 @@
 use App;
 use Artisan;
 use Cache;
+use Log;
+use Exception;
 use System\Classes\ModelBehavior;
 use ApplicationException;
 
@@ -20,13 +22,15 @@ class SettingsModel extends ModelBehavior
 {
     use \System\Traits\ConfigMaker;
 
+    protected $recordCode;
+    protected $fieldConfig;
+    protected $fieldValues = [];
+
     /**
      * @var array Internal cache of model objects.
      */
     private static $instances = [];
-    protected $recordCode;
-    protected $fieldConfig;
-    protected $fieldValues = [];
+
     /**
      * @inheritDoc
      */
@@ -62,12 +66,20 @@ class SettingsModel extends ModelBehavior
     }
 
     /**
-     * Clears the internal memory cache of model instances.
-     * @return void
+     * Create an instance of the settings model, intended as a static method
      */
-    public static function clearInternalCache()
+    public function instance()
     {
-        static::$instances = [];
+        if (isset(self::$instances[$this->recordCode])) {
+            return self::$instances[$this->recordCode];
+        }
+
+        if (!$item = $this->getSettingsRecord()) {
+            $this->model->initSettingsData();
+            $item = $this->model;
+        }
+
+        return self::$instances[$this->recordCode] = $item;
     }
 
     /**
@@ -80,6 +92,15 @@ class SettingsModel extends ModelBehavior
             unset(self::$instances[$this->recordCode]);
             Cache::forget($this->getCacheKey());
         }
+    }
+
+    /**
+     * Checks if the model has been set up previously, intended as a static method
+     * @return bool
+     */
+    public function isConfigured()
+    {
+        return App::hasDatabase() && $this->getSettingsRecord() !== null;
     }
 
     /**
@@ -97,23 +118,6 @@ class SettingsModel extends ModelBehavior
     }
 
     /**
-     * Returns a cache key for this record.
-     */
-    protected function getCacheKey()
-    {
-        return 'system::settings.'.$this->recordCode;
-    }
-
-    /**
-     * Checks if the model has been set up previously, intended as a static method
-     * @return bool
-     */
-    public function isConfigured()
-    {
-        return App::hasDatabase() && $this->getSettingsRecord() !== null;
-    }
-
-    /**
      * Set a single or array key pair of values, intended as a static method
      */
     public function set($key, $value = null)
@@ -122,23 +126,6 @@ class SettingsModel extends ModelBehavior
         $obj = self::instance();
         $obj->fill($data);
         return $obj->save();
-    }
-
-    /**
-     * Create an instance of the settings model, intended as a static method
-     */
-    public function instance()
-    {
-        if (isset(self::$instances[$this->recordCode])) {
-            return self::$instances[$this->recordCode];
-        }
-
-        if (!$item = $this->getSettingsRecord()) {
-            $this->model->initSettingsData();
-            $item = $this->model;
-        }
-
-        return self::$instances[$this->recordCode] = $item;
     }
 
     /**
@@ -171,29 +158,6 @@ class SettingsModel extends ModelBehavior
         }
 
         $this->fieldValues[$key] = $value;
-    }
-
-    /**
-     * Checks if a key is legitimate or should be added to
-     * the field value collection
-     */
-    protected function isKeyAllowed($key)
-    {
-        /*
-         * Let the core columns through
-         */
-        if ($key == 'id' || $key == 'value' || $key == 'item') {
-            return true;
-        }
-
-        /*
-         * Let relations through
-         */
-        if ($this->model->hasRelation($key)) {
-            return true;
-        }
-
-        return false;
     }
 
     /**
@@ -242,7 +206,35 @@ class SettingsModel extends ModelBehavior
     public function afterModelSave()
     {
         Cache::forget($this->getCacheKey());
-        Artisan::call('queue:restart');
+
+        try {
+            Artisan::call('queue:restart');
+        } catch (Exception $e) {
+            Log::warning($e->getMessage());
+        }
+    }
+
+    /**
+     * Checks if a key is legitimate or should be added to
+     * the field value collection
+     */
+    protected function isKeyAllowed($key)
+    {
+        /*
+         * Let the core columns through
+         */
+        if ($key == 'id' || $key == 'value' || $key == 'item') {
+            return true;
+        }
+
+        /*
+         * Let relations through
+         */
+        if ($this->model->hasRelation($key)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -255,5 +247,22 @@ class SettingsModel extends ModelBehavior
         }
 
         return $this->fieldConfig = $this->makeConfig($this->model->settingsFields);
+    }
+
+    /**
+     * Returns a cache key for this record.
+     */
+    protected function getCacheKey()
+    {
+        return 'system::settings.'.$this->recordCode;
+    }
+
+    /**
+     * Clears the internal memory cache of model instances.
+     * @return void
+     */
+    public static function clearInternalCache()
+    {
+        static::$instances = [];
     }
 }

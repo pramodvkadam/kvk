@@ -52,26 +52,6 @@ class IndexVersionsOperations extends IndexOperationsBehaviorBase
         return $result;
     }
 
-    protected function getTabName($version, $model)
-    {
-        $pluginName = Lang::get($model->getModelPluginName());
-
-        if (!strlen($version)) {
-            return $pluginName.'/'.Lang::get('rainlab.builder::lang.version.tab_new_version');
-        }
-
-        return $pluginName.'/v'.$version;
-    }
-
-    protected function getTabId($pluginCode, $version)
-    {
-        if (!strlen($version)) {
-            return 'version-'.$pluginCode.'-'.uniqid(time());
-        }
-
-        return 'version-'.$pluginCode.'-'.$version;
-    }
-
     public function onVersionSave()
     {
         $model = $this->loadOrCreateListFromPost();
@@ -89,34 +69,6 @@ class IndexVersionsOperations extends IndexOperationsBehaviorBase
         ];
 
         return $result;
-    }
-
-    protected function loadOrCreateListFromPost()
-    {
-        $pluginCodeObj = new PluginCode(Request::input('plugin_code'));
-        $options = [
-            'pluginCode' => $pluginCodeObj->toCode()
-        ];
-
-        $versionNumber = Input::get('original_version');
-
-        return $this->loadOrCreateBaseModel($versionNumber, $options);
-    }
-
-    protected function loadOrCreateBaseModel($versionNumber, $options = [])
-    {
-        $model = new MigrationModel();
-
-        if (isset($options['pluginCode'])) {
-            $model->setPluginCode($options['pluginCode']);
-        }
-
-        if (!$versionNumber) {
-            return $model;
-        }
-
-        $model->load($versionNumber);
-        return $model;
     }
 
     public function onVersionDelete()
@@ -174,5 +126,53 @@ class IndexVersionsOperations extends IndexOperationsBehaviorBase
         ];
 
         return $result;
+    }
+
+    protected function loadOrCreateListFromPost()
+    {
+        $pluginCodeObj = new PluginCode(Request::input('plugin_code'));
+        $options = [
+            'pluginCode' => $pluginCodeObj->toCode()
+        ];
+
+        $versionNumber = Input::get('original_version');
+
+        return $this->loadOrCreateBaseModel($versionNumber, $options);
+    }
+
+    protected function getTabName($version, $model)
+    {
+        $pluginName = Lang::get($model->getModelPluginName());
+
+        if (!strlen($version)) {
+            return $pluginName.'/'.Lang::get('rainlab.builder::lang.version.tab_new_version');
+        }
+
+        return $pluginName.'/v'.$version;
+    }
+
+    protected function getTabId($pluginCode, $version)
+    {
+        if (!strlen($version)) {
+            return 'version-'.$pluginCode.'-'.uniqid(time());
+        }
+
+        return 'version-'.$pluginCode.'-'.$version;
+    }
+
+    protected function loadOrCreateBaseModel($versionNumber, $options = [])
+    {
+        $model = new MigrationModel();
+
+        if (isset($options['pluginCode'])) {
+            $model->setPluginCode($options['pluginCode']);
+        }
+
+        if (!$versionNumber) {
+            return $model;
+        }
+
+        $model->load($versionNumber);
+        return $model;
     }
 }

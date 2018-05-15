@@ -105,38 +105,6 @@ class FormBuilder
     }
 
     /**
-     * Helper for opening a form used for an AJAX call.
-     * @param string $handler Request handler name, eg: onUpdate
-     * @param array $options
-     * @return string
-     */
-    public function ajax($handler, array $options = [])
-    {
-        if (is_array($handler)) {
-            $handler = implode('::', $handler);
-        }
-
-        $attributes = array_merge(
-            ['data-request' => $handler],
-            array_except($options, $this->reservedAjax)
-        );
-
-        $ajaxAttributes = array_diff_key($options, $attributes);
-        foreach ($ajaxAttributes as $property => $value) {
-            $attributes['data-request-' . $property] = $value;
-        }
-
-        /*
-         * The `files` option is a hybrid
-         */
-        if (isset($options['files'])) {
-            $attributes['data-request-files'] = $options['files'];
-        }
-
-        return $this->open($attributes);
-    }
-
-    /**
      * Open up a new HTML form and includes a session key.
      * @param array $options
      * @return string
@@ -193,295 +161,36 @@ class FormBuilder
     }
 
     /**
-     * Returns a hidden HTML input, supplying the session key value.
+     * Helper for opening a form used for an AJAX call.
+     * @param string $handler Request handler name, eg: onUpdate
+     * @param array $options
      * @return string
      */
-    protected function requestHandler($name = null)
+    public function ajax($handler, array $options = [])
     {
-        if (!strlen($name))
-            return '';
+        if (is_array($handler)) {
+            $handler = implode('::', $handler);
+        }
 
-        return $this->hidden('_handler', $name);
+        $attributes = array_merge(
+            ['data-request' => $handler],
+            array_except($options, $this->reservedAjax)
+        );
+
+        $ajaxAttributes = array_diff_key($options, $attributes);
+        foreach ($ajaxAttributes as $property => $value) {
+            $attributes['data-request-' . $property] = $value;
+        }
+
+        /*
+         * The `files` option is a hybrid
+         */
+        if (isset($options['files'])) {
+            $attributes['data-request-files'] = $options['files'];
+        }
+
+        return $this->open($attributes);
     }
-
-    /**
-     * Create a hidden input field.
-     *
-     * @param  string  $name
-     * @param  string  $value
-     * @param  array   $options
-     * @return string
-     */
-    public function hidden($name, $value = null, $options = [])
-    {
-        return $this->input('hidden', $name, $value, $options);
-    }
-
-    /**
-     * Create a form input field.
-     *
-     * @param  string  $type
-     * @param  string  $name
-     * @param  string  $value
-     * @param  array   $options
-     * @return string
-     */
-    public function input($type, $name, $value = null, $options = [])
-    {
-        if (!isset($options['name'])) {
-            $options['name'] = $name;
-        }
-
-        // We will get the appropriate value for the given field. We will look for the
-        // value in the session for the value in the old input data then we'll look
-        // in the model instance if one is set. Otherwise we will just use empty.
-        $id = $this->getIdAttribute($name, $options);
-
-        if (!in_array($type, $this->skipValueTypes)) {
-            $value = $this->getValueAttribute($name, $value);
-        }
-
-        // Once we have the type, value, and ID we can merge them into the rest of the
-        // attributes array so we can convert them into their HTML attribute format
-        // when creating the HTML element. Then, we will return the entire input.
-        $merge = compact('type', 'value', 'id');
-
-        $options = array_merge($options, $merge);
-
-        return '<input'.$this->html->attributes($options).'>';
-    }
-
-    /**
-     * Get the ID attribute for a field name.
-     *
-     * @param  string  $name
-     * @param  array   $attributes
-     * @return string
-     */
-    public function getIdAttribute($name, $attributes)
-    {
-        if (array_key_exists('id', $attributes)) {
-            return $attributes['id'];
-        }
-
-        if (in_array($name, $this->labels)) {
-            return $name;
-        }
-    }
-
-    /**
-     * Get the value that should be assigned to the field.
-     *
-     * @param  string  $name
-     * @param  string  $value
-     * @return string
-     */
-    public function getValueAttribute($name, $value = null)
-    {
-        if (is_null($name)) {
-            return $value;
-        }
-
-        if (!is_null($this->old($name))) {
-            return $this->old($name);
-        }
-
-        if (!is_null($value)) {
-            return $value;
-        }
-
-        if (isset($this->model)) {
-            return $this->getModelValueAttribute($name);
-        }
-    }
-
-    /**
-     * Get a value from the session's old input.
-     *
-     * @param  string  $name
-     * @return string
-     */
-    public function old($name)
-    {
-        if (isset($this->session)) {
-            return $this->session->getOldInput($this->transformKey($name));
-        }
-    }
-
-    /**
-     * Transform key from array to dot syntax.
-     *
-     * @param  string  $key
-     * @return string
-     */
-    protected function transformKey($key)
-    {
-        return str_replace(['.', '[]', '[', ']'], ['_', '', '.', ''], $key);
-    }
-
-    /**
-     * Get the model value that should be assigned to the field.
-     *
-     * @param  string  $name
-     * @return string
-     */
-    protected function getModelValueAttribute($name)
-    {
-        if (is_object($this->model)) {
-            return object_get($this->model, $this->transformKey($name));
-        }
-        elseif (is_array($this->model)) {
-            return array_get($this->model, $this->transformKey($name));
-        }
-    }
-
-    /**
-     * Returns a hidden HTML input, supplying the session key value.
-     * @return string
-     */
-    public function sessionKey($sessionKey = null)
-    {
-        if (!$sessionKey)
-            $sessionKey = post('_session_key', $this->sessionKey);
-
-        return $this->hidden('_session_key', $sessionKey);
-    }
-
-    /**
-     * Parse the form action method.
-     *
-     * @param  string  $method
-     * @return string
-     */
-    protected function getMethod($method)
-    {
-        $method = strtoupper($method);
-
-        return $method != 'GET' ? 'POST' : $method;
-    }
-
-    /**
-     * Get the form action from the options.
-     *
-     * @param  array   $options
-     * @return string
-     */
-    protected function getAction(array $options)
-    {
-        // We will also check for a "route" or "action" parameter on the array so that
-        // developers can easily specify a route or controller action when creating
-        // a form providing a convenient interface for creating the form actions.
-        if (isset($options['url'])) {
-            return $this->getUrlAction($options['url']);
-        }
-
-        if (isset($options['route'])) {
-            return $this->getRouteAction($options['route']);
-        }
-
-        // If an action is available, we are attempting to open a form to a controller
-        // action route. So, we will use the URL generator to get the path to these
-        // actions and return them from the method. Otherwise, we'll use current.
-        elseif (isset($options['action'])) {
-            return $this->getControllerAction($options['action']);
-        }
-
-        return $this->url->current();
-    }
-
-    /**
-     * Get the action for a "url" option.
-     *
-     * @param  array|string  $options
-     * @return string
-     */
-    protected function getUrlAction($options)
-    {
-        if (is_array($options)) {
-            return $this->url->to($options[0], array_slice($options, 1));
-        }
-
-        return $this->url->to($options);
-    }
-
-    /**
-     * Get the action for a "route" option.
-     *
-     * @param  array|string  $options
-     * @return string
-     */
-    protected function getRouteAction($options)
-    {
-        if (is_array($options)) {
-            return $this->url->route($options[0], array_slice($options, 1));
-        }
-
-        return $this->url->route($options);
-    }
-
-    //
-    // Textarea
-    //
-
-    /**
-     * Get the action for an "action" option.
-     *
-     * @param  array|string  $options
-     * @return string
-     */
-    protected function getControllerAction($options)
-    {
-        if (is_array($options)) {
-            return $this->url->action($options[0], array_slice($options, 1));
-        }
-
-        return $this->url->action($options);
-    }
-
-    /**
-     * Get the form appendage for the given method.
-     *
-     * @param  string  $method
-     * @return string
-     */
-    protected function getAppendage($method)
-    {
-        list($method, $appendage) = [strtoupper($method), ''];
-
-        // If the HTTP method is in this list of spoofed methods, we will attach the
-        // method spoofer hidden input to the form. This allows us to use regular
-        // form to initiate PUT and DELETE requests in addition to the typical.
-        if (in_array($method, $this->spoofedMethods)) {
-            $appendage .= $this->hidden('_method', $method);
-        }
-
-        // If the method is something other than GET we will go ahead and attach the
-        // CSRF token to the form, as this can't hurt and is convenient to simply
-        // always have available on every form the developers creates for them.
-        if ($method != 'GET') {
-            $appendage .= $this->token();
-        }
-
-        return $appendage;
-    }
-
-    /**
-     * Generate a hidden field with the current CSRF token.
-     *
-     * @return string
-     */
-    public function token()
-    {
-        $token = !empty($this->csrfToken)
-            ? $this->csrfToken
-            : $this->session->token();
-
-        return $this->hidden('_token', $token);
-    }
-
-    //
-    // Select
-    //
 
     /**
      * Create a new model based form builder.
@@ -523,6 +232,20 @@ class FormBuilder
     }
 
     /**
+     * Generate a hidden field with the current CSRF token.
+     *
+     * @return string
+     */
+    public function token()
+    {
+        $token = !empty($this->csrfToken)
+            ? $this->csrfToken
+            : $this->session->token();
+
+        return $this->hidden('_token', $token);
+    }
+
+    /**
      * Create a form label element.
      *
      * @param  string  $name
@@ -554,6 +277,40 @@ class FormBuilder
     }
 
     /**
+     * Create a form input field.
+     *
+     * @param  string  $type
+     * @param  string  $name
+     * @param  string  $value
+     * @param  array   $options
+     * @return string
+     */
+    public function input($type, $name, $value = null, $options = [])
+    {
+        if (!isset($options['name'])) {
+            $options['name'] = $name;
+        }
+
+        // We will get the appropriate value for the given field. We will look for the
+        // value in the session for the value in the old input data then we'll look
+        // in the model instance if one is set. Otherwise we will just use empty.
+        $id = $this->getIdAttribute($name, $options);
+
+        if (!in_array($type, $this->skipValueTypes)) {
+            $value = $this->getValueAttribute($name, $value);
+        }
+
+        // Once we have the type, value, and ID we can merge them into the rest of the
+        // attributes array so we can convert them into their HTML attribute format
+        // when creating the HTML element. Then, we will return the entire input.
+        $merge = compact('type', 'value', 'id');
+
+        $options = array_merge($options, $merge);
+
+        return '<input'.$this->html->attributes($options).'>';
+    }
+
+    /**
      * Create a text input field.
      *
      * @param  string  $name
@@ -579,6 +336,19 @@ class FormBuilder
     }
 
     /**
+     * Create a hidden input field.
+     *
+     * @param  string  $name
+     * @param  string  $value
+     * @param  array   $options
+     * @return string
+     */
+    public function hidden($name, $value = null, $options = [])
+    {
+        return $this->input('hidden', $name, $value, $options);
+    }
+
+    /**
      * Create an e-mail input field.
      *
      * @param  string  $name
@@ -590,10 +360,6 @@ class FormBuilder
     {
         return $this->input('email', $name, $value, $options);
     }
-
-    //
-    // Checkbox
-    //
 
     /**
      * Create a url input field.
@@ -619,6 +385,10 @@ class FormBuilder
     {
         return $this->input('file', $name, null, $options);
     }
+
+    //
+    // Textarea
+    //
 
     /**
      * Create a textarea input field.
@@ -688,22 +458,9 @@ class FormBuilder
         return array_merge($options, ['cols' => $segments[0], 'rows' => $segments[1]]);
     }
 
-    /**
-     * Create a select range field.
-     *
-     * @param  string  $name
-     * @param  string  $begin
-     * @param  string  $end
-     * @param  string  $selected
-     * @param  array   $options
-     * @return string
-     */
-    public function selectRange($name, $begin, $end, $selected = null, $options = [])
-    {
-        $range = array_combine($range = range($begin, $end), $range);
-
-        return $this->select($name, $range, $selected, $options);
-    }
+    //
+    // Select
+    //
 
     /**
      * Create a select box field with empty option support.
@@ -747,6 +504,58 @@ class FormBuilder
         $list = implode('', $html);
 
         return "<select{$options}>{$list}</select>";
+    }
+
+    /**
+     * Create a select range field.
+     *
+     * @param  string  $name
+     * @param  string  $begin
+     * @param  string  $end
+     * @param  string  $selected
+     * @param  array   $options
+     * @return string
+     */
+    public function selectRange($name, $begin, $end, $selected = null, $options = [])
+    {
+        $range = array_combine($range = range($begin, $end), $range);
+
+        return $this->select($name, $range, $selected, $options);
+    }
+
+    /**
+     * Create a select year field.
+     *
+     * @param  string  $name
+     * @param  string  $begin
+     * @param  string  $end
+     * @param  string  $selected
+     * @param  array   $options
+     * @return string
+     */
+    public function selectYear()
+    {
+        return call_user_func_array([$this, 'selectRange'], func_get_args());
+    }
+
+    /**
+     * Create a select month field.
+     *
+     * @param  string  $name
+     * @param  string  $selected
+     * @param  array   $options
+     * @param  string  $format
+     * @return string
+     */
+    public function selectMonth($name, $selected = null, $options = [], $format = '%B')
+    {
+        $months = [];
+
+        foreach (range(1, 12) as $month) {
+            $months[$month] = strftime($format, mktime(0, 0, 0, $month, 1));
+        }
+
+        return $this->select($name, $months, $selected, $options);
     }
 
     /**
@@ -818,40 +627,9 @@ class FormBuilder
         return ((string) $value == (string) $selected) ? 'selected' : null;
     }
 
-    /**
-     * Create a select year field.
-     *
-     * @param  string  $name
-     * @param  string  $begin
-     * @param  string  $end
-     * @param  string  $selected
-     * @param  array   $options
-     * @return string
-     */
-    public function selectYear()
-    {
-        return call_user_func_array([$this, 'selectRange'], func_get_args());
-    }
-
-    /**
-     * Create a select month field.
-     *
-     * @param  string  $name
-     * @param  string  $selected
-     * @param  array   $options
-     * @param  string  $format
-     * @return string
-     */
-    public function selectMonth($name, $selected = null, $options = [], $format = '%B')
-    {
-        $months = [];
-
-        foreach (range(1, 12) as $month) {
-            $months[$month] = strftime($format, mktime(0, 0, 0, $month, 1));
-        }
-
-        return $this->select($name, $months, $selected, $options);
-    }
+    //
+    // Checkbox
+    //
 
     /**
      * Create a checkbox input field.
@@ -865,6 +643,24 @@ class FormBuilder
     public function checkbox($name, $value = 1, $checked = null, $options = [])
     {
         return $this->checkable('checkbox', $name, $value, $checked, $options);
+    }
+
+    /**
+     * Create a radio button input field.
+     *
+     * @param  string  $name
+     * @param  mixed   $value
+     * @param  bool    $checked
+     * @param  array   $options
+     * @return string
+     */
+    public function radio($name, $value = null, $checked = null, $options = [])
+    {
+        if (is_null($value)) {
+            $value = $name;
+        }
+
+        return $this->checkable('radio', $name, $value, $checked, $options);
     }
 
     /**
@@ -939,27 +735,6 @@ class FormBuilder
     }
 
     /**
-     * Determine if the old input is empty.
-     *
-     * @return bool
-     */
-    public function oldInputIsEmpty()
-    {
-        return (isset($this->session) && count($this->session->getOldInput()) == 0);
-    }
-
-    /**
-     * Determine if old input or model input exists for a key.
-     *
-     * @param  string  $name
-     * @return bool
-     */
-    protected function missingOldAndModel($name)
-    {
-        return (is_null($this->old($name)) && is_null($this->getModelValueAttribute($name)));
-    }
-
-    /**
      * Get the check state for a radio input.
      *
      * @param  string  $name
@@ -977,21 +752,14 @@ class FormBuilder
     }
 
     /**
-     * Create a radio button input field.
+     * Determine if old input or model input exists for a key.
      *
      * @param  string  $name
-     * @param  mixed   $value
-     * @param  bool    $checked
-     * @param  array   $options
-     * @return string
+     * @return bool
      */
-    public function radio($name, $value = null, $checked = null, $options = [])
+    protected function missingOldAndModel($name)
     {
-        if (is_null($value)) {
-            $value = $name;
-        }
-
-        return $this->checkable('radio', $name, $value, $checked, $options);
+        return (is_null($this->old($name)) && is_null($this->getModelValueAttribute($name)));
     }
 
     /**
@@ -1050,6 +818,214 @@ class FormBuilder
     }
 
     /**
+     * Parse the form action method.
+     *
+     * @param  string  $method
+     * @return string
+     */
+    protected function getMethod($method)
+    {
+        $method = strtoupper($method);
+
+        return $method != 'GET' ? 'POST' : $method;
+    }
+
+    /**
+     * Get the form action from the options.
+     *
+     * @param  array   $options
+     * @return string
+     */
+    protected function getAction(array $options)
+    {
+        // We will also check for a "route" or "action" parameter on the array so that
+        // developers can easily specify a route or controller action when creating
+        // a form providing a convenient interface for creating the form actions.
+        if (isset($options['url'])) {
+            return $this->getUrlAction($options['url']);
+        }
+
+        if (isset($options['route'])) {
+            return $this->getRouteAction($options['route']);
+        }
+
+        // If an action is available, we are attempting to open a form to a controller
+        // action route. So, we will use the URL generator to get the path to these
+        // actions and return them from the method. Otherwise, we'll use current.
+        elseif (isset($options['action'])) {
+            return $this->getControllerAction($options['action']);
+        }
+
+        return $this->url->current();
+    }
+
+    /**
+     * Get the action for a "url" option.
+     *
+     * @param  array|string  $options
+     * @return string
+     */
+    protected function getUrlAction($options)
+    {
+        if (is_array($options)) {
+            return $this->url->to($options[0], array_slice($options, 1));
+        }
+
+        return $this->url->to($options);
+    }
+
+    /**
+     * Get the action for a "route" option.
+     *
+     * @param  array|string  $options
+     * @return string
+     */
+    protected function getRouteAction($options)
+    {
+        if (is_array($options)) {
+            return $this->url->route($options[0], array_slice($options, 1));
+        }
+
+        return $this->url->route($options);
+    }
+
+    /**
+     * Get the action for an "action" option.
+     *
+     * @param  array|string  $options
+     * @return string
+     */
+    protected function getControllerAction($options)
+    {
+        if (is_array($options)) {
+            return $this->url->action($options[0], array_slice($options, 1));
+        }
+
+        return $this->url->action($options);
+    }
+
+    /**
+     * Get the form appendage for the given method.
+     *
+     * @param  string  $method
+     * @return string
+     */
+    protected function getAppendage($method)
+    {
+        list($method, $appendage) = [strtoupper($method), ''];
+
+        // If the HTTP method is in this list of spoofed methods, we will attach the
+        // method spoofer hidden input to the form. This allows us to use regular
+        // form to initiate PUT and DELETE requests in addition to the typical.
+        if (in_array($method, $this->spoofedMethods)) {
+            $appendage .= $this->hidden('_method', $method);
+        }
+
+        // If the method is something other than GET we will go ahead and attach the
+        // CSRF token to the form, as this can't hurt and is convenient to simply
+        // always have available on every form the developers creates for them.
+        if ($method != 'GET') {
+            $appendage .= $this->token();
+        }
+
+        return $appendage;
+    }
+
+    /**
+     * Get the ID attribute for a field name.
+     *
+     * @param  string  $name
+     * @param  array   $attributes
+     * @return string
+     */
+    public function getIdAttribute($name, $attributes)
+    {
+        if (array_key_exists('id', $attributes)) {
+            return $attributes['id'];
+        }
+
+        if (in_array($name, $this->labels)) {
+            return $name;
+        }
+    }
+
+    /**
+     * Get the value that should be assigned to the field.
+     *
+     * @param  string  $name
+     * @param  string  $value
+     * @return string
+     */
+    public function getValueAttribute($name, $value = null)
+    {
+        if (is_null($name)) {
+            return $value;
+        }
+
+        if (!is_null($this->old($name))) {
+            return $this->old($name);
+        }
+
+        if (!is_null($value)) {
+            return $value;
+        }
+
+        if (isset($this->model)) {
+            return $this->getModelValueAttribute($name);
+        }
+    }
+
+    /**
+     * Get the model value that should be assigned to the field.
+     *
+     * @param  string  $name
+     * @return string
+     */
+    protected function getModelValueAttribute($name)
+    {
+        if (is_object($this->model)) {
+            return object_get($this->model, $this->transformKey($name));
+        }
+        elseif (is_array($this->model)) {
+            return array_get($this->model, $this->transformKey($name));
+        }
+    }
+
+    /**
+     * Get a value from the session's old input.
+     *
+     * @param  string  $name
+     * @return string
+     */
+    public function old($name)
+    {
+        if (isset($this->session)) {
+            return $this->session->getOldInput($this->transformKey($name));
+        }
+    }
+
+    /**
+     * Determine if the old input is empty.
+     *
+     * @return bool
+     */
+    public function oldInputIsEmpty()
+    {
+        return (isset($this->session) && count($this->session->getOldInput()) == 0);
+    }
+
+    /**
+     * Transform key from array to dot syntax.
+     *
+     * @param  string  $key
+     * @return string
+     */
+    protected function transformKey($key)
+    {
+        return str_replace(['.', '[]', '[', ']'], ['_', '', '.', ''], $key);
+    }
+
+    /**
      * Get the session store implementation.
      *
      * @return  \Illuminate\Session\Store  $session
@@ -1098,6 +1074,30 @@ class FormBuilder
         }
 
         return $value;
+    }
+
+    /**
+     * Returns a hidden HTML input, supplying the session key value.
+     * @return string
+     */
+    protected function requestHandler($name = null)
+    {
+        if (!strlen($name))
+            return '';
+
+        return $this->hidden('_handler', $name);
+    }
+
+    /**
+     * Returns a hidden HTML input, supplying the session key value.
+     * @return string
+     */
+    public function sessionKey($sessionKey = null)
+    {
+        if (!$sessionKey)
+            $sessionKey = post('_session_key', $this->sessionKey);
+
+        return $this->hidden('_session_key', $sessionKey);
     }
 
     /**

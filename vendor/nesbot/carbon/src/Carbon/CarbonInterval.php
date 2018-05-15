@@ -76,17 +76,35 @@ class CarbonInterval extends DateInterval
     const PERIOD_HOURS = 'H';
     const PERIOD_MINUTES = 'M';
     const PERIOD_SECONDS = 'S';
-    /**
-     * Before PHP 5.4.20/5.5.4 instead of FALSE days will be set to -99999 when the interval instance
-     * was created by DateTime:diff().
-     */
-    const PHP_DAYS_FALSE = -99999;
+
     /**
      * A translator to ... er ... translate stuff
      *
      * @var \Symfony\Component\Translation\TranslatorInterface
      */
     protected static $translator;
+
+    /**
+     * Before PHP 5.4.20/5.5.4 instead of FALSE days will be set to -99999 when the interval instance
+     * was created by DateTime:diff().
+     */
+    const PHP_DAYS_FALSE = -99999;
+
+    /**
+     * Determine if the interval was created via DateTime:diff() or not.
+     *
+     * @param DateInterval $interval
+     *
+     * @return bool
+     */
+    private static function wasCreatedFromDiff(DateInterval $interval)
+    {
+        return $interval->days !== false && $interval->days !== static::PHP_DAYS_FALSE;
+    }
+
+    ///////////////////////////////////////////////////////////////////
+    //////////////////////////// CONSTRUCTORS /////////////////////////
+    ///////////////////////////////////////////////////////////////////
 
     /**
      * Create a new CarbonInterval instance.
@@ -126,10 +144,6 @@ class CarbonInterval extends DateInterval
 
         parent::__construct($spec);
     }
-
-    ///////////////////////////////////////////////////////////////////
-    //////////////////////////// CONSTRUCTORS /////////////////////////
-    ///////////////////////////////////////////////////////////////////
 
     /**
      * Create a new CarbonInterval instance from specific values.
@@ -223,21 +237,25 @@ class CarbonInterval extends DateInterval
         return $instance;
     }
 
-    /**
-     * Determine if the interval was created via DateTime:diff() or not.
-     *
-     * @param DateInterval $interval
-     *
-     * @return bool
-     */
-    private static function wasCreatedFromDiff(DateInterval $interval)
-    {
-        return $interval->days !== false && $interval->days !== static::PHP_DAYS_FALSE;
-    }
-
     ///////////////////////////////////////////////////////////////////
     /////////////////////// LOCALIZATION //////////////////////////////
     ///////////////////////////////////////////////////////////////////
+
+    /**
+     * Initialize the translator instance if necessary.
+     *
+     * @return \Symfony\Component\Translation\TranslatorInterface
+     */
+    protected static function translator()
+    {
+        if (static::$translator === null) {
+            static::$translator = new Translator('en');
+            static::$translator->addLoader('array', new ArrayLoader());
+            static::setLocale('en');
+        }
+
+        return static::$translator;
+    }
 
     /**
      * Get the translator instance in use
@@ -260,19 +278,13 @@ class CarbonInterval extends DateInterval
     }
 
     /**
-     * Initialize the translator instance if necessary.
+     * Get the current translator locale
      *
-     * @return \Symfony\Component\Translation\TranslatorInterface
+     * @return string
      */
-    protected static function translator()
+    public static function getLocale()
     {
-        if (static::$translator === null) {
-            static::$translator = new Translator('en');
-            static::$translator->addLoader('array', new ArrayLoader());
-            static::setLocale('en');
-        }
-
-        return static::$translator;
+        return static::translator()->getLocale();
     }
 
     /**
@@ -286,16 +298,6 @@ class CarbonInterval extends DateInterval
 
         // Ensure the locale has been loaded.
         static::translator()->addResource('array', require __DIR__.'/Lang/'.$locale.'.php', $locale);
-    }
-
-    /**
-     * Get the current translator locale
-     *
-     * @return string
-     */
-    public static function getLocale()
-    {
-        return static::translator()->getLocale();
     }
 
     ///////////////////////////////////////////////////////////////////
@@ -457,16 +459,6 @@ class CarbonInterval extends DateInterval
     }
 
     /**
-     * Format the instance as a string using the forHumans() function.
-     *
-     * @return string
-     */
-    public function __toString()
-    {
-        return $this->forHumans();
-    }
-
-    /**
      * Get the current interval in a human readable format in the current locale.
      *
      * @return string
@@ -491,6 +483,16 @@ class CarbonInterval extends DateInterval
         }
 
         return implode(' ', $parts);
+    }
+
+    /**
+     * Format the instance as a string using the forHumans() function.
+     *
+     * @return string
+     */
+    public function __toString()
+    {
+        return $this->forHumans();
     }
 
     /**

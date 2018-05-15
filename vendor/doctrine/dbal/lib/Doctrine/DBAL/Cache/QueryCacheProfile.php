@@ -66,31 +66,11 @@ class QueryCacheProfile
     }
 
     /**
-     * @param \Doctrine\Common\Cache\Cache $cache
-     *
-     * @return \Doctrine\DBAL\Cache\QueryCacheProfile
-     */
-    public function setResultCacheDriver(Cache $cache)
-    {
-        return new QueryCacheProfile($this->lifetime, $this->cacheKey, $cache);
-    }
-
-    /**
      * @return integer
      */
     public function getLifetime()
     {
         return $this->lifetime;
-    }
-
-    /**
-     * @param integer $lifetime
-     *
-     * @return \Doctrine\DBAL\Cache\QueryCacheProfile
-     */
-    public function setLifetime($lifetime)
-    {
-        return new QueryCacheProfile($lifetime, $this->cacheKey, $this->resultCacheDriver);
     }
 
     /**
@@ -105,16 +85,6 @@ class QueryCacheProfile
         }
 
         return $this->cacheKey;
-    }
-
-    /**
-     * @param string|null $cacheKey
-     *
-     * @return \Doctrine\DBAL\Cache\QueryCacheProfile
-     */
-    public function setCacheKey($cacheKey)
-    {
-        return new QueryCacheProfile($this->lifetime, $cacheKey, $this->resultCacheDriver);
     }
 
     /**
@@ -137,5 +107,35 @@ class QueryCacheProfile
         }
 
         return array($cacheKey, $realCacheKey);
+    }
+
+    /**
+     * @param \Doctrine\Common\Cache\Cache $cache
+     *
+     * @return \Doctrine\DBAL\Cache\QueryCacheProfile
+     */
+    public function setResultCacheDriver(Cache $cache)
+    {
+        return new QueryCacheProfile($this->lifetime, $this->cacheKey, $cache);
+    }
+
+    /**
+     * @param string|null $cacheKey
+     *
+     * @return \Doctrine\DBAL\Cache\QueryCacheProfile
+     */
+    public function setCacheKey($cacheKey)
+    {
+        return new QueryCacheProfile($this->lifetime, $cacheKey, $this->resultCacheDriver);
+    }
+
+    /**
+     * @param integer $lifetime
+     *
+     * @return \Doctrine\DBAL\Cache\QueryCacheProfile
+     */
+    public function setLifetime($lifetime)
+    {
+        return new QueryCacheProfile($lifetime, $this->cacheKey, $this->resultCacheDriver);
     }
 }

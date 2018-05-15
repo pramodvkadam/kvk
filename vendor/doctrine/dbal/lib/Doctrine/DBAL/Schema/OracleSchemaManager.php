@@ -62,91 +62,6 @@ class OracleSchemaManager extends AbstractSchemaManager
     }
 
     /**
-     * Kills sessions connected with the given user.
-     *
-     * This is useful to force DROP USER operations which could fail because of active user sessions.
-     *
-     * @param string $user The name of the user to kill sessions for.
-     *
-     * @return void
-     */
-    private function killUserSessions($user)
-    {
-        $sql = <<<SQL
-SELECT
-    s.sid,
-    s.serial#
-FROM
-    gv\$session s,
-    gv\$process p
-WHERE
-    s.username = ?
-    AND p.addr(+) = s.paddr
-SQL;
-
-        $activeUserSessions = $this->_conn->fetchAll($sql, array(strtoupper($user)));
-
-        foreach ($activeUserSessions as $activeUserSession) {
-            $activeUserSession = array_change_key_case($activeUserSession, \CASE_LOWER);
-
-            $this->_execSql(
-                sprintf(
-                    "ALTER SYSTEM KILL SESSION '%s, %s' IMMEDIATE",
-                    $activeUserSession['sid'],
-                    $activeUserSession['serial#']
-                )
-            );
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function createDatabase($database = null)
-    {
-        if (is_null($database)) {
-            $database = $this->_conn->getDatabase();
-        }
-
-        $params = $this->_conn->getParams();
-        $username   = $database;
-        $password   = $params['password'];
-
-        $query  = 'CREATE USER ' . $username . ' IDENTIFIED BY ' . $password;
-        $this->_conn->executeUpdate($query);
-
-        $query = 'GRANT DBA TO ' . $username;
-        $this->_conn->executeUpdate($query);
-
-        return true;
-    }
-
-    /**
-     * @param string $table
-     *
-     * @return boolean
-     */
-    public function dropAutoincrement($table)
-    {
-        $sql = $this->_platform->getDropAutoincrementSql($table);
-        foreach ($sql as $query) {
-            $this->_conn->executeUpdate($query);
-        }
-
-        return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function dropTable($name)
-    {
-        $this->tryMethod('dropAutoincrement', $name);
-
-        parent::dropTable($name);
-    }
-
-    /**
      * {@inheritdoc}
      */
     protected function _getPortableViewDefinition($view)
@@ -154,25 +69,6 @@ SQL;
         $view = \array_change_key_case($view, CASE_LOWER);
 
         return new View($this->getQuotedIdentifierName($view['view_name']), $view['text']);
-    }
-
-    /**
-     * Returns the quoted representation of the given identifier name.
-     *
-     * Quotes non-uppercase identifiers explicitly to preserve case
-     * and thus make references to the particular identifier work.
-     *
-     * @param string $identifier The identifier to quote.
-     *
-     * @return string The quoted identifier.
-     */
-    private function getQuotedIdentifierName($identifier)
-    {
-        if (preg_match('/[a-z]/', $identifier)) {
-            return $this->_platform->quoteIdentifier($identifier);
-        }
-
-        return $identifier;
     }
 
     /**
@@ -421,5 +317,109 @@ SQL;
         $database = \array_change_key_case($database, CASE_LOWER);
 
         return $database['username'];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function createDatabase($database = null)
+    {
+        if (is_null($database)) {
+            $database = $this->_conn->getDatabase();
+        }
+
+        $params = $this->_conn->getParams();
+        $username   = $database;
+        $password   = $params['password'];
+
+        $query  = 'CREATE USER ' . $username . ' IDENTIFIED BY ' . $password;
+        $this->_conn->executeUpdate($query);
+
+        $query = 'GRANT DBA TO ' . $username;
+        $this->_conn->executeUpdate($query);
+
+        return true;
+    }
+
+    /**
+     * @param string $table
+     *
+     * @return boolean
+     */
+    public function dropAutoincrement($table)
+    {
+        $sql = $this->_platform->getDropAutoincrementSql($table);
+        foreach ($sql as $query) {
+            $this->_conn->executeUpdate($query);
+        }
+
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function dropTable($name)
+    {
+        $this->tryMethod('dropAutoincrement', $name);
+
+        parent::dropTable($name);
+    }
+
+    /**
+     * Returns the quoted representation of the given identifier name.
+     *
+     * Quotes non-uppercase identifiers explicitly to preserve case
+     * and thus make references to the particular identifier work.
+     *
+     * @param string $identifier The identifier to quote.
+     *
+     * @return string The quoted identifier.
+     */
+    private function getQuotedIdentifierName($identifier)
+    {
+        if (preg_match('/[a-z]/', $identifier)) {
+            return $this->_platform->quoteIdentifier($identifier);
+        }
+
+        return $identifier;
+    }
+
+    /**
+     * Kills sessions connected with the given user.
+     *
+     * This is useful to force DROP USER operations which could fail because of active user sessions.
+     *
+     * @param string $user The name of the user to kill sessions for.
+     *
+     * @return void
+     */
+    private function killUserSessions($user)
+    {
+        $sql = <<<SQL
+SELECT
+    s.sid,
+    s.serial#
+FROM
+    gv\$session s,
+    gv\$process p
+WHERE
+    s.username = ?
+    AND p.addr(+) = s.paddr
+SQL;
+
+        $activeUserSessions = $this->_conn->fetchAll($sql, array(strtoupper($user)));
+
+        foreach ($activeUserSessions as $activeUserSession) {
+            $activeUserSession = array_change_key_case($activeUserSession, \CASE_LOWER);
+
+            $this->_execSql(
+                sprintf(
+                    "ALTER SYSTEM KILL SESSION '%s, %s' IMMEDIATE",
+                    $activeUserSession['sid'],
+                    $activeUserSession['serial#']
+                )
+            );
+        }
     }
 }

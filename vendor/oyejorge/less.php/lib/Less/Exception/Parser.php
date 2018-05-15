@@ -51,6 +51,16 @@ class Less_Exception_Parser extends Exception{
 		$this->genMessage();
 	}
 
+
+	protected function getInput(){
+
+		if( !$this->input && $this->currentFile && $this->currentFile['filename'] && file_exists($this->currentFile['filename']) ){
+			$this->input = file_get_contents( $this->currentFile['filename'] );
+		}
+	}
+
+
+
 	/**
 	 * Converts the exception to string
 	 *
@@ -80,13 +90,6 @@ class Less_Exception_Parser extends Exception{
 			}
 		}
 
-	}
-
-	protected function getInput(){
-
-		if( !$this->input && $this->currentFile && $this->currentFile['filename'] && file_exists($this->currentFile['filename']) ){
-			$this->input = file_get_contents( $this->currentFile['filename'] );
-		}
 	}
 
 	/**

@@ -28,6 +28,33 @@ abstract class BuilderAbstract implements Builder {
     }
 
     /**
+     * Normalizes a name: Converts plain string names to PhpParser\Node\Name.
+     *
+     * @param Name|string $name The name to normalize
+     *
+     * @return Name The normalized name
+     */
+    protected function normalizeName($name) {
+        if ($name instanceof Name) {
+            return $name;
+        } elseif (is_string($name)) {
+            if (!$name) {
+                throw new \LogicException('Name cannot be empty');
+            }
+
+            if ($name[0] == '\\') {
+                return new Name\FullyQualified(substr($name, 1));
+            } elseif (0 === strpos($name, 'namespace\\')) {
+                return new Name\Relative(substr($name, strlen('namespace\\')));
+            } else {
+                return new Name($name);
+            }
+        }
+
+        throw new \LogicException('Name must be a string or an instance of PhpParser\Node\Name');
+    }
+
+    /**
      * Normalizes a type: Converts plain-text type names into proper AST representation.
      *
      * In particular, builtin types are left as strings, custom types become Names and nullables
@@ -68,33 +95,6 @@ abstract class BuilderAbstract implements Builder {
         }
 
         return $nullable ? new Node\NullableType($type) : $type;
-    }
-
-    /**
-     * Normalizes a name: Converts plain string names to PhpParser\Node\Name.
-     *
-     * @param Name|string $name The name to normalize
-     *
-     * @return Name The normalized name
-     */
-    protected function normalizeName($name) {
-        if ($name instanceof Name) {
-            return $name;
-        } elseif (is_string($name)) {
-            if (!$name) {
-                throw new \LogicException('Name cannot be empty');
-            }
-
-            if ($name[0] == '\\') {
-                return new Name\FullyQualified(substr($name, 1));
-            } elseif (0 === strpos($name, 'namespace\\')) {
-                return new Name\Relative(substr($name, strlen('namespace\\')));
-            } else {
-                return new Name($name);
-            }
-        }
-
-        throw new \LogicException('Name must be a string or an instance of PhpParser\Node\Name');
     }
 
     /**

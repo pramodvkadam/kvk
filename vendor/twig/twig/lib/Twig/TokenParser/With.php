@@ -36,14 +36,14 @@ final class Twig_TokenParser_With extends Twig_TokenParser
         return new Twig_Node_With($body, $variables, $only, $token->getLine(), $this->getTag());
     }
 
-    public function getTag()
-    {
-        return 'with';
-    }
-
     public function decideWithEnd(Twig_Token $token)
     {
         return $token->test('endwith');
+    }
+
+    public function getTag()
+    {
+        return 'with';
     }
 }
 

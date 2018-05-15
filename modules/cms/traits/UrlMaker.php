@@ -70,13 +70,14 @@ trait UrlMaker
     //
 
     /**
-     * @var string Page where detected component is found.
-     */
-    protected static $urlPageName = null;
-    /**
      * @var string URL cache
      */
     protected $url = null;
+
+    /**
+     * @var string Page where detected component is found.
+     */
+    protected static $urlPageName = null;
 
     /**
      * Changes the component used for generating the URLs dynamically.
@@ -110,15 +111,23 @@ trait UrlMaker
     }
 
     /**
-     * Generates a real URL based on the page, detected by the primary component.
-     * The CMS Controller is used for this process passing the declared params.
-     * @return string
+     * Explicitly set the URL for this model.
+     * @param string $value
+     * @return void
      */
-    protected function makeUrl()
+    public function setUrlAttribute($value)
     {
-        $controller = Controller::getController() ?: new Controller;
+        $this->url = $value;
+    }
 
-        return $controller->pageUrl($this->getUrlPageName(), $this->getUrlParams());
+    /**
+     * Explicitly set the CMS Page to link to.
+     * @param string $pageName
+     * @return void
+     */
+    public function setUrlPageName($pageName)
+    {
+        static::$urlPageName = $pageName;
     }
 
     /**
@@ -187,22 +196,14 @@ trait UrlMaker
     }
 
     /**
-     * Explicitly set the URL for this model.
-     * @param string $value
-     * @return void
+     * Generates a real URL based on the page, detected by the primary component.
+     * The CMS Controller is used for this process passing the declared params.
+     * @return string
      */
-    public function setUrlAttribute($value)
+    protected function makeUrl()
     {
-        $this->url = $value;
-    }
+        $controller = Controller::getController() ?: new Controller;
 
-    /**
-     * Explicitly set the CMS Page to link to.
-     * @param string $pageName
-     * @return void
-     */
-    public function setUrlPageName($pageName)
-    {
-        static::$urlPageName = $pageName;
+        return $controller->pageUrl($this->getUrlPageName(), $this->getUrlParams());
     }
 }

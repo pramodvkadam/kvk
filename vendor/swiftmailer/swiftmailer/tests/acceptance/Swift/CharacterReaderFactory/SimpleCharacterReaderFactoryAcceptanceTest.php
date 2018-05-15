@@ -5,6 +5,11 @@ class Swift_CharacterReaderFactory_SimpleCharacterReaderFactoryAcceptanceTest ex
     private $factory;
     private $prefix = 'Swift_CharacterReader_';
 
+    protected function setUp()
+    {
+        $this->factory = new Swift_CharacterReaderFactory_SimpleCharacterReaderFactory();
+    }
+
     public function testCreatingUtf8Reader()
     {
         foreach (array('utf8', 'utf-8', 'UTF-8', 'UTF8') as $utf8) {
@@ -170,10 +175,5 @@ class Swift_CharacterReaderFactory_SimpleCharacterReaderFactoryAcceptanceTest ex
             $this->assertInstanceOf($this->prefix.'GenericFixedWidthReader', $reader);
             $this->assertEquals(4, $reader->getInitialByteSize());
         }
-    }
-
-    protected function setUp()
-    {
-        $this->factory = new Swift_CharacterReaderFactory_SimpleCharacterReaderFactory();
     }
 }

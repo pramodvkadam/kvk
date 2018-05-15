@@ -45,48 +45,16 @@ class WidgetManager
     protected $pluginManager;
 
     /**
-     * Manually registers form widget for consideration.
-     * Usage:
-     *
-     *     WidgetManager::registerFormWidgets(function($manager){
-     *         $manager->registerFormWidget('Backend\FormWidgets\CodeEditor', 'codeeditor');
-     *     });
-     *
+     * Initialize this singleton.
      */
-    public function registerFormWidgets(callable $definitions)
+    protected function init()
     {
-        $this->formWidgetCallbacks[] = $definitions;
+        $this->pluginManager = PluginManager::instance();
     }
 
     //
     // Form Widgets
     //
-
-    /**
-     * Returns a class name from a form widget code
-     * Normalizes a class name or converts an code to its class name.
-     * @param string $name Class name or form widget code.
-     * @return string The class name resolved, or the original name.
-     */
-    public function resolveFormWidget($name)
-    {
-        if ($this->formWidgets === null) {
-            $this->listFormWidgets();
-        }
-
-        $hints = $this->formWidgetHints;
-
-        if (isset($hints[$name])) {
-            return $hints[$name];
-        }
-
-        $_name = Str::normalizeClassName($name);
-        if (isset($this->formWidgets[$_name])) {
-            return $_name;
-        }
-
-        return $name;
-    }
 
     /**
      * Returns a list of registered form widgets.
@@ -146,6 +114,50 @@ class WidgetManager
     }
 
     /**
+     * Manually registers form widget for consideration.
+     * Usage:
+     *
+     *     WidgetManager::registerFormWidgets(function($manager){
+     *         $manager->registerFormWidget('Backend\FormWidgets\CodeEditor', 'codeeditor');
+     *     });
+     *
+     */
+    public function registerFormWidgets(callable $definitions)
+    {
+        $this->formWidgetCallbacks[] = $definitions;
+    }
+
+    /**
+     * Returns a class name from a form widget code
+     * Normalizes a class name or converts an code to its class name.
+     * @param string $name Class name or form widget code.
+     * @return string The class name resolved, or the original name.
+     */
+    public function resolveFormWidget($name)
+    {
+        if ($this->formWidgets === null) {
+            $this->listFormWidgets();
+        }
+
+        $hints = $this->formWidgetHints;
+
+        if (isset($hints[$name])) {
+            return $hints[$name];
+        }
+
+        $_name = Str::normalizeClassName($name);
+        if (isset($this->formWidgets[$_name])) {
+            return $_name;
+        }
+
+        return $name;
+    }
+
+    //
+    // Report Widgets
+    //
+
+    /**
      * Returns a list of registered report widgets.
      * @return array Array keys are class names.
      */
@@ -197,18 +209,13 @@ class WidgetManager
         return $this->reportWidgets;
     }
 
-    //
-    // Report Widgets
-    //
-
+    /*
+     * Registers a single report widget.
+     */
     public function registerReportWidget($className, $widgetInfo)
     {
         $this->reportWidgets[$className] = $widgetInfo;
     }
-
-    /*
-     * Registers a single report widget.
-     */
 
     /**
      * Manually registers report widget for consideration.
@@ -239,14 +246,6 @@ class WidgetManager
         }
 
         unset($this->reportWidgets[$className]);
-    }
-
-    /**
-     * Initialize this singleton.
-     */
-    protected function init()
-    {
-        $this->pluginManager = PluginManager::instance();
     }
 
 }

@@ -1,4 +1,4 @@
-1518454985a:1:{s:19:"blog/categories.htm";a:5:{s:8:"fileName";s:19:"blog/categories.htm";s:7:"content";s:552:"{% set categories = blogCategories.categories %}
+1526350440a:1:{s:19:"blog/categories.htm";a:5:{s:8:"fileName";s:19:"blog/categories.htm";s:7:"content";s:552:"{% set categories = blogCategories.categories %}
 {% set currentCategorySlug = blogCategories.currentCategorySlug %}
 
 <div class="list-group">
@@ -13,7 +13,7 @@
             {% endif %}
         </a> 
     {% endfor %}
-</div>";s:5:"mtime";i:1518327112;s:6:"markup";s:552:"{% set categories = blogCategories.categories %}
+</div>";s:5:"mtime";i:1526201536;s:6:"markup";s:552:"{% set categories = blogCategories.categories %}
 {% set currentCategorySlug = blogCategories.currentCategorySlug %}
 
 <div class="list-group">

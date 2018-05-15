@@ -57,9 +57,9 @@ abstract class FileDriver implements MappingDriver
      * Initializes a new FileDriver that looks in the given path(s) for mapping
      * documents and operates in the specified operating mode.
      *
-     * @param string|array|FileLocator $locator A FileLocator or one/multiple paths
+     * @param string|array|FileLocator $locator       A FileLocator or one/multiple paths
      *                                                where mapping documents can be found.
-     * @param string|null $fileExtension
+     * @param string|null              $fileExtension
      */
     public function __construct($locator, $fileExtension = null)
     {
@@ -68,16 +68,6 @@ abstract class FileDriver implements MappingDriver
         } else {
             $this->locator = new DefaultFileLocator((array)$locator, $fileExtension);
         }
-    }
-
-    /**
-     * Retrieves the global basename.
-     *
-     * @return string|null
-     */
-    public function getGlobalBasename()
-    {
-        return $this->globalBasename;
     }
 
     /**
@@ -90,6 +80,16 @@ abstract class FileDriver implements MappingDriver
     public function setGlobalBasename($file)
     {
         $this->globalBasename = $file;
+    }
+
+    /**
+     * Retrieves the global basename.
+     *
+     * @return string|null
+     */
+    public function getGlobalBasename()
+    {
+        return $this->globalBasename;
     }
 
     /**
@@ -123,43 +123,6 @@ abstract class FileDriver implements MappingDriver
     }
 
     /**
-     * Initializes the class cache from all the global files.
-     *
-     * Using this feature adds a substantial performance hit to file drivers as
-     * more metadata has to be loaded into memory than might actually be
-     * necessary. This may not be relevant to scenarios where caching of
-     * metadata is in place, however hits very hard in scenarios where no
-     * caching is used.
-     *
-     * @return void
-     */
-    protected function initialize()
-    {
-        $this->classCache = [];
-        if (null !== $this->globalBasename) {
-            foreach ($this->locator->getPaths() as $path) {
-                $file = $path . '/' . $this->globalBasename . $this->locator->getFileExtension();
-                if (is_file($file)) {
-                    $this->classCache = array_merge(
-                        $this->classCache,
-                        $this->loadMappingFile($file)
-                    );
-                }
-            }
-        }
-    }
-
-    /**
-     * Loads a mapping file with the given name and returns a map
-     * from class/entity names to their corresponding file driver elements.
-     *
-     * @param string $file The mapping file to load.
-     *
-     * @return array
-     */
-    abstract protected function loadMappingFile($file);
-
-    /**
      * {@inheritDoc}
      */
     public function isTransient($className)
@@ -184,14 +147,51 @@ abstract class FileDriver implements MappingDriver
             $this->initialize();
         }
 
-        if (!$this->classCache) {
-            return (array)$this->locator->getAllClassNames($this->globalBasename);
+        if (! $this->classCache) {
+            return (array) $this->locator->getAllClassNames($this->globalBasename);
         }
 
         return array_merge(
             array_keys($this->classCache),
-            (array)$this->locator->getAllClassNames($this->globalBasename)
+            (array) $this->locator->getAllClassNames($this->globalBasename)
         );
+    }
+
+    /**
+     * Loads a mapping file with the given name and returns a map
+     * from class/entity names to their corresponding file driver elements.
+     *
+     * @param string $file The mapping file to load.
+     *
+     * @return array
+     */
+    abstract protected function loadMappingFile($file);
+
+    /**
+     * Initializes the class cache from all the global files.
+     *
+     * Using this feature adds a substantial performance hit to file drivers as
+     * more metadata has to be loaded into memory than might actually be
+     * necessary. This may not be relevant to scenarios where caching of
+     * metadata is in place, however hits very hard in scenarios where no
+     * caching is used.
+     *
+     * @return void
+     */
+    protected function initialize()
+    {
+        $this->classCache = [];
+        if (null !== $this->globalBasename) {
+            foreach ($this->locator->getPaths() as $path) {
+                $file = $path.'/'.$this->globalBasename.$this->locator->getFileExtension();
+                if (is_file($file)) {
+                    $this->classCache = array_merge(
+                        $this->classCache,
+                        $this->loadMappingFile($file)
+                    );
+                }
+            }
+        }
     }
 
     /**

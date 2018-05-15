@@ -18,8 +18,6 @@ namespace Symfony\Component\HttpFoundation;
  */
 class Cookie
 {
-    const SAMESITE_LAX = 'lax';
-    const SAMESITE_STRICT = 'strict';
     protected $name;
     protected $value;
     protected $domain;
@@ -29,6 +27,58 @@ class Cookie
     protected $httpOnly;
     private $raw;
     private $sameSite;
+
+    const SAMESITE_LAX = 'lax';
+    const SAMESITE_STRICT = 'strict';
+
+    /**
+     * Creates cookie from raw header string.
+     *
+     * @param string $cookie
+     * @param bool   $decode
+     *
+     * @return static
+     */
+    public static function fromString($cookie, $decode = false)
+    {
+        $data = array(
+            'expires' => 0,
+            'path' => '/',
+            'domain' => null,
+            'secure' => false,
+            'httponly' => false,
+            'raw' => !$decode,
+            'samesite' => null,
+        );
+        foreach (explode(';', $cookie) as $part) {
+            if (false === strpos($part, '=')) {
+                $key = trim($part);
+                $value = true;
+            } else {
+                list($key, $value) = explode('=', trim($part), 2);
+                $key = trim($key);
+                $value = trim($value);
+            }
+            if (!isset($data['name'])) {
+                $data['name'] = $decode ? urldecode($key) : $key;
+                $data['value'] = true === $value ? null : ($decode ? urldecode($value) : $value);
+                continue;
+            }
+            switch ($key = strtolower($key)) {
+                case 'name':
+                case 'value':
+                    break;
+                case 'max-age':
+                    $data['expires'] = time() + (int) $value;
+                    break;
+                default:
+                    $data[$key] = $value;
+                    break;
+            }
+        }
+
+        return new static($data['name'], $data['value'], $data['expires'], $data['path'], $data['domain'], $data['secure'], $data['httponly'], $data['raw'], $data['samesite']);
+    }
 
     /**
      * @param string                        $name     The name of the cookie
@@ -86,55 +136,6 @@ class Cookie
     }
 
     /**
-     * Creates cookie from raw header string.
-     *
-     * @param string $cookie
-     * @param bool   $decode
-     *
-     * @return static
-     */
-    public static function fromString($cookie, $decode = false)
-    {
-        $data = array(
-            'expires' => 0,
-            'path' => '/',
-            'domain' => null,
-            'secure' => false,
-            'httponly' => false,
-            'raw' => !$decode,
-            'samesite' => null,
-        );
-        foreach (explode(';', $cookie) as $part) {
-            if (false === strpos($part, '=')) {
-                $key = trim($part);
-                $value = true;
-            } else {
-                list($key, $value) = explode('=', trim($part), 2);
-                $key = trim($key);
-                $value = trim($value);
-            }
-            if (!isset($data['name'])) {
-                $data['name'] = $decode ? urldecode($key) : $key;
-                $data['value'] = true === $value ? null : ($decode ? urldecode($value) : $value);
-                continue;
-            }
-            switch ($key = strtolower($key)) {
-                case 'name':
-                case 'value':
-                    break;
-                case 'max-age':
-                    $data['expires'] = time() + (int) $value;
-                    break;
-                default:
-                    $data[$key] = $value;
-                    break;
-            }
-        }
-
-        return new static($data['name'], $data['value'], $data['expires'], $data['path'], $data['domain'], $data['secure'], $data['httponly'], $data['raw'], $data['samesite']);
-    }
-
-    /**
      * Returns the cookie as a string.
      *
      * @return string The cookie
@@ -177,16 +178,6 @@ class Cookie
     }
 
     /**
-     * Checks if the cookie value should be sent with no url encoding.
-     *
-     * @return bool
-     */
-    public function isRaw()
-    {
-        return $this->raw;
-    }
-
-    /**
      * Gets the name of the cookie.
      *
      * @return string
@@ -204,6 +195,16 @@ class Cookie
     public function getValue()
     {
         return $this->value;
+    }
+
+    /**
+     * Gets the domain that the cookie is available to.
+     *
+     * @return string|null
+     */
+    public function getDomain()
+    {
+        return $this->domain;
     }
 
     /**
@@ -237,16 +238,6 @@ class Cookie
     }
 
     /**
-     * Gets the domain that the cookie is available to.
-     *
-     * @return string|null
-     */
-    public function getDomain()
-    {
-        return $this->domain;
-    }
-
-    /**
      * Checks whether the cookie should only be transmitted over a secure HTTPS connection from the client.
      *
      * @return bool
@@ -267,16 +258,6 @@ class Cookie
     }
 
     /**
-     * Gets the SameSite attribute.
-     *
-     * @return string|null
-     */
-    public function getSameSite()
-    {
-        return $this->sameSite;
-    }
-
-    /**
      * Whether this cookie is about to be cleared.
      *
      * @return bool
@@ -284,5 +265,25 @@ class Cookie
     public function isCleared()
     {
         return $this->expire < time();
+    }
+
+    /**
+     * Checks if the cookie value should be sent with no url encoding.
+     *
+     * @return bool
+     */
+    public function isRaw()
+    {
+        return $this->raw;
+    }
+
+    /**
+     * Gets the SameSite attribute.
+     *
+     * @return string|null
+     */
+    public function getSameSite()
+    {
+        return $this->sameSite;
     }
 }

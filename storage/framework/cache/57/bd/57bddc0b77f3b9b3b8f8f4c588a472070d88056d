@@ -1,4 +1,4 @@
-1518454986a:1:{s:13:"blog/post.htm";a:12:{s:8:"fileName";s:13:"blog/post.htm";s:7:"content";s:762:"title = "Blog Post"
+1526350441a:1:{s:13:"blog/post.htm";a:12:{s:8:"fileName";s:13:"blog/post.htm";s:7:"content";s:762:"title = "Blog Post"
 url = "/blog/post/:slug"
 layout = "default"
 description = "Viewing a single blog post"
@@ -34,7 +34,7 @@ function onEnd()
         {% partial 'blog/categories' %}
     </div>
 </div>
-";s:5:"mtime";i:1518327112;s:6:"markup";s:175:"<div class="row">
+";s:5:"mtime";i:1526201543;s:6:"markup";s:175:"<div class="row">
     <div class="col-md-8">
         {% component 'blogPost' %}
     </div>

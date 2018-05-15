@@ -181,47 +181,6 @@ class Twig_Parser
         return new Twig_Node($rv, array(), $lineno);
     }
 
-    /**
-     * @return Twig_Token
-     */
-    public function getCurrentToken()
-    {
-        return $this->stream->getCurrent();
-    }
-
-    private function filterBodyNodes(Twig_Node $node)
-    {
-        // check that the body does not contain non-empty output nodes
-        if (
-            ($node instanceof Twig_Node_Text && !ctype_space($node->getAttribute('data')))
-            ||
-            (!$node instanceof Twig_Node_Text && !$node instanceof Twig_Node_BlockReference && $node instanceof Twig_NodeOutputInterface)
-        ) {
-            if (false !== strpos((string) $node, chr(0xEF).chr(0xBB).chr(0xBF))) {
-                throw new Twig_Error_Syntax('A template that extends another one cannot start with a byte order mark (BOM); it must be removed.', $node->getTemplateLine(), $this->stream->getSourceContext());
-            }
-
-            throw new Twig_Error_Syntax('A template that extends another one cannot include contents outside Twig blocks. Did you forget to put the contents inside a {% block %} tag?', $node->getTemplateLine(), $this->stream->getSourceContext());
-        }
-
-        // bypass nodes that will "capture" the output
-        if ($node instanceof Twig_NodeCaptureInterface) {
-            return $node;
-        }
-
-        if ($node instanceof Twig_NodeOutputInterface) {
-            return;
-        }
-
-        foreach ($node as $k => $n) {
-            if (null !== $n && null === $this->filterBodyNodes($n)) {
-                $node->removeNode($k);
-            }
-        }
-
-        return $node;
-    }
-
     public function getBlockStack()
     {
         return $this->blockStack;
@@ -342,6 +301,47 @@ class Twig_Parser
     public function getStream()
     {
         return $this->stream;
+    }
+
+    /**
+     * @return Twig_Token
+     */
+    public function getCurrentToken()
+    {
+        return $this->stream->getCurrent();
+    }
+
+    private function filterBodyNodes(Twig_Node $node)
+    {
+        // check that the body does not contain non-empty output nodes
+        if (
+            ($node instanceof Twig_Node_Text && !ctype_space($node->getAttribute('data')))
+            ||
+            (!$node instanceof Twig_Node_Text && !$node instanceof Twig_Node_BlockReference && $node instanceof Twig_NodeOutputInterface)
+        ) {
+            if (false !== strpos((string) $node, chr(0xEF).chr(0xBB).chr(0xBF))) {
+                throw new Twig_Error_Syntax('A template that extends another one cannot start with a byte order mark (BOM); it must be removed.', $node->getTemplateLine(), $this->stream->getSourceContext());
+            }
+
+            throw new Twig_Error_Syntax('A template that extends another one cannot include contents outside Twig blocks. Did you forget to put the contents inside a {% block %} tag?', $node->getTemplateLine(), $this->stream->getSourceContext());
+        }
+
+        // bypass nodes that will "capture" the output
+        if ($node instanceof Twig_NodeCaptureInterface) {
+            return $node;
+        }
+
+        if ($node instanceof Twig_NodeOutputInterface) {
+            return;
+        }
+
+        foreach ($node as $k => $n) {
+            if (null !== $n && null === $this->filterBodyNodes($n)) {
+                $node->removeNode($k);
+            }
+        }
+
+        return $node;
     }
 }
 

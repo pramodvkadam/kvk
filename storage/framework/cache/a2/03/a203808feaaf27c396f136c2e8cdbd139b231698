@@ -1,4 +1,4 @@
-1518454986a:1:{s:18:"snippets/login.htm";a:7:{s:8:"fileName";s:18:"snippets/login.htm";s:7:"content";s:1207:"description = "Shows the client area sign in form"
+1526350441a:1:{s:18:"snippets/login.htm";a:7:{s:8:"fileName";s:18:"snippets/login.htm";s:7:"content";s:1207:"description = "Shows the client area sign in form"
 
 [viewBag]
 snippetCode = "login-module"
@@ -39,7 +39,7 @@ snippetProperties[redirect|default] = "/clients"
             </a>
         </div>
     </div>
-{% endif %}";s:5:"mtime";i:1518327113;s:6:"markup";s:934:"{% if user %}
+{% endif %}";s:5:"mtime";i:1526201533;s:6:"markup";s:934:"{% if user %}
     <p>You are logged in</p>
     <p>
         <a href="{{ 'clients'|staticPage }}" class="btn btn-default">

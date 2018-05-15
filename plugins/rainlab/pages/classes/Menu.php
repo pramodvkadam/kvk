@@ -69,37 +69,12 @@ class Menu extends CmsObject
     ];
 
     /**
-     * Initializes a cache item.
-     * @param array &$item The cached item array.
-     */
-    public static function initCacheItem(&$item)
-    {
-        $obj = new static($item);
-        $item['name'] = $obj->name;
-        $item['items'] = $obj->items;
-    }
-
-    /**
      * Triggered before the menu is saved.
      * @return void
      */
     public function beforeSave()
     {
         $this->content = $this->renderContent();
-    }
-
-    /**
-     * Renders the menu data as a content string in YAML format.
-     * @return string
-     */
-    protected function renderContent()
-    {
-        $contentData = [
-            'name'  => $this->name,
-            'items' => $this->itemData ? $this->itemData : []
-        ];
-
-        return Yaml::render($contentData);
     }
 
     /**
@@ -172,29 +147,6 @@ class Menu extends CmsObject
     }
 
     /**
-     * Processes the content attribute to an array of menu data.
-     * @return array|null
-     */
-    protected function parseContent()
-    {
-        if ($this->contentDataCache !== null) {
-            return $this->contentDataCache;
-        }
-
-        $parsedData = Yaml::parse($this->content);
-
-        if (!is_array($parsedData)) {
-            return null;
-        }
-
-        if (!array_key_exists('name', $parsedData)) {
-            throw new SystemException(sprintf('The content of the %s file is invalid: the name element is not found.', $fileName));
-        }
-
-        return $this->contentDataCache = $parsedData;
-    }
-
-    /**
      * Returns a default value for items attribute.
      * Items are objects of the \RainLab\Pages\Classes\MenuItem class.
      * @return array
@@ -229,12 +181,60 @@ class Menu extends CmsObject
     }
 
     /**
+     * Processes the content attribute to an array of menu data.
+     * @return array|null
+     */
+    protected function parseContent()
+    {
+        if ($this->contentDataCache !== null) {
+            return $this->contentDataCache;
+        }
+
+        $parsedData = Yaml::parse($this->content);
+
+        if (!is_array($parsedData)) {
+            return null;
+        }
+
+        if (!array_key_exists('name', $parsedData)) {
+            throw new SystemException(sprintf('The content of the %s file is invalid: the name element is not found.', $fileName));
+        }
+
+        return $this->contentDataCache = $parsedData;
+    }
+
+    /**
      * Compile the content for this CMS object, used by the theme logger.
      * @return string
      */
     public function toCompiled()
     {
         return $this->renderContent();
+    }
+
+    /**
+     * Renders the menu data as a content string in YAML format.
+     * @return string
+     */
+    protected function renderContent()
+    {
+        $contentData = [
+            'name'  => $this->name,
+            'items' => $this->itemData ? $this->itemData : []
+        ];
+
+        return Yaml::render($contentData);
+    }
+
+    /**
+     * Initializes a cache item.
+     * @param array &$item The cached item array.
+     */
+    public static function initCacheItem(&$item)
+    {
+        $obj = new static($item);
+        $item['name'] = $obj->name;
+        $item['items'] = $obj->items;
     }
 
     /**

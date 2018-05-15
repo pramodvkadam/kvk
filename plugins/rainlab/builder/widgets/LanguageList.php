@@ -34,6 +34,42 @@ class LanguageList extends WidgetBase
         return $this->makePartial('body', $this->getRenderData());
     }
 
+    public function updateList()
+    {
+        return ['#'.$this->getId('plugin-language-list') => $this->makePartial('items', $this->getRenderData())];
+    }
+
+    public function refreshActivePlugin()
+    {
+        return ['#'.$this->getId('body') => $this->makePartial('widget-contents', $this->getRenderData())];
+    }
+
+    /*
+     * Event handlers
+     */
+
+    public function onUpdate()
+    {
+        return $this->updateList();
+    }
+
+    public function onSearch()
+    {
+        $this->setSearchTerm(Input::get('search'));
+        return $this->updateList();
+    }
+
+    /*
+     * Methods for the internal use
+     */
+
+    protected function getLanguageList($pluginCode)
+    {
+        $result = LocalizationModel::listPluginLanguages($pluginCode);
+
+        return $result;
+    }
+
     protected function getRenderData()
     {
         $activePluginVector = $this->controller->getBuilderActivePluginVector();
@@ -64,41 +100,5 @@ class LanguageList extends WidgetBase
             'pluginVector'=>$activePluginVector,
             'items'=>$items
         ];
-    }
-
-    protected function getLanguageList($pluginCode)
-    {
-        $result = LocalizationModel::listPluginLanguages($pluginCode);
-
-        return $result;
-    }
-
-    /*
-     * Event handlers
-     */
-
-    public function refreshActivePlugin()
-    {
-        return ['#'.$this->getId('body') => $this->makePartial('widget-contents', $this->getRenderData())];
-    }
-
-    public function onUpdate()
-    {
-        return $this->updateList();
-    }
-
-    /*
-     * Methods for the internal use
-     */
-
-    public function updateList()
-    {
-        return ['#'.$this->getId('plugin-language-list') => $this->makePartial('items', $this->getRenderData())];
-    }
-
-    public function onSearch()
-    {
-        $this->setSearchTerm(Input::get('search'));
-        return $this->updateList();
     }
 }

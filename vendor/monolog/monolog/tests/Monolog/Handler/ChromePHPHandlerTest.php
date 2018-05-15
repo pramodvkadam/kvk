@@ -19,14 +19,10 @@ use Monolog\Logger;
  */
 class ChromePHPHandlerTest extends TestCase
 {
-    public static function agentsProvider()
+    protected function setUp()
     {
-        return array(
-            array('Monolog Test; Chrome/1.0'),
-            array('Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'),
-            array('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/56.0.2924.76 Chrome/56.0.2924.76 Safari/537.36'),
-            array('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome Safari/537.36'),
-        );
+        TestChromePHPHandler::reset();
+        $_SERVER['HTTP_USER_AGENT'] = 'Monolog Test; Chrome/1.0';
     }
 
     /**
@@ -54,6 +50,16 @@ class ChromePHPHandlerTest extends TestCase
         );
 
         $this->assertEquals($expected, $handler->getHeaders());
+    }
+
+    public static function agentsProvider()
+    {
+        return array(
+            array('Monolog Test; Chrome/1.0'),
+            array('Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'),
+            array('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/56.0.2924.76 Chrome/56.0.2924.76 Safari/537.36'),
+            array('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome Safari/537.36'),
+        );
     }
 
     public function testHeadersOverflow()
@@ -124,12 +130,6 @@ class ChromePHPHandlerTest extends TestCase
 
         $this->assertEquals($expected, $handler2->getHeaders());
     }
-
-    protected function setUp()
-    {
-        TestChromePHPHandler::reset();
-        $_SERVER['HTTP_USER_AGENT'] = 'Monolog Test; Chrome/1.0';
-    }
 }
 
 class TestChromePHPHandler extends ChromePHPHandler
@@ -144,13 +144,13 @@ class TestChromePHPHandler extends ChromePHPHandler
         self::$json['rows'] = array();
     }
 
-    public function getHeaders()
-    {
-        return $this->headers;
-    }
-
     protected function sendHeader($header, $content)
     {
         $this->headers[$header] = $content;
+    }
+
+    public function getHeaders()
+    {
+        return $this->headers;
     }
 }

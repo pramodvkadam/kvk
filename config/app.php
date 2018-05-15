@@ -41,7 +41,7 @@ return [
     |
     */
 
-    'url' => 'http://localhost:8080/atma/',
+    'url' => 'http://78.47.102.243/kvkcms/',
 
     /*
     |--------------------------------------------------------------------------
@@ -93,7 +93,7 @@ return [
     |
     */
 
-    'key' => 'uMlRn2HzGUM1d8TTImFtXByoagriiNaM',
+    'key' => 'fkhg2ZHSahkiwk6RXI8wWAim2Up28lui',
 
     'cipher' => 'AES-256-CBC',
 

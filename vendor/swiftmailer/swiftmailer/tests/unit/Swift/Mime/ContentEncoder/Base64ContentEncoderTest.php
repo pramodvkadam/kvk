@@ -4,10 +4,21 @@ class Swift_Mime_ContentEncoder_Base64ContentEncoderTest extends \SwiftMailerTes
 {
     private $encoder;
 
+    protected function setUp()
+    {
+        $this->encoder = new Swift_Mime_ContentEncoder_Base64ContentEncoder();
+    }
+
     public function testNameIsBase64()
     {
         $this->assertEquals('base64', $this->encoder->getName());
     }
+
+    /*
+    There's really no point in testing the entire base64 encoding to the
+    level QP encoding has been tested.  base64_encode() has been in PHP for
+    years.
+    */
 
     public function testInputOutputRatioIs3to4Bytes()
     {
@@ -37,22 +48,6 @@ class Swift_Mime_ContentEncoder_Base64ContentEncoderTest extends \SwiftMailerTes
 
         $this->encoder->encodeByteStream($os, $is);
         $this->assertEquals('MTIz', $collection->content);
-    }
-
-    /*
-    There's really no point in testing the entire base64 encoding to the
-    level QP encoding has been tested.  base64_encode() has been in PHP for
-    years.
-    */
-
-    private function createOutputByteStream($stub = false)
-    {
-        return $this->getMockery('Swift_OutputByteStream')->shouldIgnoreMissing();
-    }
-
-    private function createInputByteStream($stub = false)
-    {
-        return $this->getMockery('Swift_InputByteStream')->shouldIgnoreMissing();
     }
 
     public function testPadLength()
@@ -316,8 +311,13 @@ class Swift_Mime_ContentEncoder_Base64ContentEncoderTest extends \SwiftMailerTes
             );
     }
 
-    protected function setUp()
+    private function createOutputByteStream($stub = false)
     {
-        $this->encoder = new Swift_Mime_ContentEncoder_Base64ContentEncoder();
+        return $this->getMockery('Swift_OutputByteStream')->shouldIgnoreMissing();
+    }
+
+    private function createInputByteStream($stub = false)
+    {
+        return $this->getMockery('Swift_InputByteStream')->shouldIgnoreMissing();
     }
 }

@@ -46,8 +46,8 @@ function onStart()
                  <figcaption>
                     <h3>{{record.fullname}}</h3>
                     <p>{{record.designation}}</p>
-                    <p>Mobile - {{record.education}}</p>
-                    <p>Qualification - {{record.mobile}}</p>
+                    <p>Qualification - {{record.education}}</p>
+                    <p>Mobile - {{record.mobile}}</p>
                 </figcaption>
 
                 {% if detailsPage %}
@@ -61,21 +61,3 @@ function onStart()
     {% endfor %}
 </ul>
 <div>
-
-{% if records.lastPage > 1 %}
-    <ul class="pagination">
-        {% if records.currentPage > 1 %}
-            <li><a href="{{ this.page.baseFileName|page({ (pageParam): (records.currentPage-1) }) }}">&larr; Prev</a></li>
-        {% endif %}
-
-        {% for page in 1..records.lastPage %}
-            <li class="{{ records.currentPage == page ? 'active' : null }}">
-                <a href="{{ this.page.baseFileName|page({ (pageParam): page }) }}">{{ page }}</a>
-            </li>
-        {% endfor %}
-
-        {% if records.lastPage > records.currentPage %}
-            <li><a href="{{ this.page.baseFileName|page({ (pageParam): (records.currentPage+1) }) }}">Next &rarr;</a></li>
-        {% endif %}
-    </ul>
-{% endif %}

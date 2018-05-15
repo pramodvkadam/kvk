@@ -34,6 +34,42 @@ class ControllerList extends WidgetBase
         return $this->makePartial('body', $this->getRenderData());
     }
 
+    public function updateList()
+    {
+        return ['#'.$this->getId('plugin-controller-list') => $this->makePartial('items', $this->getRenderData())];
+    }
+
+    public function refreshActivePlugin()
+    {
+        return ['#'.$this->getId('body') => $this->makePartial('widget-contents', $this->getRenderData())];
+    }
+
+    /*
+     * Event handlers
+     */
+
+    public function onUpdate()
+    {
+        return $this->updateList();
+    }
+
+    public function onSearch()
+    {
+        $this->setSearchTerm(Input::get('search'));
+        return $this->updateList();
+    }
+
+    /*
+     * Methods for the internal use
+     */
+
+    protected function getControllerList($pluginCode)
+    {
+        $result = ControllerModel::listPluginControllers($pluginCode);
+
+        return $result;
+    }
+
     protected function getRenderData()
     {
         $activePluginVector = $this->controller->getBuilderActivePluginVector();
@@ -64,41 +100,5 @@ class ControllerList extends WidgetBase
             'pluginVector'=>$activePluginVector,
             'items'=>$items
         ];
-    }
-
-    protected function getControllerList($pluginCode)
-    {
-        $result = ControllerModel::listPluginControllers($pluginCode);
-
-        return $result;
-    }
-
-    /*
-     * Event handlers
-     */
-
-    public function refreshActivePlugin()
-    {
-        return ['#'.$this->getId('body') => $this->makePartial('widget-contents', $this->getRenderData())];
-    }
-
-    public function onUpdate()
-    {
-        return $this->updateList();
-    }
-
-    /*
-     * Methods for the internal use
-     */
-
-    public function updateList()
-    {
-        return ['#'.$this->getId('plugin-controller-list') => $this->makePartial('items', $this->getRenderData())];
-    }
-
-    public function onSearch()
-    {
-        $this->setSearchTerm(Input::get('search'));
-        return $this->updateList();
     }
 }

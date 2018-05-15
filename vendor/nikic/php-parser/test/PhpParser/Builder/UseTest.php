@@ -6,6 +6,10 @@ use PhpParser\Node\Stmt;
 
 class UseTest extends \PHPUnit_Framework_TestCase
 {
+    protected function createUseBuilder($name, $type = Stmt\Use_::TYPE_NORMAL) {
+        return new Builder\Use_($name, $type);
+    }
+
     public function testCreation() {
         $node = $this->createUseBuilder('Foo\Bar')->getNode();
         $this->assertEquals(new Stmt\Use_(array(
@@ -21,10 +25,6 @@ class UseTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(new Stmt\Use_(array(
             new Stmt\UseUse(new Name('foo\bar'), 'foo')
         ), Stmt\Use_::TYPE_FUNCTION), $node);
-    }
-
-    protected function createUseBuilder($name, $type = Stmt\Use_::TYPE_NORMAL) {
-        return new Builder\Use_($name, $type);
     }
 
     public function testNonExistingMethod() {

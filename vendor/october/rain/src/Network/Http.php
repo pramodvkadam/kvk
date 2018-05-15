@@ -141,18 +141,6 @@ class Http
     protected $redirectCount = null;
 
     /**
-     * Make a HTTP GET call.
-     * @param string $url
-     * @param array  $options
-     * @return self
-     */
-    public static function get($url, $options = null)
-    {
-        $http = self::make($url, self::METHOD_GET, $options);
-        return $http->send();
-    }
-
-    /**
      * Make the object with common properties
      * @param string   $url     HTTP request address
      * @param string   $method  Request method (GET, POST, PUT, DELETE, etc)
@@ -169,6 +157,78 @@ class Http
         }
 
         return $http;
+    }
+
+    /**
+     * Make a HTTP GET call.
+     * @param string $url
+     * @param array  $options
+     * @return self
+     */
+    public static function get($url, $options = null)
+    {
+        $http = self::make($url, self::METHOD_GET, $options);
+        return $http->send();
+    }
+
+    /**
+     * Make a HTTP POST call.
+     * @param string $url
+     * @param array  $options
+     * @return self
+     */
+    public static function post($url, $options = null)
+    {
+        $http = self::make($url, self::METHOD_POST, $options);
+        return $http->send();
+    }
+
+    /**
+     * Make a HTTP DELETE call.
+     * @param string $url
+     * @param array  $options
+     * @return self
+     */
+    public static function delete($url, $options = null)
+    {
+        $http = self::make($url, self::METHOD_DELETE, $options);
+        return $http->send();
+    }
+
+    /**
+     * Make a HTTP PATCH call.
+     * @param string $url
+     * @param array  $options
+     * @return self
+     */
+    public static function patch($url, $options = null)
+    {
+        $http = self::make($url, self::METHOD_PATCH, $options);
+        return $http->send();
+    }
+
+    /**
+     * Make a HTTP PUT call.
+     * @param string $url
+     * @param array  $options
+     * @return self
+     */
+    public static function put($url, $options = null)
+    {
+        $http = self::make($url, self::METHOD_PUT, $options);
+        return $http->send();
+    }
+
+    /**
+     * Make a HTTP OPTIONS call.
+     * @param string $url
+     * @param array  $options
+     * @return self
+     */
+    public static function options($url, $options = null)
+    {
+        $http = self::make($url, self::METHOD_OPTIONS, $options);
+        return $http->send();
     }
 
     /**
@@ -320,66 +380,6 @@ class Http
     }
 
     /**
-     * Make a HTTP POST call.
-     * @param string $url
-     * @param array  $options
-     * @return self
-     */
-    public static function post($url, $options = null)
-    {
-        $http = self::make($url, self::METHOD_POST, $options);
-        return $http->send();
-    }
-
-    /**
-     * Make a HTTP DELETE call.
-     * @param string $url
-     * @param array  $options
-     * @return self
-     */
-    public static function delete($url, $options = null)
-    {
-        $http = self::make($url, self::METHOD_DELETE, $options);
-        return $http->send();
-    }
-
-    /**
-     * Make a HTTP PATCH call.
-     * @param string $url
-     * @param array  $options
-     * @return self
-     */
-    public static function patch($url, $options = null)
-    {
-        $http = self::make($url, self::METHOD_PATCH, $options);
-        return $http->send();
-    }
-
-    /**
-     * Make a HTTP PUT call.
-     * @param string $url
-     * @param array  $options
-     * @return self
-     */
-    public static function put($url, $options = null)
-    {
-        $http = self::make($url, self::METHOD_PUT, $options);
-        return $http->send();
-    }
-
-    /**
-     * Make a HTTP OPTIONS call.
-     * @param string $url
-     * @param array  $options
-     * @return self
-     */
-    public static function options($url, $options = null)
-    {
-        $http = self::make($url, self::METHOD_OPTIONS, $options);
-        return $http->send();
-    }
-
-    /**
      * Add a data to the request.
      * @param string $value
      * @return self
@@ -436,25 +436,6 @@ class Http
             $this->setOption(CURLOPT_PROXYUSERPWD, $username . ':' . $password);
         }
 
-        return $this;
-    }
-
-    /**
-     * Add a single option to the request.
-     * @param string $option
-     * @param string $value
-     * @return self
-     */
-    public function setOption($option, $value = null)
-    {
-        if (is_array($option)) {
-            foreach ($option as $_option => $_value) {
-                $this->setOption($_option, $_value);
-            }
-            return;
-        }
-
-        $this->requestOptions[$option] = $value;
         return $this;
     }
 
@@ -521,6 +502,25 @@ class Http
             $this->streamFilter = $filter;
         }
 
+        return $this;
+    }
+
+    /**
+     * Add a single option to the request.
+     * @param string $option
+     * @param string $value
+     * @return self
+     */
+    public function setOption($option, $value = null)
+    {
+        if (is_array($option)) {
+            foreach ($option as $_option => $_value) {
+                $this->setOption($_option, $_value);
+            }
+            return;
+        }
+
+        $this->requestOptions[$option] = $value;
         return $this;
     }
 

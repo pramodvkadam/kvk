@@ -115,39 +115,40 @@ class NativeSessionStorage implements SessionStorageInterface
     }
 
     /**
-     * Sets session.* ini variables.
+     * Gets the save handler instance.
      *
-     * For convenience we omit 'session.' from the beginning of the keys.
-     * Explicitly ignores other ini keys.
-     *
-     * @param array $options Session ini directives array(key => value)
-     *
-     * @see http://php.net/session.configuration
+     * @return AbstractProxy|\SessionHandlerInterface
      */
-    public function setOptions(array $options)
+    public function getSaveHandler()
     {
-        if (headers_sent() || \PHP_SESSION_ACTIVE === session_status()) {
-            return;
+        return $this->saveHandler;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function start()
+    {
+        if ($this->started) {
+            return true;
         }
 
-        $validOptions = array_flip(array(
-            'cache_limiter', 'cache_expire', 'cookie_domain', 'cookie_httponly',
-            'cookie_lifetime', 'cookie_path', 'cookie_secure',
-            'entropy_file', 'entropy_length', 'gc_divisor',
-            'gc_maxlifetime', 'gc_probability', 'hash_bits_per_character',
-            'hash_function', 'lazy_write', 'name', 'referer_check',
-            'serialize_handler', 'use_strict_mode', 'use_cookies',
-            'use_only_cookies', 'use_trans_sid', 'upload_progress.enabled',
-            'upload_progress.cleanup', 'upload_progress.prefix', 'upload_progress.name',
-            'upload_progress.freq', 'upload_progress.min-freq', 'url_rewriter.tags',
-            'sid_length', 'sid_bits_per_character', 'trans_sid_hosts', 'trans_sid_tags',
-        ));
-
-        foreach ($options as $key => $value) {
-            if (isset($validOptions[$key])) {
-                ini_set('session.'.$key, $value);
-            }
+        if (\PHP_SESSION_ACTIVE === session_status()) {
+            throw new \RuntimeException('Failed to start the session: already started by PHP.');
         }
+
+        if (ini_get('session.use_cookies') && headers_sent($file, $line)) {
+            throw new \RuntimeException(sprintf('Failed to start the session because headers have already been sent by "%s" at line %d.', $file, $line));
+        }
+
+        // ok to try and start the session
+        if (!session_start()) {
+            throw new \RuntimeException('Failed to start the session');
+        }
+
+        $this->loadSession();
+
+        return true;
     }
 
     /**
@@ -214,32 +215,6 @@ class NativeSessionStorage implements SessionStorageInterface
     }
 
     /**
-     * Load the session with attributes.
-     *
-     * After starting the session, PHP retrieves the session from whatever handlers
-     * are set to (either PHP's internal, or a custom save handler set with session_set_save_handler()).
-     * PHP takes the return value from the read() handler, unserializes it
-     * and populates $_SESSION with the result automatically.
-     */
-    protected function loadSession(array &$session = null)
-    {
-        if (null === $session) {
-            $session = &$_SESSION;
-        }
-
-        $bags = array_merge($this->bags, array($this->metadataBag));
-
-        foreach ($bags as $bag) {
-            $key = $bag->getStorageKey();
-            $session[$key] = isset($session[$key]) ? $session[$key] : array();
-            $bag->initialize($session[$key]);
-        }
-
-        $this->started = true;
-        $this->closed = false;
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function save()
@@ -284,13 +259,113 @@ class NativeSessionStorage implements SessionStorageInterface
     }
 
     /**
-     * Gets the save handler instance.
-     *
-     * @return AbstractProxy|\SessionHandlerInterface
+     * {@inheritdoc}
      */
-    public function getSaveHandler()
+    public function clear()
     {
-        return $this->saveHandler;
+        // clear out the bags
+        foreach ($this->bags as $bag) {
+            $bag->clear();
+        }
+
+        // clear out the session
+        $_SESSION = array();
+
+        // reconnect the bags to the session
+        $this->loadSession();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function registerBag(SessionBagInterface $bag)
+    {
+        if ($this->started) {
+            throw new \LogicException('Cannot register a bag when the session is already started.');
+        }
+
+        $this->bags[$bag->getName()] = $bag;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getBag($name)
+    {
+        if (!isset($this->bags[$name])) {
+            throw new \InvalidArgumentException(sprintf('The SessionBagInterface %s is not registered.', $name));
+        }
+
+        if (!$this->started && $this->saveHandler->isActive()) {
+            $this->loadSession();
+        } elseif (!$this->started) {
+            $this->start();
+        }
+
+        return $this->bags[$name];
+    }
+
+    public function setMetadataBag(MetadataBag $metaBag = null)
+    {
+        if (null === $metaBag) {
+            $metaBag = new MetadataBag();
+        }
+
+        $this->metadataBag = $metaBag;
+    }
+
+    /**
+     * Gets the MetadataBag.
+     *
+     * @return MetadataBag
+     */
+    public function getMetadataBag()
+    {
+        return $this->metadataBag;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isStarted()
+    {
+        return $this->started;
+    }
+
+    /**
+     * Sets session.* ini variables.
+     *
+     * For convenience we omit 'session.' from the beginning of the keys.
+     * Explicitly ignores other ini keys.
+     *
+     * @param array $options Session ini directives array(key => value)
+     *
+     * @see http://php.net/session.configuration
+     */
+    public function setOptions(array $options)
+    {
+        if (headers_sent() || \PHP_SESSION_ACTIVE === session_status()) {
+            return;
+        }
+
+        $validOptions = array_flip(array(
+            'cache_limiter', 'cache_expire', 'cookie_domain', 'cookie_httponly',
+            'cookie_lifetime', 'cookie_path', 'cookie_secure',
+            'entropy_file', 'entropy_length', 'gc_divisor',
+            'gc_maxlifetime', 'gc_probability', 'hash_bits_per_character',
+            'hash_function', 'lazy_write', 'name', 'referer_check',
+            'serialize_handler', 'use_strict_mode', 'use_cookies',
+            'use_only_cookies', 'use_trans_sid', 'upload_progress.enabled',
+            'upload_progress.cleanup', 'upload_progress.prefix', 'upload_progress.name',
+            'upload_progress.freq', 'upload_progress.min-freq', 'url_rewriter.tags',
+            'sid_length', 'sid_bits_per_character', 'trans_sid_hosts', 'trans_sid_tags',
+        ));
+
+        foreach ($options as $key => $value) {
+            if (isset($validOptions[$key])) {
+                ini_set('session.'.$key, $value);
+            }
+        }
     }
 
     /**
@@ -343,103 +418,28 @@ class NativeSessionStorage implements SessionStorageInterface
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function clear()
-    {
-        // clear out the bags
-        foreach ($this->bags as $bag) {
-            $bag->clear();
-        }
-
-        // clear out the session
-        $_SESSION = array();
-
-        // reconnect the bags to the session
-        $this->loadSession();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function registerBag(SessionBagInterface $bag)
-    {
-        if ($this->started) {
-            throw new \LogicException('Cannot register a bag when the session is already started.');
-        }
-
-        $this->bags[$bag->getName()] = $bag;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getBag($name)
-    {
-        if (!isset($this->bags[$name])) {
-            throw new \InvalidArgumentException(sprintf('The SessionBagInterface %s is not registered.', $name));
-        }
-
-        if (!$this->started && $this->saveHandler->isActive()) {
-            $this->loadSession();
-        } elseif (!$this->started) {
-            $this->start();
-        }
-
-        return $this->bags[$name];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function start()
-    {
-        if ($this->started) {
-            return true;
-        }
-
-        if (\PHP_SESSION_ACTIVE === session_status()) {
-            throw new \RuntimeException('Failed to start the session: already started by PHP.');
-        }
-
-        if (ini_get('session.use_cookies') && headers_sent($file, $line)) {
-            throw new \RuntimeException(sprintf('Failed to start the session because headers have already been sent by "%s" at line %d.', $file, $line));
-        }
-
-        // ok to try and start the session
-        if (!session_start()) {
-            throw new \RuntimeException('Failed to start the session');
-        }
-
-        $this->loadSession();
-
-        return true;
-    }
-
-    /**
-     * Gets the MetadataBag.
+     * Load the session with attributes.
      *
-     * @return MetadataBag
+     * After starting the session, PHP retrieves the session from whatever handlers
+     * are set to (either PHP's internal, or a custom save handler set with session_set_save_handler()).
+     * PHP takes the return value from the read() handler, unserializes it
+     * and populates $_SESSION with the result automatically.
      */
-    public function getMetadataBag()
+    protected function loadSession(array &$session = null)
     {
-        return $this->metadataBag;
-    }
-
-    public function setMetadataBag(MetadataBag $metaBag = null)
-    {
-        if (null === $metaBag) {
-            $metaBag = new MetadataBag();
+        if (null === $session) {
+            $session = &$_SESSION;
         }
 
-        $this->metadataBag = $metaBag;
-    }
+        $bags = array_merge($this->bags, array($this->metadataBag));
 
-    /**
-     * {@inheritdoc}
-     */
-    public function isStarted()
-    {
-        return $this->started;
+        foreach ($bags as $bag) {
+            $key = $bag->getStorageKey();
+            $session[$key] = isset($session[$key]) ? $session[$key] : array();
+            $bag->initialize($session[$key]);
+        }
+
+        $this->started = true;
+        $this->closed = false;
     }
 }

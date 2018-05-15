@@ -8,6 +8,10 @@ use PhpParser\Node\Stmt;
 
 class NamespaceTest extends \PHPUnit_Framework_TestCase
 {
+    protected function createNamespaceBuilder($fqn) {
+        return new Namespace_($fqn);
+    }
+
     public function testCreation() {
         $stmt1 = new Stmt\Class_('SomeClass');
         $stmt2 = new Stmt\Interface_('SomeInterface');
@@ -38,9 +42,5 @@ class NamespaceTest extends \PHPUnit_Framework_TestCase
         $node = $this->createNamespaceBuilder(null)->getNode();
         $this->assertNull($node->name);
         $this->assertEmpty($node->stmts);
-    }
-
-    protected function createNamespaceBuilder($fqn) {
-        return new Namespace_($fqn);
     }
 }

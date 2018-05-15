@@ -5,29 +5,32 @@ namespace Illuminate\Foundation;
 class AliasLoader
 {
     /**
-     * The namespace for all real-time facades.
-     *
-     * @var string
-     */
-    protected static $facadeNamespace = 'Facades\\';
-    /**
-     * The singleton instance of the loader.
-     *
-     * @var \Illuminate\Foundation\AliasLoader
-     */
-    protected static $instance;
-    /**
      * The array of class aliases.
      *
      * @var array
      */
     protected $aliases;
+
     /**
      * Indicates if a loader has been registered.
      *
      * @var bool
      */
     protected $registered = false;
+
+    /**
+     * The namespace for all real-time facades.
+     *
+     * @var string
+     */
+    protected static $facadeNamespace = 'Facades\\';
+
+    /**
+     * The singleton instance of the loader.
+     *
+     * @var \Illuminate\Foundation\AliasLoader
+     */
+    protected static $instance;
 
     /**
      * Create a new AliasLoader instance.
@@ -57,49 +60,6 @@ class AliasLoader
         static::$instance->setAliases($aliases);
 
         return static::$instance;
-    }
-
-    /**
-     * Set the value of the singleton alias loader.
-     *
-     * @param  \Illuminate\Foundation\AliasLoader  $loader
-     * @return void
-     */
-    public static function setInstance($loader)
-    {
-        static::$instance = $loader;
-    }
-
-    /**
-     * Get the registered aliases.
-     *
-     * @return array
-     */
-    public function getAliases()
-    {
-        return $this->aliases;
-    }
-
-    /**
-     * Set the registered aliases.
-     *
-     * @param  array  $aliases
-     * @return void
-     */
-    public function setAliases(array $aliases)
-    {
-        $this->aliases = $aliases;
-    }
-
-    /**
-     * Set the real-time facade namespace.
-     *
-     * @param  string  $namespace
-     * @return void
-     */
-    public static function setFacadeNamespace($namespace)
-    {
-        static::$facadeNamespace = rtrim($namespace, '\\').'\\';
     }
 
     /**
@@ -208,6 +168,27 @@ class AliasLoader
     }
 
     /**
+     * Get the registered aliases.
+     *
+     * @return array
+     */
+    public function getAliases()
+    {
+        return $this->aliases;
+    }
+
+    /**
+     * Set the registered aliases.
+     *
+     * @param  array  $aliases
+     * @return void
+     */
+    public function setAliases(array $aliases)
+    {
+        $this->aliases = $aliases;
+    }
+
+    /**
      * Indicates if the loader has been registered.
      *
      * @return bool
@@ -226,6 +207,28 @@ class AliasLoader
     public function setRegistered($value)
     {
         $this->registered = $value;
+    }
+
+    /**
+     * Set the real-time facade namespace.
+     *
+     * @param  string  $namespace
+     * @return void
+     */
+    public static function setFacadeNamespace($namespace)
+    {
+        static::$facadeNamespace = rtrim($namespace, '\\').'\\';
+    }
+
+    /**
+     * Set the value of the singleton alias loader.
+     *
+     * @param  \Illuminate\Foundation\AliasLoader  $loader
+     * @return void
+     */
+    public static function setInstance($loader)
+    {
+        static::$instance = $loader;
     }
 
     /**

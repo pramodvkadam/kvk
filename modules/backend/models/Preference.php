@@ -46,6 +46,34 @@ class Preference extends Model
     public $rules = [];
 
     /**
+     * Initialize the seed data for this model. This only executes when the
+     * model is first created or reset to default.
+     * @return void
+     */
+    public function initSettingsData()
+    {
+        $config = App::make('config');
+        $this->locale = $config->get('app.locale', 'en');
+        $this->fallback_locale = $this->getFallbackLocale($this->locale);
+        $this->timezone = $config->get('cms.backendTimezone', $config->get('app.timezone'));
+
+        $this->editor_font_size = $config->get('editor.font_size', 12);
+        $this->editor_word_wrap = $config->get('editor.word_wrap', 'fluid');
+        $this->editor_code_folding = $config->get('editor.code_folding', 'manual');
+        $this->editor_tab_size = $config->get('editor.tab_size', 4);
+        $this->editor_theme = $config->get('editor.theme', static::DEFAULT_THEME);
+        $this->editor_show_invisibles = $config->get('editor.show_invisibles', false);
+        $this->editor_highlight_active_line = $config->get('editor.highlight_active_line', true);
+        $this->editor_use_hard_tabs = $config->get('editor.use_hard_tabs', false);
+        $this->editor_show_gutter = $config->get('editor.show_gutter', true);
+        $this->editor_auto_closing = $config->get('editor.auto_closing', false);
+        $this->editor_autocompletion = $config->get('editor.editor_autocompletion', 'manual');
+        $this->editor_enable_snippets = $config->get('editor.enable_snippets', false);
+        $this->editor_display_indent_guides = $config->get('editor.display_indent_guides', false);
+        $this->editor_show_print_margin = $config->get('editor.show_print_margin', false);
+    }
+
+    /**
      * Set the application's locale based on the user preference.
      * @return void
      */
@@ -81,6 +109,36 @@ class Preference extends Model
         }
     }
 
+    //
+    // Events
+    //
+
+    public function beforeValidate()
+    {
+        $this->fallback_locale = $this->getFallbackLocale($this->locale);
+    }
+
+    public function afterSave()
+    {
+        Session::put('locale', $this->locale);
+        Session::put('fallback_locale', $this->fallback_locale);
+    }
+
+    //
+    // Utils
+    //
+
+    /**
+     * Called when this model is reset to default by the user.
+     * @return void
+     */
+    public function resetDefault()
+    {
+        parent::resetDefault();
+        Session::forget('locale');
+        Session::forget('fallback_locale');
+    }
+
     /**
      * Overrides the config with the user's preference.
      * @return void
@@ -93,36 +151,8 @@ class Preference extends Model
     }
 
     //
-    // Events
+    // Getters
     //
-
-    /**
-     * Initialize the seed data for this model. This only executes when the
-     * model is first created or reset to default.
-     * @return void
-     */
-    public function initSettingsData()
-    {
-        $config = App::make('config');
-        $this->locale = $config->get('app.locale', 'en');
-        $this->fallback_locale = $this->getFallbackLocale($this->locale);
-        $this->timezone = $config->get('cms.backendTimezone', $config->get('app.timezone'));
-
-        $this->editor_font_size = $config->get('editor.font_size', 12);
-        $this->editor_word_wrap = $config->get('editor.word_wrap', 'fluid');
-        $this->editor_code_folding = $config->get('editor.code_folding', 'manual');
-        $this->editor_tab_size = $config->get('editor.tab_size', 4);
-        $this->editor_theme = $config->get('editor.theme', static::DEFAULT_THEME);
-        $this->editor_show_invisibles = $config->get('editor.show_invisibles', false);
-        $this->editor_highlight_active_line = $config->get('editor.highlight_active_line', true);
-        $this->editor_use_hard_tabs = $config->get('editor.use_hard_tabs', false);
-        $this->editor_show_gutter = $config->get('editor.show_gutter', true);
-        $this->editor_auto_closing = $config->get('editor.auto_closing', false);
-        $this->editor_autocompletion = $config->get('editor.editor_autocompletion', 'manual');
-        $this->editor_enable_snippets = $config->get('editor.enable_snippets', false);
-        $this->editor_display_indent_guides = $config->get('editor.display_indent_guides', false);
-        $this->editor_show_print_margin = $config->get('editor.show_print_margin', false);
-    }
 
     /**
      * Attempt to extract the language from the locale,
@@ -141,10 +171,6 @@ class Preference extends Model
 
         return Config::get('app.fallback_locale');
     }
-
-    //
-    // Utils
-    //
 
     /**
      * Returns available options for the "locale" attribute.
@@ -197,32 +223,6 @@ class Preference extends Model
         asort($locales);
 
         return $locales;
-    }
-
-    public function beforeValidate()
-    {
-        $this->fallback_locale = $this->getFallbackLocale($this->locale);
-    }
-
-    //
-    // Getters
-    //
-
-    public function afterSave()
-    {
-        Session::put('locale', $this->locale);
-        Session::put('fallback_locale', $this->fallback_locale);
-    }
-
-    /**
-     * Called when this model is reset to default by the user.
-     * @return void
-     */
-    public function resetDefault()
-    {
-        parent::resetDefault();
-        Session::forget('locale');
-        Session::forget('fallback_locale');
     }
 
     /**

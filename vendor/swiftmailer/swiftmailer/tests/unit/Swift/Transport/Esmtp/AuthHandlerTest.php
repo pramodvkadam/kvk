@@ -4,15 +4,15 @@ class Swift_Transport_Esmtp_AuthHandlerTest extends \SwiftMailerTestCase
 {
     private $agent;
 
+    protected function setUp()
+    {
+        $this->agent = $this->getMockery('Swift_Transport_SmtpAgent')->shouldIgnoreMissing();
+    }
+
     public function testKeywordIsAuth()
     {
         $auth = $this->createHandler(array());
         $this->assertEquals('AUTH', $auth->getHandledKeyword());
-    }
-
-    private function createHandler($authenticators)
-    {
-        return new Swift_Transport_Esmtp_AuthHandler($authenticators);
     }
 
     public function testUsernameCanBeSetAndFetched()
@@ -79,16 +79,6 @@ class Swift_Transport_Esmtp_AuthHandlerTest extends \SwiftMailerTestCase
 
         $auth->setKeywordParams(array('CRAM-MD5', 'LOGIN'));
         $auth->afterEhlo($this->agent);
-    }
-
-    private function createMockAuthenticator($type)
-    {
-        $authenticator = $this->getMockery('Swift_Transport_Esmtp_Authenticator')->shouldIgnoreMissing();
-        $authenticator->shouldReceive('getAuthKeyword')
-                      ->zeroOrMoreTimes()
-                      ->andReturn($type);
-
-        return $authenticator;
     }
 
     public function testAuthenticatorsAreNotUsedIfNoUsernameSet()
@@ -158,8 +148,18 @@ class Swift_Transport_Esmtp_AuthHandlerTest extends \SwiftMailerTestCase
         $auth->afterEhlo($this->agent);
     }
 
-    protected function setUp()
+    private function createHandler($authenticators)
     {
-        $this->agent = $this->getMockery('Swift_Transport_SmtpAgent')->shouldIgnoreMissing();
+        return new Swift_Transport_Esmtp_AuthHandler($authenticators);
+    }
+
+    private function createMockAuthenticator($type)
+    {
+        $authenticator = $this->getMockery('Swift_Transport_Esmtp_Authenticator')->shouldIgnoreMissing();
+        $authenticator->shouldReceive('getAuthKeyword')
+                      ->zeroOrMoreTimes()
+                      ->andReturn($type);
+
+        return $authenticator;
     }
 }

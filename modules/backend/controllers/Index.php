@@ -48,18 +48,11 @@ class Index extends Controller
         BackendMenu::setContextMainMenu('dashboard');
     }
 
-    /**
-     * Custom permissions check that will redirect to the next
-     * available menu item, if permission to this page is denied.
-     */
-    protected function checkPermissionRedirect()
+    public function index_onInitReportContainer()
     {
-        if (!$this->user->hasAccess('backend.access_dashboard')) {
-            $true = function () { return true; };
-            if ($first = array_first(BackendMenu::listMainMenuItems(), $true)) {
-                return Redirect::intended($first->url);
-            }
-        }
+        $this->initReportContainer();
+
+        return ['#dashReportContainer' => $this->widget->reportContainer->render()];
     }
 
     /**
@@ -72,10 +65,17 @@ class Index extends Controller
         new ReportContainer($this, 'config_dashboard.yaml');
     }
 
-    public function index_onInitReportContainer()
+    /**
+     * Custom permissions check that will redirect to the next
+     * available menu item, if permission to this page is denied.
+     */
+    protected function checkPermissionRedirect()
     {
-        $this->initReportContainer();
-
-        return ['#dashReportContainer' => $this->widget->reportContainer->render()];
+        if (!$this->user->hasAccess('backend.access_dashboard')) {
+            $true = function () { return true; };
+            if ($first = array_first(BackendMenu::listMainMenuItems(), $true)) {
+                return Redirect::intended($first->url);
+            }
+        }
     }
 }

@@ -5,24 +5,6 @@ use October\Rain\Parse\Syntax\FieldParser;
 class SyntaxFieldParserTest extends TestCase
 {
 
-    public static function getProtectedProperty($object, $name)
-    {
-        $className = get_class($object);
-        $class = new ReflectionClass($className);
-        $property = $class->getProperty($name);
-        $property->setAccessible(true);
-        return $property->getValue($object);
-    }
-
-    public static function setProtectedProperty($object, $name, $value)
-    {
-        $className = get_class($object);
-        $class = new ReflectionClass($className);
-        $property = $class->getProperty($name);
-        $property->setAccessible(true);
-        return $property->setValue($object, $value);
-    }
-
     public function testParse()
     {
         $content = '';
@@ -285,19 +267,6 @@ class SyntaxFieldParserTest extends TestCase
         $this->assertArrayHasKey($unnamedTag, $tags);
     }
 
-    //
-    // Helpers
-    //
-
-    protected static function callProtectedMethod($object, $name, $params = [])
-    {
-        $className = get_class($object);
-        $class = new ReflectionClass($className);
-        $method = $class->getMethod($name);
-        $method->setAccessible(true);
-        return $method->invokeArgs($object, $params);
-    }
-
     public function testProcessTagsRegex()
     {
         $parser = new FieldParser;
@@ -342,6 +311,37 @@ class SyntaxFieldParserTest extends TestCase
         $this->assertEquals('comment', $result[1][1]);
         $this->assertEquals('te\"st', $result[2][0]);
         $this->assertEquals('This\" is a test', $result[2][1]);
+    }
+
+    //
+    // Helpers
+    //
+
+    protected static function callProtectedMethod($object, $name, $params = [])
+    {
+        $className = get_class($object);
+        $class = new ReflectionClass($className);
+        $method = $class->getMethod($name);
+        $method->setAccessible(true);
+        return $method->invokeArgs($object, $params);
+    }
+
+    public static function getProtectedProperty($object, $name)
+    {
+        $className = get_class($object);
+        $class = new ReflectionClass($className);
+        $property = $class->getProperty($name);
+        $property->setAccessible(true);
+        return $property->getValue($object);
+    }
+
+    public static function setProtectedProperty($object, $name, $value)
+    {
+        $className = get_class($object);
+        $class = new ReflectionClass($className);
+        $property = $class->getProperty($name);
+        $property->setAccessible(true);
+        return $property->setValue($object, $value);
     }
 
 }

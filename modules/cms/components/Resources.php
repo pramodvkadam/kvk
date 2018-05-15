@@ -87,29 +87,6 @@ class Resources extends ComponentBase
         $this->sassDir = $this->guessAssetDirectory(['sass', 'scss'], $this->sassDir);
     }
 
-    protected function guessAssetPath()
-    {
-        $baseTheme = themes_path().'/'.$this->getTheme()->getDirName();
-
-        if (File::isDirectory($baseTheme.'/assets')) {
-            return $baseTheme.'/assets';
-        }
-        else {
-            return $baseTheme.'/resources';
-        }
-    }
-
-    protected function guessAssetDirectory(array $possible, $default = null)
-    {
-        foreach ($possible as $option) {
-            if (File::isDirectory($this->assetPath.'/'.$option)) {
-                return $option;
-            }
-        }
-
-        return $default;
-    }
-
     public function onRun()
     {
         /*
@@ -188,5 +165,28 @@ class Resources extends ComponentBase
     protected function prefixSass($value)
     {
         return $this->sassDir.'/'.trim($value);
+    }
+
+    protected function guessAssetDirectory(array $possible, $default = null)
+    {
+        foreach ($possible as $option) {
+            if (File::isDirectory($this->assetPath.'/'.$option)) {
+                return $option;
+            }
+        }
+
+        return $default;
+    }
+
+    protected function guessAssetPath()
+    {
+        $baseTheme = themes_path().'/'.$this->getTheme()->getDirName();
+
+        if (File::isDirectory($baseTheme.'/assets')) {
+            return $baseTheme.'/assets';
+        }
+        else {
+            return $baseTheme.'/resources';
+        }
     }
 }

@@ -49,15 +49,6 @@ class MigrationFileParser
         return $result;
     }
 
-    protected function extractNamespace($stream)
-    {
-        if ($stream->getNextExpected(T_WHITESPACE) === null) {
-            return null;
-        }
-
-        return $stream->getNextExpectedTerminated([T_STRING, T_NS_SEPARATOR], [T_WHITESPACE, ';']);
-    }
-
     protected function extractClassName($stream)
     {
         if ($stream->getNextExpected(T_WHITESPACE) === null) {
@@ -65,5 +56,14 @@ class MigrationFileParser
         }
 
         return $stream->getNextExpectedTerminated([T_STRING], [T_WHITESPACE, ';']);
+    }
+
+    protected function extractNamespace($stream)
+    {
+        if ($stream->getNextExpected(T_WHITESPACE) === null) {
+            return null;
+        }
+
+        return $stream->getNextExpectedTerminated([T_STRING, T_NS_SEPARATOR], [T_WHITESPACE, ';']);
     }
 }

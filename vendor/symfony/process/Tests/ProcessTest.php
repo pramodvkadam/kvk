@@ -40,41 +40,27 @@ class ProcessTest extends TestCase
         self::$sigchild = false !== strpos(ob_get_clean(), '--enable-sigchild');
     }
 
+    protected function tearDown()
+    {
+        if (self::$process) {
+            self::$process->stop(0);
+            self::$process = null;
+        }
+    }
+
     /**
      * @group legacy
-     * @expectedDeprecation The provided cwd does not exist. Command is currently ran against getcwd(). This behavior is deprecated since version 3.4 and will be removed in 4.0.
+     * @expectedDeprecation The provided cwd does not exist. Command is currently ran against getcwd(). This behavior is deprecated since Symfony 3.4 and will be removed in 4.0.
      */
     public function testInvalidCwd()
     {
         if ('\\' === DIRECTORY_SEPARATOR) {
-            $this->markTestSkipped('Windows handles this automatically.');
+            $this->markTestSkipped('False-positive on Windows/appveyor.');
         }
 
         // Check that it works fine if the CWD exists
         $cmd = new Process('echo test', __DIR__);
         $cmd->run();
-
-        $cmd = new Process('echo test', __DIR__.'/notfound/');
-        $cmd->run();
-    }
-
-    /**
-     * @expectedException \Symfony\Component\Process\Exception\RuntimeException
-     * @expectedExceptionMessage The provided cwd does not exist.
-     */
-    public function testInvalidCwdOnWindows()
-    {
-        if ('\\' !== DIRECTORY_SEPARATOR) {
-            $this->markTestSkipped('Unix handles this automatically.');
-        }
-
-        try {
-            // Check that it works fine if the CWD exists
-            $cmd = new Process('echo test', __DIR__);
-            $cmd->run();
-        } catch (\Exception $e) {
-            $this->fail($e);
-        }
 
         $cmd = new Process('echo test', __DIR__.'/notfound/');
         $cmd->run();
@@ -91,51 +77,6 @@ class ProcessTest extends TestCase
         $actualError = error_get_last();
         $this->assertEquals('Test Error', $actualError['message']);
         $this->assertEquals(E_USER_NOTICE, $actualError['type']);
-    }
-
-    /**
-     * @return Process
-     */
-    private function getProcessForCode($code, $cwd = null, array $env = null, $input = null, $timeout = 60)
-    {
-        return $this->getProcess(array(self::$phpBin, '-r', $code), $cwd, $env, $input, $timeout);
-    }
-
-    /**
-     * @param string      $commandline
-     * @param null|string $cwd
-     * @param null|array  $env
-     * @param null|string $input
-     * @param int         $timeout
-     * @param array       $options
-     *
-     * @return Process
-     */
-    private function getProcess($commandline, $cwd = null, array $env = null, $input = null, $timeout = 60)
-    {
-        $process = new Process($commandline, $cwd, $env, $input, $timeout);
-        $process->inheritEnvironmentVariables();
-
-        if (false !== $enhance = getenv('ENHANCE_SIGCHLD')) {
-            try {
-                $process->setEnhanceSigchildCompatibility(false);
-                $process->getExitCode();
-                $this->fail('ENHANCE_SIGCHLD must be used together with a sigchild-enabled PHP.');
-            } catch (RuntimeException $e) {
-                $this->assertSame('This PHP has been compiled with --enable-sigchild. You must use setEnhanceSigchildCompatibility() to use this method.', $e->getMessage());
-                if ($enhance) {
-                    $process->setEnhanceSigchildCompatibility(true);
-                } else {
-                    self::$notEnhancedSigchild = true;
-                }
-            }
-        }
-
-        if (self::$process) {
-            self::$process->stop(0);
-        }
-
-        return self::$process = $process;
     }
 
     /**
@@ -506,22 +447,6 @@ class ProcessTest extends TestCase
         $this->assertGreaterThan(0, $process->getExitCode());
     }
 
-    private function skipIfNotEnhancedSigchild($expectException = true)
-    {
-        if (self::$sigchild) {
-            if (!$expectException) {
-                $this->markTestSkipped('PHP is compiled with --enable-sigchild.');
-            } elseif (self::$notEnhancedSigchild) {
-                if (method_exists($this, 'expectException')) {
-                    $this->expectException('Symfony\Component\Process\Exception\RuntimeException');
-                    $this->expectExceptionMessage('This PHP has been compiled with --enable-sigchild.');
-                } else {
-                    $this->setExpectedException('Symfony\Component\Process\Exception\RuntimeException', 'This PHP has been compiled with --enable-sigchild.');
-                }
-            }
-        }
-    }
-
     /**
      * @group tty
      */
@@ -650,7 +575,7 @@ class ProcessTest extends TestCase
     {
         $process = $this->getProcess('echo foo');
         $process->run();
-        $this->assertTrue(strlen($process->getOutput()) > 0);
+        $this->assertGreaterThan(0, strlen($process->getOutput()));
     }
 
     public function testGetExitCodeIsNullOnStart()
@@ -1499,6 +1424,7 @@ class ProcessTest extends TestCase
     public function testEnvBackupDoesNotDeleteExistingVars()
     {
         putenv('existing_var=foo');
+        $_ENV['existing_var'] = 'foo';
         $process = $this->getProcess('php -r "echo getenv(\'new_test_var\');"');
         $process->setEnv(array('existing_var' => 'bar', 'new_test_var' => 'foo'));
         $process->inheritEnvironmentVariables();
@@ -1508,20 +1434,27 @@ class ProcessTest extends TestCase
         $this->assertSame('foo', $process->getOutput());
         $this->assertSame('foo', getenv('existing_var'));
         $this->assertFalse(getenv('new_test_var'));
+
+        putenv('existing_var');
+        unset($_ENV['existing_var']);
     }
 
     public function testEnvIsInherited()
     {
-        $process = $this->getProcessForCode('echo serialize($_SERVER);', null, array('BAR' => 'BAZ'));
+        $process = $this->getProcessForCode('echo serialize($_SERVER);', null, array('BAR' => 'BAZ', 'EMPTY' => ''));
 
         putenv('FOO=BAR');
+        $_ENV['FOO'] = 'BAR';
 
         $process->run();
 
-        $expected = array('BAR' => 'BAZ', 'FOO' => 'BAR');
+        $expected = array('BAR' => 'BAZ', 'EMPTY' => '', 'FOO' => 'BAR');
         $env = array_intersect_key(unserialize($process->getOutput()), $expected);
 
         $this->assertEquals($expected, $env);
+
+        putenv('FOO');
+        unset($_ENV['FOO']);
     }
 
     /**
@@ -1532,6 +1465,7 @@ class ProcessTest extends TestCase
         $process = $this->getProcessForCode('echo serialize($_SERVER);', null, array('BAR' => 'BAZ'));
 
         putenv('FOO=BAR');
+        $_ENV['FOO'] = 'BAR';
 
         $this->assertSame($process, $process->inheritEnvironmentVariables(false));
         $this->assertFalse($process->areEnvironmentVariablesInherited());
@@ -1543,6 +1477,9 @@ class ProcessTest extends TestCase
         unset($expected['FOO']);
 
         $this->assertSame($expected, $env);
+
+        putenv('FOO');
+        unset($_ENV['FOO']);
     }
 
     public function testGetCommandLine()
@@ -1617,11 +1554,64 @@ EOTXT;
         $this->assertSame($env, $p->getEnv());
     }
 
-    protected function tearDown()
+    /**
+     * @param string      $commandline
+     * @param null|string $cwd
+     * @param null|array  $env
+     * @param null|string $input
+     * @param int         $timeout
+     * @param array       $options
+     *
+     * @return Process
+     */
+    private function getProcess($commandline, $cwd = null, array $env = null, $input = null, $timeout = 60)
     {
+        $process = new Process($commandline, $cwd, $env, $input, $timeout);
+        $process->inheritEnvironmentVariables();
+
+        if (false !== $enhance = getenv('ENHANCE_SIGCHLD')) {
+            try {
+                $process->setEnhanceSigchildCompatibility(false);
+                $process->getExitCode();
+                $this->fail('ENHANCE_SIGCHLD must be used together with a sigchild-enabled PHP.');
+            } catch (RuntimeException $e) {
+                $this->assertSame('This PHP has been compiled with --enable-sigchild. You must use setEnhanceSigchildCompatibility() to use this method.', $e->getMessage());
+                if ($enhance) {
+                    $process->setEnhanceSigchildCompatibility(true);
+                } else {
+                    self::$notEnhancedSigchild = true;
+                }
+            }
+        }
+
         if (self::$process) {
             self::$process->stop(0);
-            self::$process = null;
+        }
+
+        return self::$process = $process;
+    }
+
+    /**
+     * @return Process
+     */
+    private function getProcessForCode($code, $cwd = null, array $env = null, $input = null, $timeout = 60)
+    {
+        return $this->getProcess(array(self::$phpBin, '-r', $code), $cwd, $env, $input, $timeout);
+    }
+
+    private function skipIfNotEnhancedSigchild($expectException = true)
+    {
+        if (self::$sigchild) {
+            if (!$expectException) {
+                $this->markTestSkipped('PHP is compiled with --enable-sigchild.');
+            } elseif (self::$notEnhancedSigchild) {
+                if (method_exists($this, 'expectException')) {
+                    $this->expectException('Symfony\Component\Process\Exception\RuntimeException');
+                    $this->expectExceptionMessage('This PHP has been compiled with --enable-sigchild.');
+                } else {
+                    $this->setExpectedException('Symfony\Component\Process\Exception\RuntimeException', 'This PHP has been compiled with --enable-sigchild.');
+                }
+            }
         }
     }
 }

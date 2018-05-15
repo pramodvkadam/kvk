@@ -47,39 +47,6 @@ class Redirector
     }
 
     /**
-     * Create a new redirect response to the given path.
-     *
-     * @param  string  $path
-     * @param  int     $status
-     * @param  array   $headers
-     * @param  bool    $secure
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function to($path, $status = 302, $headers = [], $secure = null)
-    {
-        return $this->createRedirect($this->generator->to($path, [], $secure), $status, $headers);
-    }
-
-    /**
-     * Create a new redirect response.
-     *
-     * @param  string  $path
-     * @param  int     $status
-     * @param  array   $headers
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    protected function createRedirect($path, $status, $headers)
-    {
-        return tap(new RedirectResponse($path, $status, $headers), function ($redirect) {
-            if (isset($this->session)) {
-                $redirect->setSession($this->session);
-            }
-
-            $redirect->setRequest($this->generator->getRequest());
-        });
-    }
-
-    /**
      * Create a new redirect response to the previous location.
      *
      * @param  int    $status
@@ -137,6 +104,20 @@ class Redirector
     }
 
     /**
+     * Create a new redirect response to the given path.
+     *
+     * @param  string  $path
+     * @param  int     $status
+     * @param  array   $headers
+     * @param  bool    $secure
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function to($path, $status = 302, $headers = [], $secure = null)
+    {
+        return $this->createRedirect($this->generator->to($path, [], $secure), $status, $headers);
+    }
+
+    /**
      * Create a new redirect response to an external URL (no validation).
      *
      * @param  string  $path
@@ -188,6 +169,25 @@ class Redirector
     public function action($action, $parameters = [], $status = 302, $headers = [])
     {
         return $this->to($this->generator->action($action, $parameters), $status, $headers);
+    }
+
+    /**
+     * Create a new redirect response.
+     *
+     * @param  string  $path
+     * @param  int     $status
+     * @param  array   $headers
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    protected function createRedirect($path, $status, $headers)
+    {
+        return tap(new RedirectResponse($path, $status, $headers), function ($redirect) {
+            if (isset($this->session)) {
+                $redirect->setSession($this->session);
+            }
+
+            $redirect->setRequest($this->generator->getRequest());
+        });
     }
 
     /**

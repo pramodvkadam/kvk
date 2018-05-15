@@ -66,6 +66,24 @@ class TinkerCommand extends Command
     }
 
     /**
+     * Get artisan commands to pass through to PsySH.
+     *
+     * @return array
+     */
+    protected function getCommands()
+    {
+        $commands = [];
+
+        foreach ($this->getApplication()->all() as $name => $command) {
+            if (in_array($name, $this->commandWhitelist)) {
+                $commands[] = $command;
+            }
+        }
+
+        return $commands;
+    }
+
+    /**
      * Get an array of Laravel tailored casters.
      *
      * @return array
@@ -85,24 +103,6 @@ class TinkerCommand extends Command
         }
 
         return $casters;
-    }
-
-    /**
-     * Get artisan commands to pass through to PsySH.
-     *
-     * @return array
-     */
-    protected function getCommands()
-    {
-        $commands = [];
-
-        foreach ($this->getApplication()->all() as $name => $command) {
-            if (in_array($name, $this->commandWhitelist)) {
-                $commands[] = $command;
-            }
-        }
-
-        return $commands;
     }
 
     /**

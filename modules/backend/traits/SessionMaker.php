@@ -16,17 +16,6 @@ use SystemException;
 trait SessionMaker
 {
     /**
-     * Resets all session data related to this widget.
-     * @return void
-     */
-    public function resetSession()
-    {
-        $sessionId = $this->makeSessionId();
-
-        Session::forget($sessionId);
-    }
-
-    /**
      * Saves a widget related key/value pair in to session data.
      * @param string $key Unique key for the data store.
      * @param string $value The value to store.
@@ -41,25 +30,6 @@ trait SessionMaker
         $currentStore[$key] = $value;
 
         Session::put($sessionId, base64_encode(serialize($currentStore)));
-    }
-
-    /**
-     * Returns a unique session identifier for this widget and controller action.
-     * @return string
-     */
-    protected function makeSessionId()
-    {
-        $controller = property_exists($this, 'controller') && $this->controller
-            ? $this->controller
-            : $this;
-
-        $uniqueId = method_exists($this, 'getId') ? $this->getId() : $controller->getId();
-
-        // Removes Class name and "Controllers" directory
-        $rootNamespace = Str::getClassId(Str::getClassNamespace(Str::getClassNamespace($controller)));
-
-        // The controller action is intentionally omitted, session should be shared for all actions
-        return 'widget.' . $rootNamespace . '-' . class_basename($controller) . '-' . $uniqueId;
     }
 
     /**
@@ -86,5 +56,35 @@ trait SessionMaker
         }
 
         return isset($currentStore[$key]) ? $currentStore[$key] : $default;
+    }
+
+    /**
+     * Returns a unique session identifier for this widget and controller action.
+     * @return string
+     */
+    protected function makeSessionId()
+    {
+        $controller = property_exists($this, 'controller') && $this->controller
+            ? $this->controller
+            : $this;
+
+        $uniqueId = method_exists($this, 'getId') ? $this->getId() : $controller->getId();
+
+        // Removes Class name and "Controllers" directory
+        $rootNamespace = Str::getClassId(Str::getClassNamespace(Str::getClassNamespace($controller)));
+
+        // The controller action is intentionally omitted, session should be shared for all actions
+        return 'widget.' . $rootNamespace . '-' . class_basename($controller) . '-' . $uniqueId;
+    }
+
+    /**
+     * Resets all session data related to this widget.
+     * @return void
+     */
+    public function resetSession()
+    {
+        $sessionId = $this->makeSessionId();
+
+        Session::forget($sessionId);
     }
 }

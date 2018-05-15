@@ -15,16 +15,27 @@ class Parameter extends Model
 {
     use \October\Rain\Support\Traits\KeyParser;
 
-    protected static $cache = [];
-    public $timestamps = false;
     /**
      * @var string The database table used by the model.
      */
     protected $table = 'system_parameters';
+
+    public $timestamps = false;
+
+    protected static $cache = [];
+
     /**
      * @var array List of attribute names which are json encoded and decoded from the database.
      */
     protected $jsonable = ['value'];
+
+    /**
+     * Clear the cache after saving.
+     */
+    public function afterSave()
+    {
+        Cache::forget(implode('-', [$this->table, $this->namespace, $this->group, $this->item]));
+    }
 
     /**
      * Returns a setting value by the module (or plugin) name and setting name.
@@ -44,22 +55,6 @@ class Parameter extends Model
         }
 
         return static::$cache[$key] = $record->value;
-    }
-
-    /**
-     * Returns a record (cached)
-     * @return self
-     */
-    public static function findRecord($key)
-    {
-        $record = new static;
-
-        list($namespace, $group, $item) = $record->parseKey($key);
-
-        return $record
-            ->applyKey($key)
-            ->remember(5, implode('-', [$record->getTable(), $namespace, $group, $item]))
-            ->first();
     }
 
     /**
@@ -94,14 +89,6 @@ class Parameter extends Model
     }
 
     /**
-     * Clear the cache after saving.
-     */
-    public function afterSave()
-    {
-        Cache::forget(implode('-', [$this->table, $this->namespace, $this->group, $this->item]));
-    }
-
-    /**
      * Resets a setting value by deleting the record.
      * @param string $key Specifies the setting key value.
      * @return bool
@@ -117,6 +104,22 @@ class Parameter extends Model
 
         unset(static::$cache[$key]);
         return true;
+    }
+
+    /**
+     * Returns a record (cached)
+     * @return self
+     */
+    public static function findRecord($key)
+    {
+        $record = new static;
+
+        list($namespace, $group, $item) = $record->parseKey($key);
+
+        return $record
+            ->applyKey($key)
+            ->remember(5, implode('-', [$record->getTable(), $namespace, $group, $item]))
+            ->first();
     }
 
     /**

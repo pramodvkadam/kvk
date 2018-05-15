@@ -13,21 +13,6 @@ class __TwigTemplate_7c43b14414cd176fa450405672dffb5f359e14ece11175fc742abb7c0ab
         );
     }
 
-    public function getTemplateName()
-    {
-        return "/var/www/html/atma/themes/atma-new/partials/home-slideshow.htm";
-    }
-
-    public function isTraitable()
-    {
-        return false;
-    }
-
-    public function getDebugInfo()
-    {
-        return array (  101 => 33,  94 => 29,  91 => 28,  84 => 26,  82 => 25,  76 => 22,  70 => 20,  66 => 19,  63 => 18,  61 => 17,  54 => 12,  47 => 10,  45 => 9,  39 => 8,  36 => 7,  31 => 6,  29 => 5,  24 => 3,  21 => 2,  19 => 1,);
-    }
-
     protected function doDisplay(array $context, array $blocks = array())
     {
         // line 1
@@ -122,6 +107,21 @@ class __TwigTemplate_7c43b14414cd176fa450405672dffb5f359e14ece11175fc742abb7c0ab
 </header>
 ";
         }
+    }
+
+    public function getTemplateName()
+    {
+        return "/var/www/html/atma/themes/atma-new/partials/home-slideshow.htm";
+    }
+
+    public function isTraitable()
+    {
+        return false;
+    }
+
+    public function getDebugInfo()
+    {
+        return array (  101 => 33,  94 => 29,  91 => 28,  84 => 26,  82 => 25,  76 => 22,  70 => 20,  66 => 19,  63 => 18,  61 => 17,  54 => 12,  47 => 10,  45 => 9,  39 => 8,  36 => 7,  31 => 6,  29 => 5,  24 => 3,  21 => 2,  19 => 1,);
     }
 
     public function getSourceContext()

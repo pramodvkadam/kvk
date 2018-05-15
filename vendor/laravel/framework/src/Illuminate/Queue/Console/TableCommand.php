@@ -69,6 +69,19 @@ class TableCommand extends Command
     }
 
     /**
+     * Create a base migration file for the table.
+     *
+     * @param  string  $table
+     * @return string
+     */
+    protected function createBaseMigration($table = 'jobs')
+    {
+        return $this->laravel['migration.creator']->create(
+            'create_'.$table.'_table', $this->laravel->databasePath().'/migrations'
+        );
+    }
+
+    /**
      * Replace the generated migration with the job table stub.
      *
      * @param  string  $path
@@ -85,18 +98,5 @@ class TableCommand extends Command
         );
 
         $this->files->put($path, $stub);
-    }
-
-    /**
-     * Create a base migration file for the table.
-     *
-     * @param  string  $table
-     * @return string
-     */
-    protected function createBaseMigration($table = 'jobs')
-    {
-        return $this->laravel['migration.creator']->create(
-            'create_'.$table.'_table', $this->laravel->databasePath().'/migrations'
-        );
     }
 }

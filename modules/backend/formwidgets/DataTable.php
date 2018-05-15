@@ -58,21 +58,6 @@ class DataTable extends FormWidgetBase
         $this->table->bindToController();
     }
 
-    protected function makeTableWidget()
-    {
-        $config = $this->makeConfig((array) $this->config);
-
-        $config->dataSource = 'client';
-        $config->alias = studly_case(HtmlHelper::nameToId($this->fieldName)) . 'datatable';
-        $config->fieldName = $this->fieldName;
-
-        $table = new Table($this->controller, $config);
-
-        $table->bindEvent('table.getDropdownOptions', [$this, 'getDataTableOptions']);
-
-        return $table;
-    }
-
     /**
      * @return Backend\Widgets\Table   The table to be displayed.
      */
@@ -100,24 +85,6 @@ class DataTable extends FormWidgetBase
         $this->vars['size'] = $this->size;
         $this->vars['rowSorting'] = $this->rowSorting;
     }
-
-    protected function populateTableWidget()
-    {
-        $dataSource = $this->table->getDataSource();
-
-        // TODO: provide a streaming implementation of loading
-        // data from the model. The current implementation loads
-        // all records at once. -ab
-
-        $records = $this->getLoadValue() ?: [];
-
-        $dataSource->purge();
-        $dataSource->initRecords((array) $records);
-    }
-
-    /*
-     * Populate data
-     */
 
     /**
      * @inheritDoc
@@ -158,6 +125,38 @@ class DataTable extends FormWidgetBase
         }
 
         return $result;
+    }
+
+    /*
+     * Populate data
+     */
+    protected function populateTableWidget()
+    {
+        $dataSource = $this->table->getDataSource();
+
+        // TODO: provide a streaming implementation of loading
+        // data from the model. The current implementation loads
+        // all records at once. -ab
+
+        $records = $this->getLoadValue() ?: [];
+
+        $dataSource->purge();
+        $dataSource->initRecords((array) $records);
+    }
+
+    protected function makeTableWidget()
+    {
+        $config = $this->makeConfig((array) $this->config);
+
+        $config->dataSource = 'client';
+        $config->alias = studly_case(HtmlHelper::nameToId($this->fieldName)) . 'datatable';
+        $config->fieldName = $this->fieldName;
+
+        $table = new Table($this->controller, $config);
+
+        $table->bindEvent('table.getDropdownOptions', [$this, 'getDataTableOptions']);
+
+        return $table;
     }
 
     /**

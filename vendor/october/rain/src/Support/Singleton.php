@@ -14,19 +14,6 @@ use App; // @todo Allow external binding
 class Singleton
 {
     /**
-     * Constructor.
-     */
-    final protected function __construct()
-    {
-        $this->init();
-    }
-
-    /**
-     * Initialize the singleton free from constructor parameters.
-     */
-    protected function init() {}
-
-    /**
      * Create a new instance of this singleton.
      */
     final public static function instance()
@@ -54,6 +41,19 @@ class Singleton
     {
         return new static;
     }
+
+    /**
+     * Constructor.
+     */
+    final protected function __construct()
+    {
+        $this->init();
+    }
+
+    /**
+     * Initialize the singleton free from constructor parameters.
+     */
+    protected function init() {}
 
     /**
      * @ignore

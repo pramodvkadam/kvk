@@ -18,33 +18,35 @@ use ValidationException;
 class Asset extends Extendable
 {
     /**
-     * @var string Specifies the file name corresponding the CMS object.
-     */
-    public $fileName;
-    /**
-     * @var string Last modified time.
-     */
-    public $mtime;
-    /**
-     * @var string The entire file content.
-     */
-    public $content;
-    /**
-     * @var bool Indicates if the model exists.
-     */
-    public $exists = false;
-    /**
      * @var \Cms\Classes\Theme A reference to the CMS theme containing the object.
      */
     protected $theme;
+
     /**
      * @var string The container name inside the theme.
      */
     protected $dirName = 'assets';
+
+    /**
+     * @var string Specifies the file name corresponding the CMS object.
+     */
+    public $fileName;
+
     /**
      * @var string Specifies the file name, the CMS object was loaded from.
      */
     protected $originalFileName = null;
+
+    /**
+     * @var string Last modified time.
+     */
+    public $mtime;
+
+    /**
+     * @var string The entire file content.
+     */
+    public $content;
+
     /**
      * @var array The attributes that are mass assignable.
      */
@@ -52,10 +54,16 @@ class Asset extends Extendable
         'fileName',
         'content'
     ];
+
     /**
      * @var array Allowable file extensions.
      */
     protected $allowedExtensions = [];
+
+    /**
+     * @var bool Indicates if the model exists.
+     */
+    public $exists = false;
 
     /**
      * Creates an instance of the object and associates it with a CMS theme.
@@ -71,23 +79,6 @@ class Asset extends Extendable
     }
 
     /**
-     * Returns a list of editable asset extensions.
-     * The list can be overridden with the cms.editableAssetTypes configuration option.
-     * @return array
-     */
-    public static function getEditableExtensions()
-    {
-        $defaultTypes =  ['css', 'js', 'less', 'sass', 'scss'];
-
-        $configTypes = Config::get('cms.editableAssetTypes');
-        if (!$configTypes) {
-            return $defaultTypes;
-        }
-
-        return $configTypes;
-    }
-
-    /**
      * Loads the object from a file.
      * This method is used in the CMS back-end. It doesn't use any caching.
      * @param \Cms\Classes\Theme $theme Specifies the theme the object belongs to.
@@ -98,6 +89,20 @@ class Asset extends Extendable
     public static function load($theme, $fileName)
     {
         return (new static($theme))->find($fileName);
+    }
+
+    /**
+     * Prepares the theme datasource for the model.
+     * @param \Cms\Classes\Theme|string $theme Specifies a parent theme.
+     * @return $this
+     */
+    public static function inTheme($theme)
+    {
+        if (is_string($theme)) {
+            $theme = Theme::load($theme);
+        }
+
+        return new static($theme);
     }
 
     /**
@@ -124,34 +129,6 @@ class Asset extends Extendable
         $this->content = $content;
         $this->exists = true;
         return $this;
-    }
-
-    /**
-     * Returns the absolute file path.
-     * @param string $fileName Specifies the file name to return the path to.
-     * @return string
-     */
-    public function getFilePath($fileName = null)
-    {
-        if ($fileName === null) {
-            $fileName = $this->fileName;
-        }
-
-        return $this->theme->getPath().'/'.$this->dirName.'/'.$fileName;
-    }
-
-    /**
-     * Prepares the theme datasource for the model.
-     * @param \Cms\Classes\Theme $theme Specifies a parent theme.
-     * @return $this
-     */
-    public static function inTheme($theme)
-    {
-        if (is_string($theme)) {
-            $theme = Theme::load($theme);
-        }
-
-        return new static($theme);
     }
 
     /**
@@ -278,5 +255,36 @@ class Asset extends Extendable
     public function getFileName()
     {
         return $this->fileName;
+    }
+
+    /**
+     * Returns the absolute file path.
+     * @param string $fileName Specifies the file name to return the path to.
+     * @return string
+     */
+    public function getFilePath($fileName = null)
+    {
+        if ($fileName === null) {
+            $fileName = $this->fileName;
+        }
+
+        return $this->theme->getPath().'/'.$this->dirName.'/'.$fileName;
+    }
+
+    /**
+     * Returns a list of editable asset extensions.
+     * The list can be overridden with the cms.editableAssetTypes configuration option.
+     * @return array
+     */
+    public static function getEditableExtensions()
+    {
+        $defaultTypes =  ['css', 'js', 'less', 'sass', 'scss'];
+
+        $configTypes = Config::get('cms.editableAssetTypes');
+        if (!$configTypes) {
+            return $defaultTypes;
+        }
+
+        return $configTypes;
     }
 }

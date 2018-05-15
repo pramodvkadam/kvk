@@ -49,14 +49,6 @@ class Users extends Controller
      */
     public function __construct()
     {
-        $this->user = BackendAuth::getUser();
-        if (!$this->user->isSuperUser()) {
-            // Prevent non-superusers from even seeing the is_superuser filter
-            $this->listConfig = $this->makeConfig($this->listConfig);
-            $this->listConfig->filter = $this->makeConfig($this->listConfig->filter);
-            unset($this->listConfig->filter->scopes['is_superuser']);
-        }
-
         parent::__construct();
 
         if ($this->action == 'myaccount') {
@@ -76,6 +68,16 @@ class Users extends Controller
             $query->where('is_superuser', false);
         }
     }
+    
+    /**
+     * Prevents non-superusers from even seeing the is_superuser filter
+     */
+    public function listFilterExtendScopes($filterWidget)
+    {
+        if (!$this->user->isSuperUser()) {
+            $filterWidget->removeScope('is_superuser');
+        }
+    }
 
     /**
      * Extends the form query to prevent non-superusers from accessing superusers at all
@@ -85,17 +87,6 @@ class Users extends Controller
         if (!$this->user->isSuperUser()) {
             $query->where('is_superuser', false);
         }
-    }
-
-    /**
-     * My Settings controller
-     */
-    public function myaccount()
-    {
-        SettingsManager::setContext('October.Backend', 'myaccount');
-
-        $this->pageTitle = 'backend::lang.myaccount.menu_label';
-        return $this->update($this->user->id, 'myaccount');
     }
 
     /**
@@ -109,6 +100,17 @@ class Users extends Controller
         }
 
         return $this->asExtension('FormController')->update($recordId, $context);
+    }
+
+    /**
+     * My Settings controller
+     */
+    public function myaccount()
+    {
+        SettingsManager::setContext('October.Backend', 'myaccount');
+
+        $this->pageTitle = 'backend::lang.myaccount.menu_label';
+        return $this->update($this->user->id, 'myaccount');
     }
 
     /**

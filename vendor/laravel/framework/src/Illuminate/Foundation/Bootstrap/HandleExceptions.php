@@ -62,29 +62,6 @@ class HandleExceptions
     }
 
     /**
-     * Handle the PHP shutdown event.
-     *
-     * @return void
-     */
-    public function handleShutdown()
-    {
-        if (! is_null($error = error_get_last()) && $this->isFatal($error['type'])) {
-            $this->handleException($this->fatalExceptionFromError($error, 0));
-        }
-    }
-
-    /**
-     * Determine if the error type is fatal.
-     *
-     * @param  int  $type
-     * @return bool
-     */
-    protected function isFatal($type)
-    {
-        return in_array($type, [E_COMPILE_ERROR, E_CORE_ERROR, E_ERROR, E_PARSE]);
-    }
-
-    /**
      * Handle an uncaught exception from the application.
      *
      * Note: Most exceptions can be handled via the try / catch block in
@@ -114,16 +91,6 @@ class HandleExceptions
     }
 
     /**
-     * Get an instance of the exception handler.
-     *
-     * @return \Illuminate\Contracts\Debug\ExceptionHandler
-     */
-    protected function getExceptionHandler()
-    {
-        return $this->app->make(ExceptionHandler::class);
-    }
-
-    /**
      * Render an exception to the console.
      *
      * @param  \Exception  $e
@@ -146,6 +113,18 @@ class HandleExceptions
     }
 
     /**
+     * Handle the PHP shutdown event.
+     *
+     * @return void
+     */
+    public function handleShutdown()
+    {
+        if (! is_null($error = error_get_last()) && $this->isFatal($error['type'])) {
+            $this->handleException($this->fatalExceptionFromError($error, 0));
+        }
+    }
+
+    /**
      * Create a new fatal exception instance from an error array.
      *
      * @param  array  $error
@@ -157,5 +136,26 @@ class HandleExceptions
         return new FatalErrorException(
             $error['message'], $error['type'], 0, $error['file'], $error['line'], $traceOffset
         );
+    }
+
+    /**
+     * Determine if the error type is fatal.
+     *
+     * @param  int  $type
+     * @return bool
+     */
+    protected function isFatal($type)
+    {
+        return in_array($type, [E_COMPILE_ERROR, E_CORE_ERROR, E_ERROR, E_PARSE]);
+    }
+
+    /**
+     * Get an instance of the exception handler.
+     *
+     * @return \Illuminate\Contracts\Debug\ExceptionHandler
+     */
+    protected function getExceptionHandler()
+    {
+        return $this->app->make(ExceptionHandler::class);
     }
 }

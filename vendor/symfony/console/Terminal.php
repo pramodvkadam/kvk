@@ -35,6 +35,25 @@ class Terminal
         return self::$width ?: 80;
     }
 
+    /**
+     * Gets the terminal height.
+     *
+     * @return int
+     */
+    public function getHeight()
+    {
+        $height = getenv('LINES');
+        if (false !== $height) {
+            return (int) trim($height);
+        }
+
+        if (null === self::$height) {
+            self::initDimensions();
+        }
+
+        return self::$height ?: 50;
+    }
+
     private static function initDimensions()
     {
         if ('\\' === DIRECTORY_SEPARATOR) {
@@ -114,24 +133,5 @@ class Terminal
 
             return $info;
         }
-    }
-
-    /**
-     * Gets the terminal height.
-     *
-     * @return int
-     */
-    public function getHeight()
-    {
-        $height = getenv('LINES');
-        if (false !== $height) {
-            return (int) trim($height);
-        }
-
-        if (null === self::$height) {
-            self::initDimensions();
-        }
-
-        return self::$height ?: 50;
     }
 }

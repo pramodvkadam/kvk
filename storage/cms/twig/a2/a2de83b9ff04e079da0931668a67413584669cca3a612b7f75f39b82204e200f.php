@@ -13,6 +13,23 @@ class __TwigTemplate_56cf765cfc6d166e5d23c1eaa6b33e49e9393d29d4f4aad8f19b841675c
         );
     }
 
+    protected function doDisplay(array $context, array $blocks = array())
+    {
+        // line 1
+        echo "<h4 class=\"heading\">Current Events</h4>
+            <p>
+              Success story- <br>
+              Spices products 
+              Biofertilizers production, 
+              Weekly Agro Advisory for 
+              Pune District
+            </p>
+            <div class=\"bg-image\"><img src=\"";
+        // line 9
+        echo $this->env->getExtension('System\Twig\Extension')->mediaFilter("bg.png");
+        echo "\"></div>";
+    }
+
     public function getTemplateName()
     {
         return "/var/www/html/atma/themes/atma-new/partials/current-events-sidebar.htm";
@@ -39,22 +56,5 @@ class __TwigTemplate_56cf765cfc6d166e5d23c1eaa6b33e49e9393d29d4f4aad8f19b841675c
               Pune District
             </p>
             <div class=\"bg-image\"><img src=\"{{'bg.png'|media}}\"></div>", "/var/www/html/atma/themes/atma-new/partials/current-events-sidebar.htm", "");
-    }
-
-    protected function doDisplay(array $context, array $blocks = array())
-    {
-        // line 1
-        echo "<h4 class=\"heading\">Current Events</h4>
-            <p>
-              Success story- <br>
-              Spices products 
-              Biofertilizers production, 
-              Weekly Agro Advisory for 
-              Pune District
-            </p>
-            <div class=\"bg-image\"><img src=\"";
-        // line 9
-        echo $this->env->getExtension('System\Twig\Extension')->mediaFilter("bg.png");
-        echo "\"></div>";
     }
 }

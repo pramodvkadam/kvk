@@ -24,22 +24,11 @@ abstract class Seeder
     protected $command;
 
     /**
-     * Silently seed the given connection from the given path.
-     *
-     * @param  array|string  $class
-     * @return void
-     */
-    public function callSilent($class)
-    {
-        $this->call($class, true);
-    }
-
-    /**
      * Seed the given connection from the given path.
      *
      * @param  array|string  $class
      * @param  bool  $silent
-     * @return void
+     * @return $this
      */
     public function call($class, $silent = false)
     {
@@ -52,24 +41,19 @@ abstract class Seeder
 
             $this->resolve($class)->__invoke();
         }
+
+        return $this;
     }
 
     /**
-     * Run the database seeds.
+     * Silently seed the given connection from the given path.
      *
+     * @param  array|string  $class
      * @return void
-     *
-     * @throws \InvalidArgumentException
      */
-    public function __invoke()
+    public function callSilent($class)
     {
-        if (! method_exists($this, 'run')) {
-            throw new InvalidArgumentException('Method [run] missing from '.get_class($this));
-        }
-
-        return isset($this->container)
-                    ? $this->container->call([$this, 'run'])
-                    : $this->run();
+        $this->call($class, true);
     }
 
     /**
@@ -119,5 +103,23 @@ abstract class Seeder
         $this->command = $command;
 
         return $this;
+    }
+
+    /**
+     * Run the database seeds.
+     *
+     * @return void
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function __invoke()
+    {
+        if (! method_exists($this, 'run')) {
+            throw new InvalidArgumentException('Method [run] missing from '.get_class($this));
+        }
+
+        return isset($this->container)
+                    ? $this->container->call([$this, 'run'])
+                    : $this->run();
     }
 }

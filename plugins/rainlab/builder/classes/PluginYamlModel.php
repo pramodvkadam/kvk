@@ -32,18 +32,9 @@ abstract class PluginYamlModel extends YamlModel
         return $result;
     }
 
-    protected static function pluginSettingsFileExists($pluginCodeObj)
+    public function getPluginName()
     {
-        $filePath = File::symbolizePath($pluginCodeObj->toPluginFilePath());
-        if (File::isFile($filePath)) {
-            return $filePath;
-        }
-
-        return false;
-    }
-
-    protected function initPropertiesFromPluginCodeObject($pluginCodeObj)
-    {
+        return Lang::get($this->pluginName);
     }
 
     protected function loadCommonProperties()
@@ -59,8 +50,17 @@ abstract class PluginYamlModel extends YamlModel
         }
     }
 
-    public function getPluginName()
+    protected function initPropertiesFromPluginCodeObject($pluginCodeObj)
     {
-        return Lang::get($this->pluginName);
+    }
+
+    protected static function pluginSettingsFileExists($pluginCodeObj)
+    {
+        $filePath = File::symbolizePath($pluginCodeObj->toPluginFilePath());
+        if (File::isFile($filePath)) {
+            return $filePath;
+        }
+
+        return false;
     }
 }

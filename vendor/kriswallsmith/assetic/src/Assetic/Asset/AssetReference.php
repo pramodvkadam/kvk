@@ -54,37 +54,6 @@ class AssetReference implements AssetInterface
         return $this->callAsset(__FUNCTION__);
     }
 
-    private function flushFilters()
-    {
-        $asset = $this->resolve();
-
-        while ($filter = array_shift($this->filters)) {
-            $asset->ensureFilter($filter);
-        }
-    }
-
-    private function resolve()
-    {
-        if ($this->asset) {
-            return $this->asset;
-        }
-
-        $asset = $this->am->get($this->name);
-
-        if ($this->clone) {
-            $asset = $this->asset = clone $asset;
-        }
-
-        return $asset;
-    }
-
-    private function callAsset($method, $arguments = array())
-    {
-        $asset = $this->resolve();
-
-        return call_user_func_array(array($asset, $method), $arguments);
-    }
-
     public function clearFilters()
     {
         $this->filters = array();
@@ -145,8 +114,6 @@ class AssetReference implements AssetInterface
         return $this->callAsset(__FUNCTION__);
     }
 
-    // private
-
     public function getVars()
     {
         return $this->callAsset(__FUNCTION__);
@@ -160,5 +127,38 @@ class AssetReference implements AssetInterface
     public function setValues(array $values)
     {
         $this->callAsset(__FUNCTION__, array($values));
+    }
+
+    // private
+
+    private function callAsset($method, $arguments = array())
+    {
+        $asset = $this->resolve();
+
+        return call_user_func_array(array($asset, $method), $arguments);
+    }
+
+    private function flushFilters()
+    {
+        $asset = $this->resolve();
+
+        while ($filter = array_shift($this->filters)) {
+            $asset->ensureFilter($filter);
+        }
+    }
+
+    private function resolve()
+    {
+        if ($this->asset) {
+            return $this->asset;
+        }
+
+        $asset = $this->am->get($this->name);
+
+        if ($this->clone) {
+            $asset = $this->asset = clone $asset;
+        }
+
+        return $asset;
     }
 }

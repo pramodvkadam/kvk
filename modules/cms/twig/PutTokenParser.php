@@ -46,6 +46,11 @@ class PutTokenParser extends Twig_TokenParser
         return new PutNode($body, $name, $endType, $lineno, $this->getTag());
     }
 
+    public function decidePutEnd(Twig_Token $token)
+    {
+        return $token->test('endput');
+    }
+
     /**
      * Gets the tag name associated with this token parser.
      *
@@ -54,10 +59,5 @@ class PutTokenParser extends Twig_TokenParser
     public function getTag()
     {
         return 'put';
-    }
-
-    public function decidePutEnd(Twig_Token $token)
-    {
-        return $token->test('endput');
     }
 }

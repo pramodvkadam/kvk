@@ -121,58 +121,6 @@ class StaticReflectionParser implements ReflectionProviderInterface
     }
 
     /**
-     * @return string
-     */
-    public function getClassName()
-    {
-        return $this->className;
-    }
-
-    /**
-     * @return string
-     */
-    public function getNamespaceName()
-    {
-        return $this->namespace;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getReflectionClass()
-    {
-        return new StaticReflectionClass($this);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getReflectionMethod($methodName)
-    {
-        return new StaticReflectionMethod($this, $methodName);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getReflectionProperty($propertyName)
-    {
-        return new StaticReflectionProperty($this, $propertyName);
-    }
-
-    /**
-     * Gets the use statements from this file.
-     *
-     * @return array
-     */
-    public function getUseStatements()
-    {
-        $this->parse();
-
-        return $this->useStatements;
-    }
-
-    /**
      * @return void
      */
     protected function parse()
@@ -259,6 +207,70 @@ class StaticReflectionParser implements ReflectionProviderInterface
     }
 
     /**
+     * @return StaticReflectionParser
+     */
+    protected function getParentStaticReflectionParser()
+    {
+        if (empty($this->parentStaticReflectionParser)) {
+            $this->parentStaticReflectionParser = new static($this->parentClassName, $this->finder);
+        }
+
+        return $this->parentStaticReflectionParser;
+    }
+
+    /**
+     * @return string
+     */
+    public function getClassName()
+    {
+        return $this->className;
+    }
+
+    /**
+     * @return string
+     */
+    public function getNamespaceName()
+    {
+        return $this->namespace;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getReflectionClass()
+    {
+        return new StaticReflectionClass($this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getReflectionMethod($methodName)
+    {
+        return new StaticReflectionMethod($this, $methodName);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getReflectionProperty($propertyName)
+    {
+        return new StaticReflectionProperty($this, $propertyName);
+    }
+
+    /**
+     * Gets the use statements from this file.
+     *
+     * @return array
+     */
+    public function getUseStatements()
+    {
+        $this->parse();
+
+        return $this->useStatements;
+    }
+
+    /**
      * Gets the doc comment.
      *
      * @param string $type The type: 'class', 'property' or 'method'.
@@ -293,17 +305,5 @@ class StaticReflectionParser implements ReflectionProviderInterface
             return $this->getParentStaticReflectionParser()->getStaticReflectionParserForDeclaringClass($type, $name);
         }
         throw new ReflectionException('Invalid ' . $type . ' "' . $name . '"');
-    }
-
-    /**
-     * @return StaticReflectionParser
-     */
-    protected function getParentStaticReflectionParser()
-    {
-        if (empty($this->parentStaticReflectionParser)) {
-            $this->parentStaticReflectionParser = new static($this->parentClassName, $this->finder);
-        }
-
-        return $this->parentStaticReflectionParser;
     }
 }

@@ -54,18 +54,6 @@ class Twig_Tests_ParserTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, $m->invoke($parser, $input));
     }
 
-    protected function getParser()
-    {
-        $parser = new Twig_Parser(new Twig_Environment($this->getMockBuilder('Twig_LoaderInterface')->getMock()));
-        $parser->setParent(new Twig_Node());
-
-        $p = new ReflectionProperty($parser, 'stream');
-        $p->setAccessible(true);
-        $p->setValue($parser, new Twig_TokenStream(array()));
-
-        return $parser;
-    }
-
     public function getFilterBodyNodesData()
     {
         return array(
@@ -162,6 +150,18 @@ EOF
         // If this test does not throw any exception, that's good.
         // see https://github.com/symfony/symfony/issues/4218
         $this->addToAssertionCount(1);
+    }
+
+    protected function getParser()
+    {
+        $parser = new Twig_Parser(new Twig_Environment($this->getMockBuilder('Twig_LoaderInterface')->getMock()));
+        $parser->setParent(new Twig_Node());
+
+        $p = new ReflectionProperty($parser, 'stream');
+        $p->setAccessible(true);
+        $p->setValue($parser, new Twig_TokenStream(array()));
+
+        return $parser;
     }
 }
 

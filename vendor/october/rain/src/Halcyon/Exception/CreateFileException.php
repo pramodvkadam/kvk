@@ -12,16 +12,6 @@ class CreateFileException extends RuntimeException
     protected $invalidPath;
 
     /**
-     * Get the affected file path.
-     *
-     * @return string
-     */
-    public function getInvalidPath()
-    {
-        return $this->invalidPath;
-    }
-
-    /**
      * Set the affected file path.
      *
      * @param  string   $model
@@ -34,5 +24,15 @@ class CreateFileException extends RuntimeException
         $this->message = "Error creating file [{$path}]. Please check write permissions.";
 
         return $this;
+    }
+
+    /**
+     * Get the affected file path.
+     *
+     * @return string
+     */
+    public function getInvalidPath()
+    {
+        return $this->invalidPath;
     }
 }

@@ -13,72 +13,68 @@ use System\Classes\PluginManager;
  */
 class PluginVersion extends Model
 {
-    /**
-     * @var array Cache store for version information
-     */
-    protected static $versionCache = null;
     public $table = 'system_plugin_versions';
-    /**
-     * @var bool Disable model timestamps.
-     */
-    public $timestamps = false;
-    /**
-     * @var bool Plugin has been disabled by a missing dependency.
-     */
-    public $disabledBySystem = false;
-    /**
-     * @var bool Plugin has been disabled by the user or configuration.
-     */
-    public $disabledByConfig = false;
-    /**
-     * @var bool If true, plugin exists in the database but not the filesystem.
-     */
-    public $orphaned = false;
-    /**
-     * @var string Plugin name, sourced from plugin details
-     */
-    public $name;
-    /**
-     * @var string Plugin description, sourced from plugin details
-     */
-    public $description;
-    /**
-     * @var string Plugin author, sourced from plugin details
-     */
-    public $author;
-    /**
-     * @var string Plugin icon, sourced from plugin details
-     */
-    public $icon;
-    /**
-     * @var string Plugin homepage, sourced from plugin details
-     */
-    public $homepage;
+
     /**
      * @var array Guarded fields
      */
     protected $guarded = ['*'];
+
+    /**
+     * @var bool Disable model timestamps.
+     */
+    public $timestamps = false;
+
+    /**
+     * @var array Cache store for version information
+     */
+    protected static $versionCache = null;
+
+    /**
+     * @var bool Plugin has been disabled by a missing dependency.
+     */
+    public $disabledBySystem = false;
+
+    /**
+     * @var bool Plugin has been disabled by the user or configuration.
+     */
+    public $disabledByConfig = false;
+
+    /**
+     * @var bool If true, plugin exists in the database but not the filesystem.
+     */
+    public $orphaned = false;
+
+    /**
+     * @var string Plugin name, sourced from plugin details
+     */
+    public $name;
+
+    /**
+     * @var string Plugin description, sourced from plugin details
+     */
+    public $description;
+
+    /**
+     * @var string Plugin author, sourced from plugin details
+     */
+    public $author;
+
+    /**
+     * @var string Plugin icon, sourced from plugin details
+     */
+    public $icon;
+
+    /**
+     * @var string Plugin homepage, sourced from plugin details
+     */
+    public $homepage;
+
     /**
      * The accessors to append to the model's array form.
      * @var array
      */
     protected $appends = ['slug'];
-
-    /**
-     * Returns the current version for a plugin
-     * @param  string $pluginCode Plugin code. Eg: Acme.Blog
-     * @return string
-     */
-    public static function getVersion($pluginCode)
-    {
-        if (self::$versionCache === null) {
-            self::$versionCache = self::lists('version', 'code');
-        }
-
-        return isset(self::$versionCache[$pluginCode])
-            ? self::$versionCache[$pluginCode]
-            : null;
-    }
 
     /**
      * After the model is populated
@@ -137,6 +133,22 @@ class PluginVersion extends Model
     public function scopeApplyEnabled($query)
     {
         return $query->where('is_disabled', '!=', 1);
+    }
+
+    /**
+     * Returns the current version for a plugin
+     * @param  string $pluginCode Plugin code. Eg: Acme.Blog
+     * @return string
+     */
+    public static function getVersion($pluginCode)
+    {
+        if (self::$versionCache === null) {
+            self::$versionCache = self::lists('version', 'code');
+        }
+
+        return isset(self::$versionCache[$pluginCode])
+            ? self::$versionCache[$pluginCode]
+            : null;
     }
 
     /**

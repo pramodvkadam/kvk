@@ -98,19 +98,6 @@ class ArrayStatement implements \IteratorAggregate, ResultStatement
     /**
      * {@inheritdoc}
      */
-    public function fetchAll($fetchMode = null)
-    {
-        $rows = array();
-        while ($row = $this->fetch($fetchMode)) {
-            $rows[] = $row;
-        }
-
-        return $rows;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function fetch($fetchMode = null)
     {
         if (isset($this->data[$this->num])) {
@@ -130,6 +117,19 @@ class ArrayStatement implements \IteratorAggregate, ResultStatement
         }
 
         return false;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function fetchAll($fetchMode = null)
+    {
+        $rows = array();
+        while ($row = $this->fetch($fetchMode)) {
+            $rows[] = $row;
+        }
+
+        return $rows;
     }
 
     /**

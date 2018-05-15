@@ -91,50 +91,46 @@ class FormBuilder extends FormWidgetBase
         ];
     }
 
-    protected function getControlInfo($type)
+    public function onModelFormRenderControlBody()
     {
-        if (array_key_exists($type, $this->controlInfoCache)) {
-            return $this->controlInfoCache[$type];
-        }
+        $type = Input::get('controlType');
+        $controlId = Input::get('controlId');
+        $properties = Input::get('properties');
+
+        return [
+            'markup' => $this->renderControlBody($type, $properties, $this),
+            'controlId' => $controlId
+        ];
+    }
+
+    public function onModelFormLoadControlPalette()
+    {
+        $controlId = Input::get('controlId');
 
         $library = ControlLibrary::instance();
-        $controlInfo = $library->getControlInfo($type);
+        $controls = $library->listControls();
+        $this->vars['registeredControls'] = $controls;
+        $this->vars['controlGroups'] = array_keys($controls);
 
-        if (!$controlInfo) {
-            throw new ApplicationException('The requested control type is not found.');
-        }
-
-        return $this->controlInfoCache[$type] = $controlInfo;
+        return [
+            'markup' => $this->makePartial('controlpalette'),
+            'controlId' => $controlId
+        ];
     }
 
-    protected function renderControlWrapper($type, $properties = [], $controlConfiguration = [])
+    public function getPluginCode()
     {
-        // This method renders the entire control, including
-        // the wrapping element.
-
-        $controlInfo = $this->getControlInfo($type);
-
-        // Builder UI displays Comment and Comment Above properties
-        // as Comment and Comment Position properties.
-
-        if (array_key_exists('comment', $properties) && strlen($properties['comment'])) {
-            $properties['oc.comment'] = $properties['comment'];
-            $properties['oc.commentPosition'] = 'below';
+        $pluginCode = Input::get('plugin_code');
+        if (strlen($pluginCode)) {
+            return $pluginCode;
         }
 
-        if (array_key_exists('commentAbove', $properties) && strlen($properties['commentAbove'])) {
-            $properties['oc.comment'] = $properties['commentAbove'];
-            $properties['oc.commentPosition'] = 'above';
-        }
-
-        $provider = $this->getControlDesignTimeProvider($controlInfo['designTimeProvider']);
-        return $this->makePartial('controlwrapper', [
-            'fieldsConfiguration' => $this->propertiesToInspectorSchema($controlInfo['properties']),
-            'controlConfiguration' => $controlConfiguration,
-            'type' => $type,
-            'properties' => $properties
-        ]);
+        return $this->model->getPluginCodeObj()->toCode();
     }
+
+    //
+    // Methods for the internal use
+    //
 
     protected function getControlDesignTimeProvider($providerClass)
     {
@@ -145,9 +141,14 @@ class FormBuilder extends FormWidgetBase
         return $this->designTimeProviders[$providerClass] = new $providerClass($this->controller);
     }
 
-    //
-    // Methods for the internal use
-    //
+    protected function getPropertyValue($properties, $property)
+    {
+        if (array_key_exists($property, $properties)) {
+            return $properties[$property];
+        }
+
+        return null;
+    }
 
     protected function propertiesToInspectorSchema($propertyConfiguration)
     {
@@ -187,16 +188,20 @@ class FormBuilder extends FormWidgetBase
         return $result;
     }
 
-    public function onModelFormRenderControlBody()
+    protected function getControlInfo($type)
     {
-        $type = Input::get('controlType');
-        $controlId = Input::get('controlId');
-        $properties = Input::get('properties');
+        if (array_key_exists($type, $this->controlInfoCache)) {
+            return $this->controlInfoCache[$type];
+        }
 
-        return [
-            'markup' => $this->renderControlBody($type, $properties, $this),
-            'controlId' => $controlId
-        ];
+        $library = ControlLibrary::instance();
+        $controlInfo = $library->getControlInfo($type);
+
+        if (!$controlInfo) {
+            throw new ApplicationException('The requested control type is not found.');
+        }
+
+        return $this->controlInfoCache[$type] = $controlInfo;
     }
 
     protected function renderControlBody($type, $properties)
@@ -211,40 +216,6 @@ class FormBuilder extends FormWidgetBase
         ]);
     }
 
-    public function onModelFormLoadControlPalette()
-    {
-        $controlId = Input::get('controlId');
-
-        $library = ControlLibrary::instance();
-        $controls = $library->listControls();
-        $this->vars['registeredControls'] = $controls;
-        $this->vars['controlGroups'] = array_keys($controls);
-
-        return [
-            'markup' => $this->makePartial('controlpalette'),
-            'controlId' => $controlId
-        ];
-    }
-
-    public function getPluginCode()
-    {
-        $pluginCode = Input::get('plugin_code');
-        if (strlen($pluginCode)) {
-            return $pluginCode;
-        }
-
-        return $this->model->getPluginCodeObj()->toCode();
-    }
-
-    protected function getPropertyValue($properties, $property)
-    {
-        if (array_key_exists($property, $properties)) {
-            return $properties[$property];
-        }
-
-        return null;
-    }
-
     protected function renderControlStaticBody($type, $properties, $controlConfiguration)
     {
         // The control body footer is never updated with AJAX and currently
@@ -256,29 +227,33 @@ class FormBuilder extends FormWidgetBase
         return $provider->renderControlStaticBody($type, $properties, $controlConfiguration, $this);
     }
 
-    protected function getControlRenderingInfo($controlName, $properties, $prevProperties)
+    protected function renderControlWrapper($type, $properties = [], $controlConfiguration = [])
     {
-        $type = isset($properties['type']) ? $properties['type'] : 'text';
-        $spanFixed = isset($properties['span']) ? $properties['span'] : 'auto';
-        $prevSpan = isset($prevProperties['span']) ? $prevProperties['span'] : 'auto';
-
-        $span = $this->getSpan($spanFixed, $prevSpan);
-        $spanClass = 'span-'.$span;
+        // This method renders the entire control, including 
+        // the wrapping element.
 
         $controlInfo = $this->getControlInfo($type);
 
-        $properties = $this->preprocessPropertyValues($controlName, $properties, $controlInfo);
+        // Builder UI displays Comment and Comment Above properties
+        // as Comment and Comment Position properties.
 
-        return [
-            'title' => Lang::get($controlInfo['name']),
-            'description' => Lang::get($controlInfo['description']),
-            'type' => $type,
-            'span' => $span,
-            'spanFixed' => $spanFixed,
-            'spanClass' => $spanClass,
-            'properties' => $properties,
-            'unknownControl' => isset($controlInfo['unknownControl']) && $controlInfo['unknownControl']
-        ];
+        if (array_key_exists('comment', $properties) && strlen($properties['comment'])) {
+            $properties['oc.comment'] = $properties['comment'];
+            $properties['oc.commentPosition'] = 'below';
+        }
+
+        if (array_key_exists('commentAbove', $properties) && strlen($properties['commentAbove'])) {
+            $properties['oc.comment'] = $properties['commentAbove'];
+            $properties['oc.commentPosition'] = 'above';
+        }
+
+        $provider = $this->getControlDesignTimeProvider($controlInfo['designTimeProvider']);
+        return $this->makePartial('controlwrapper', [
+            'fieldsConfiguration' => $this->propertiesToInspectorSchema($controlInfo['properties']),
+            'controlConfiguration' => $controlConfiguration,
+            'type' => $type, 
+            'properties' => $properties
+        ]);
     }
 
     protected function getSpan($currentSpan, $prevSpan, $isPlaceholder = false)
@@ -310,6 +285,31 @@ class FormBuilder extends FormWidgetBase
         }
 
         return $properties;
+    }
+
+    protected function getControlRenderingInfo($controlName, $properties, $prevProperties)
+    {
+        $type = isset($properties['type']) ? $properties['type'] : 'text';
+        $spanFixed = isset($properties['span']) ? $properties['span'] : 'auto';
+        $prevSpan = isset($prevProperties['span']) ? $prevProperties['span'] : 'auto';
+
+        $span = $this->getSpan($spanFixed, $prevSpan);
+        $spanClass = 'span-'.$span;
+
+        $controlInfo = $this->getControlInfo($type);
+
+        $properties = $this->preprocessPropertyValues($controlName, $properties, $controlInfo);
+
+        return [
+            'title' => Lang::get($controlInfo['name']),
+            'description' => Lang::get($controlInfo['description']),
+            'type' => $type,
+            'span' => $span,
+            'spanFixed' => $spanFixed,
+            'spanClass' => $spanClass,
+            'properties' => $properties,
+            'unknownControl' => isset($controlInfo['unknownControl']) && $controlInfo['unknownControl']
+        ];
     }
 
     protected function getTabConfigurationSchema()

@@ -58,52 +58,6 @@ class MailFake implements Mailer
     }
 
     /**
-     * Get all of the mailables matching a truth-test callback.
-     *
-     * @param  string  $mailable
-     * @param  callable|null  $callback
-     * @return \Illuminate\Support\Collection
-     */
-    public function sent($mailable, $callback = null)
-    {
-        if (! $this->hasSent($mailable)) {
-            return collect();
-        }
-
-        $callback = $callback ?: function () {
-            return true;
-        };
-
-        return $this->mailablesOf($mailable)->filter(function ($mailable) use ($callback) {
-            return $callback($mailable);
-        });
-    }
-
-    /**
-     * Determine if the given mailable has been sent.
-     *
-     * @param  string  $mailable
-     * @return bool
-     */
-    public function hasSent($mailable)
-    {
-        return $this->mailablesOf($mailable)->count() > 0;
-    }
-
-    /**
-     * Get all of the mailed mailables for a given type.
-     *
-     * @param  string  $type
-     * @return \Illuminate\Support\Collection
-     */
-    protected function mailablesOf($type)
-    {
-        return collect($this->mailables)->filter(function ($mailable) use ($type) {
-            return $mailable instanceof $type;
-        });
-    }
-
-    /**
      * Determine if a mailable was not sent based on a truth-test callback.
      *
      * @param  string  $mailable
@@ -163,6 +117,64 @@ class MailFake implements Mailer
     }
 
     /**
+     * Determine if a mailable was not queued based on a truth-test callback.
+     *
+     * @param  string  $mailable
+     * @param  callable|null  $callback
+     * @return void
+     */
+    public function assertNotQueued($mailable, $callback = null)
+    {
+        PHPUnit::assertTrue(
+            $this->queued($mailable, $callback)->count() === 0,
+            "The unexpected [{$mailable}] mailable was queued."
+        );
+    }
+
+    /**
+     * Assert that no mailables were queued.
+     *
+     * @return void
+     */
+    public function assertNothingQueued()
+    {
+        PHPUnit::assertEmpty($this->queuedMailables, 'Mailables were queued unexpectedly.');
+    }
+
+    /**
+     * Get all of the mailables matching a truth-test callback.
+     *
+     * @param  string  $mailable
+     * @param  callable|null  $callback
+     * @return \Illuminate\Support\Collection
+     */
+    public function sent($mailable, $callback = null)
+    {
+        if (! $this->hasSent($mailable)) {
+            return collect();
+        }
+
+        $callback = $callback ?: function () {
+            return true;
+        };
+
+        return $this->mailablesOf($mailable)->filter(function ($mailable) use ($callback) {
+            return $callback($mailable);
+        });
+    }
+
+    /**
+     * Determine if the given mailable has been sent.
+     *
+     * @param  string  $mailable
+     * @return bool
+     */
+    public function hasSent($mailable)
+    {
+        return $this->mailablesOf($mailable)->count() > 0;
+    }
+
+    /**
      * Get all of the queued mailables matching a truth-test callback.
      *
      * @param  string  $mailable
@@ -201,36 +213,24 @@ class MailFake implements Mailer
      * @param  string  $type
      * @return \Illuminate\Support\Collection
      */
-    protected function queuedMailablesOf($type)
+    protected function mailablesOf($type)
     {
-        return collect($this->queuedMailables)->filter(function ($mailable) use ($type) {
+        return collect($this->mailables)->filter(function ($mailable) use ($type) {
             return $mailable instanceof $type;
         });
     }
 
     /**
-     * Determine if a mailable was not queued based on a truth-test callback.
+     * Get all of the mailed mailables for a given type.
      *
-     * @param  string  $mailable
-     * @param  callable|null  $callback
-     * @return void
+     * @param  string  $type
+     * @return \Illuminate\Support\Collection
      */
-    public function assertNotQueued($mailable, $callback = null)
+    protected function queuedMailablesOf($type)
     {
-        PHPUnit::assertTrue(
-            $this->queued($mailable, $callback)->count() === 0,
-            "The unexpected [{$mailable}] mailable was queued."
-        );
-    }
-
-    /**
-     * Assert that no mailables were queued.
-     *
-     * @return void
-     */
-    public function assertNothingQueued()
-    {
-        PHPUnit::assertEmpty($this->queuedMailables, 'Mailables were queued unexpectedly.');
+        return collect($this->queuedMailables)->filter(function ($mailable) use ($type) {
+            return $mailable instanceof $type;
+        });
     }
 
     /**

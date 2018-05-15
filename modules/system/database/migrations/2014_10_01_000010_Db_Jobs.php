@@ -20,13 +20,13 @@ class DbJobs extends Migration
         });
     }
 
-    protected function getTableName()
-    {
-        return Config::get('queue.connections.database.table', 'jobs');
-    }
-
     public function down()
     {
         Schema::dropIfExists($this->getTableName());
+    }
+
+    protected function getTableName()
+    {
+        return Config::get('queue.connections.database.table', 'jobs');
     }
 }

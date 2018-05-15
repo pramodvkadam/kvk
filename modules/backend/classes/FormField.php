@@ -182,6 +182,60 @@ class FormField
     }
 
     /**
+     * If this field belongs to a tab.
+     */
+    public function tab($value)
+    {
+        $this->tab = $value;
+        return $this;
+    }
+
+    /**
+     * Sets a side of the field on a form.
+     * @param string $value Specifies a side. Possible values: left, right, full
+     */
+    public function span($value = 'full')
+    {
+        $this->span = $value;
+        return $this;
+    }
+
+    /**
+     * Sets a side of the field on a form.
+     * @param string $value Specifies a size. Possible values: tiny, small, large, huge, giant
+     */
+    public function size($value = 'large')
+    {
+        $this->size = $value;
+        return $this;
+    }
+
+    /**
+     * Sets field options, for dropdowns, radio lists and checkbox lists.
+     * @param  array $value
+     * @return self
+     */
+    public function options($value = null)
+    {
+        if ($value === null) {
+            if (is_array($this->options)) {
+                return $this->options;
+            }
+            elseif (is_callable($this->options)) {
+                $callable = $this->options;
+                return $callable();
+            }
+
+            return [];
+        }
+        else {
+            $this->options = $value;
+        }
+
+        return $this;
+    }
+
+    /**
      * Specifies a field control rendering mode. Supported modes are:
      * - text - creates a text field. Default for varchar column types.
      * - textarea - creates a textarea control. Default for text column types.
@@ -280,60 +334,6 @@ class FormField
     }
 
     /**
-     * Sets field options, for dropdowns, radio lists and checkbox lists.
-     * @param  array $value
-     * @return self
-     */
-    public function options($value = null)
-    {
-        if ($value === null) {
-            if (is_array($this->options)) {
-                return $this->options;
-            }
-            elseif (is_callable($this->options)) {
-                $callable = $this->options;
-                return $callable();
-            }
-
-            return [];
-        }
-        else {
-            $this->options = $value;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Sets a side of the field on a form.
-     * @param string $value Specifies a side. Possible values: left, right, full
-     */
-    public function span($value = 'full')
-    {
-        $this->span = $value;
-        return $this;
-    }
-
-    /**
-     * Sets a side of the field on a form.
-     * @param string $value Specifies a size. Possible values: tiny, small, large, huge, giant
-     */
-    public function size($value = 'large')
-    {
-        $this->size = $value;
-        return $this;
-    }
-
-    /**
-     * If this field belongs to a tab.
-     */
-    public function tab($value)
-    {
-        $this->tab = $value;
-        return $this;
-    }
-
-    /**
      * Adds a text comment above or below the field.
      * @param string $text Specifies a comment text.
      * @param string $position Specifies a comment position.
@@ -350,6 +350,20 @@ class FormField
         }
 
         return $this;
+    }
+
+    /**
+     * Determine if the provided value matches this field's value.
+     * @param string $value
+     * @return bool
+     */
+    public function isSelected($value = true)
+    {
+        if ($this->value === null) {
+            return false;
+        }
+
+        return (string) $value === (string) $this->value;
     }
 
     /**
@@ -377,20 +391,6 @@ class FormField
         }
 
         return $this;
-    }
-
-    /**
-     * Determine if the provided value matches this field's value.
-     * @param string $value
-     * @return bool
-     */
-    public function isSelected($value = true)
-    {
-        if ($this->value === null) {
-            return false;
-        }
-
-        return (string) $value === (string) $this->value;
     }
 
     /**
@@ -598,6 +598,49 @@ class FormField
     }
 
     /**
+     * Returns the default value for this field, the supplied data is used
+     * to source data when defaultFrom is specified.
+     * @param mixed $data
+     * @return mixed
+     */
+    public function getDefaultFromData($data)
+    {
+        if ($this->defaultFrom) {
+            return $this->getFieldNameFromData($this->defaultFrom, $data);
+        }
+
+        if ($this->defaults !== '') {
+            return $this->defaults;
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns the final model and attribute name of a nested attribute. Eg:
+     *
+     *     list($model, $attribute) = $this->resolveAttribute('person[phone]');
+     *
+     * @param  string $attribute.
+     * @return array
+     */
+    public function resolveModelAttribute($model, $attribute = null)
+    {
+        if ($attribute === null) {
+            $attribute = $this->valueFrom ?: $this->fieldName;
+        }
+
+        $parts = is_array($attribute) ? $attribute : HtmlHelper::nameToArray($attribute);
+        $last = array_pop($parts);
+
+        foreach ($parts as $part) {
+            $model = $model->{$part};
+        }
+
+        return [$model, $last];
+    }
+
+    /**
      * Internal method to extract the value of a field name from a data set.
      * @param string $fieldName
      * @param mixed $data
@@ -644,48 +687,5 @@ class FormField
         }
 
         return $result;
-    }
-
-    /**
-     * Returns the default value for this field, the supplied data is used
-     * to source data when defaultFrom is specified.
-     * @param mixed $data
-     * @return mixed
-     */
-    public function getDefaultFromData($data)
-    {
-        if ($this->defaultFrom) {
-            return $this->getFieldNameFromData($this->defaultFrom, $data);
-        }
-
-        if ($this->defaults !== '') {
-            return $this->defaults;
-        }
-
-        return null;
-    }
-
-    /**
-     * Returns the final model and attribute name of a nested attribute. Eg:
-     *
-     *     list($model, $attribute) = $this->resolveAttribute('person[phone]');
-     *
-     * @param  string $attribute.
-     * @return array
-     */
-    public function resolveModelAttribute($model, $attribute = null)
-    {
-        if ($attribute === null) {
-            $attribute = $this->valueFrom ?: $this->fieldName;
-        }
-
-        $parts = is_array($attribute) ? $attribute : HtmlHelper::nameToArray($attribute);
-        $last = array_pop($parts);
-
-        foreach ($parts as $part) {
-            $model = $model->{$part};
-        }
-
-        return [$model, $last];
     }
 }

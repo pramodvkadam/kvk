@@ -63,6 +63,22 @@ class ThrottleRequests
     }
 
     /**
+     * Resolve the number of attempts if the user is authenticated or not.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int|string  $maxAttempts
+     * @return int
+     */
+    protected function resolveMaxAttempts($request, $maxAttempts)
+    {
+        if (Str::contains($maxAttempts, '|')) {
+            $maxAttempts = explode('|', $maxAttempts, 2)[$request->user() ? 1 : 0];
+        }
+
+        return (int) $maxAttempts;
+    }
+
+    /**
      * Resolve request signature.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -82,22 +98,6 @@ class ThrottleRequests
         throw new RuntimeException(
             'Unable to generate the request signature. Route unavailable.'
         );
-    }
-
-    /**
-     * Resolve the number of attempts if the user is authenticated or not.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int|string  $maxAttempts
-     * @return int
-     */
-    protected function resolveMaxAttempts($request, $maxAttempts)
-    {
-        if (Str::contains($maxAttempts, '|')) {
-            $maxAttempts = explode('|', $maxAttempts, 2)[$request->user() ? 1 : 0];
-        }
-
-        return (int) $maxAttempts;
     }
 
     /**
@@ -131,6 +131,24 @@ class ThrottleRequests
     protected function getTimeUntilNextRetry($key)
     {
         return $this->limiter->availableIn($key);
+    }
+
+    /**
+     * Add the limit header information to the given response.
+     *
+     * @param  \Symfony\Component\HttpFoundation\Response  $response
+     * @param  int  $maxAttempts
+     * @param  int  $remainingAttempts
+     * @param  int|null  $retryAfter
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    protected function addHeaders(Response $response, $maxAttempts, $remainingAttempts, $retryAfter = null)
+    {
+        $response->headers->add(
+            $this->getHeaders($maxAttempts, $remainingAttempts, $retryAfter)
+        );
+
+        return $response;
     }
 
     /**
@@ -171,23 +189,5 @@ class ThrottleRequests
         }
 
         return 0;
-    }
-
-    /**
-     * Add the limit header information to the given response.
-     *
-     * @param  \Symfony\Component\HttpFoundation\Response  $response
-     * @param  int  $maxAttempts
-     * @param  int  $remainingAttempts
-     * @param  int|null  $retryAfter
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
-    protected function addHeaders(Response $response, $maxAttempts, $remainingAttempts, $retryAfter = null)
-    {
-        $response->headers->add(
-            $this->getHeaders($maxAttempts, $remainingAttempts, $retryAfter)
-        );
-
-        return $response;
     }
 }

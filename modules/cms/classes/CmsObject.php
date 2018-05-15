@@ -65,6 +65,36 @@ class CmsObject extends HalcyonModel implements CmsObjectContract
     }
 
     /**
+     * The "booting" method of the model.
+     * @return void
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        static::bootDefaultTheme();
+    }
+
+    /**
+     * Boot all of the bootable traits on the model.
+     * @return void
+     */
+    protected static function bootDefaultTheme()
+    {
+        $resolver = static::getDatasourceResolver();
+        if ($resolver->getDefaultDatasource()) {
+            return;
+        }
+
+        $defaultTheme = App::runningInBackend()
+            ? Theme::getEditThemeCode()
+            : Theme::getActiveThemeCode();
+
+        Theme::load($defaultTheme);
+
+        $resolver->setDefaultDatasource($defaultTheme);
+    }
+
+    /**
      * Loads the object from a file.
      * This method is used in the CMS back-end. It doesn't use any caching.
      * @param mixed $theme Specifies the theme the object belongs to.
@@ -78,17 +108,18 @@ class CmsObject extends HalcyonModel implements CmsObjectContract
     }
 
     /**
-     * Prepares the theme datasource for the model.
-     * @param \Cms\Classes\Theme $theme Specifies a parent theme.
-     * @return $this
+     * Loads the object from a cache.
+     * This method is used by the CMS in the runtime. If the cache is not found, it is created.
+     * @param \Cms\Classes\Theme $theme Specifies the theme the object belongs to.
+     * @param string $fileName Specifies the file name, with the extension.
+     * @return mixed Returns a CMS object instance or null if the object wasn't found.
      */
-    public static function inTheme($theme)
+    public static function loadCached($theme, $fileName)
     {
-        if (is_string($theme)) {
-            $theme = Theme::load($theme);
-        }
-
-        return static::on($theme->getDirName());
+        return static::inTheme($theme)
+            ->remember(Config::get('cms.parsedPageCacheTTL', 1440))
+            ->find($fileName)
+        ;
     }
 
     /**
@@ -151,48 +182,17 @@ class CmsObject extends HalcyonModel implements CmsObjectContract
     }
 
     /**
-     * Loads the object from a cache.
-     * This method is used by the CMS in the runtime. If the cache is not found, it is created.
-     * @param \Cms\Classes\Theme $theme Specifies the theme the object belongs to.
-     * @param string $fileName Specifies the file name, with the extension.
-     * @return mixed Returns a CMS object instance or null if the object wasn't found.
+     * Prepares the theme datasource for the model.
+     * @param \Cms\Classes\Theme $theme Specifies a parent theme.
+     * @return $this
      */
-    public static function loadCached($theme, $fileName)
+    public static function inTheme($theme)
     {
-        return static::inTheme($theme)
-            ->remember(Config::get('cms.parsedPageCacheTTL', 1440))
-            ->find($fileName)
-        ;
-    }
-
-    /**
-     * The "booting" method of the model.
-     * @return void
-     */
-    protected static function boot()
-    {
-        parent::boot();
-        static::bootDefaultTheme();
-    }
-
-    /**
-     * Boot all of the bootable traits on the model.
-     * @return void
-     */
-    protected static function bootDefaultTheme()
-    {
-        $resolver = static::getDatasourceResolver();
-        if ($resolver->getDefaultDatasource()) {
-            return;
+        if (is_string($theme)) {
+            $theme = Theme::load($theme);
         }
 
-        $defaultTheme = App::runningInBackend()
-            ? Theme::getEditThemeCode()
-            : Theme::getActiveThemeCode();
-
-        Theme::load($defaultTheme);
-
-        $resolver->setDefaultDatasource($defaultTheme);
+        return static::on($theme->getDirName());
     }
 
     /**
@@ -210,6 +210,106 @@ class CmsObject extends HalcyonModel implements CmsObjectContract
             $this->throwHalcyonSaveException($ex);
         }
     }
+
+    /**
+     * Returns the CMS theme this object belongs to.
+     * @return \Cms\Classes\Theme
+     */
+    public function getThemeAttribute()
+    {
+        if ($this->themeCache !== null) {
+            return $this->themeCache;
+        }
+
+        $themeName = $this->getDatasourceName()
+            ?: static::getDatasourceResolver()->getDefaultDatasource();
+
+        return $this->themeCache = Theme::load($themeName);
+    }
+
+    /**
+     * Returns the full path to the template file corresponding to this object.
+     * @param  string  $fileName
+     * @return string
+     */
+    public function getFilePath($fileName = null)
+    {
+        if ($fileName === null) {
+            $fileName = $this->fileName;
+        }
+
+        return $this->theme->getPath().'/'.$this->getObjectTypeDirName().'/'.$fileName;
+    }
+
+    /**
+     * Returns the file name.
+     * @return string
+     */
+    public function getFileName()
+    {
+        return $this->fileName;
+    }
+
+    /**
+     * Returns the file name without the extension.
+     * @return string
+     */
+    public function getBaseFileName()
+    {
+        $pos = strrpos($this->fileName, '.');
+        if ($pos === false) {
+            return $this->fileName;
+        }
+
+        return substr($this->fileName, 0, $pos);
+    }
+
+    /**
+     * Helper for {{ page.id }} or {{ layout.id }} twig vars
+     * Returns a unique string for this object.
+     * @return string
+     */
+    public function getId()
+    {
+        return str_replace('/', '-', $this->getBaseFileName());
+    }
+
+    /**
+     * Returns the file content.
+     * @return string
+     */
+    public function getContent()
+    {
+        return $this->content;
+    }
+
+    /**
+     * Returns the Twig content string.
+     * @return string
+     */
+    public function getTwigContent()
+    {
+        return $this->content;
+    }
+
+    /**
+     * Returns the key used by the Twig cache.
+     * @return string
+     */
+    public function getTwigCacheKey()
+    {
+        $key = $this->getFilePath();
+
+        if ($event = $this->fireEvent('cmsObject.getTwigCacheKey', compact('key'), true)) {
+            $key = $event;
+        }
+
+        return $key;
+    }
+
+    //
+    // Internals
+    //
 
     /**
      * Converts an exception type thrown by Halcyon to a native CMS exception.
@@ -253,105 +353,5 @@ class CmsObject extends HalcyonModel implements CmsObjectContract
         else {
             throw $ex;
         }
-    }
-
-    /**
-     * Returns the CMS theme this object belongs to.
-     * @return \Cms\Classes\Theme
-     */
-    public function getThemeAttribute()
-    {
-        if ($this->themeCache !== null) {
-            return $this->themeCache;
-        }
-
-        $themeName = $this->getDatasourceName()
-            ?: static::getDatasourceResolver()->getDefaultDatasource();
-
-        return $this->themeCache = Theme::load($themeName);
-    }
-
-    /**
-     * Returns the file name.
-     * @return string
-     */
-    public function getFileName()
-    {
-        return $this->fileName;
-    }
-
-    /**
-     * Helper for {{ page.id }} or {{ layout.id }} twig vars
-     * Returns a unique string for this object.
-     * @return string
-     */
-    public function getId()
-    {
-        return str_replace('/', '-', $this->getBaseFileName());
-    }
-
-    /**
-     * Returns the file name without the extension.
-     * @return string
-     */
-    public function getBaseFileName()
-    {
-        $pos = strrpos($this->fileName, '.');
-        if ($pos === false) {
-            return $this->fileName;
-        }
-
-        return substr($this->fileName, 0, $pos);
-    }
-
-    /**
-     * Returns the file content.
-     * @return string
-     */
-    public function getContent()
-    {
-        return $this->content;
-    }
-
-    /**
-     * Returns the Twig content string.
-     * @return string
-     */
-    public function getTwigContent()
-    {
-        return $this->content;
-    }
-
-    /**
-     * Returns the key used by the Twig cache.
-     * @return string
-     */
-    public function getTwigCacheKey()
-    {
-        $key = $this->getFilePath();
-
-        if ($event = $this->fireEvent('cmsObject.getTwigCacheKey', compact('key'), true)) {
-            $key = $event;
-        }
-
-        return $key;
-    }
-
-    //
-    // Internals
-    //
-
-    /**
-     * Returns the full path to the template file corresponding to this object.
-     * @param  string  $fileName
-     * @return string
-     */
-    public function getFilePath($fileName = null)
-    {
-        if ($fileName === null) {
-            $fileName = $this->fileName;
-        }
-
-        return $this->theme->getPath().'/'.$this->getObjectTypeDirName().'/'.$fileName;
     }
 }

@@ -85,6 +85,16 @@ class Swift_Events_SendEvent extends Swift_Events_EventObject
     }
 
     /**
+     * Set the array of addresses that failed in sending.
+     *
+     * @param array $recipients
+     */
+    public function setFailedRecipients($recipients)
+    {
+        $this->failedRecipients = $recipients;
+    }
+
+    /**
      * Get an recipient addresses which were not accepted for delivery.
      *
      * @return string[]
@@ -95,13 +105,13 @@ class Swift_Events_SendEvent extends Swift_Events_EventObject
     }
 
     /**
-     * Set the array of addresses that failed in sending.
+     * Set the result of sending.
      *
-     * @param array $recipients
+     * @param int $result
      */
-    public function setFailedRecipients($recipients)
+    public function setResult($result)
     {
-        $this->failedRecipients = $recipients;
+        $this->result = $result;
     }
 
     /**
@@ -115,15 +125,5 @@ class Swift_Events_SendEvent extends Swift_Events_EventObject
     public function getResult()
     {
         return $this->result;
-    }
-
-    /**
-     * Set the result of sending.
-     *
-     * @param int $result
-     */
-    public function setResult($result)
-    {
-        $this->result = $result;
     }
 }

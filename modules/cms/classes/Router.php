@@ -151,46 +151,20 @@ class Router
     }
 
     /**
-     * Tries to load a page file name corresponding to a specified URL from the cache.
-     * @param string $url Specifies the requested URL.
-     * @param array &$urlList The URL list loaded from the cache
-     * @return mixed Returns the page file name if the URL exists in the cache. Otherwise returns null.
+     * Finds a URL by it's page. Returns the URL route for linking to the page and uses the supplied
+     * parameters in it's address.
+     * @param string $fileName Page file name.
+     * @param array $parameters Route parameters to consider in the URL.
+     * @return string A built URL matching the page route.
      */
-    protected function getCachedUrlFileName($url, &$urlList)
+    public function findByFile($fileName, $parameters = [])
     {
-        $key = $this->getUrlListCacheKey();
-        $urlList = Cache::get($key, false);
-
-        if (
-            $urlList &&
-            ($urlList = @unserialize(@base64_decode($urlList))) &&
-            is_array($urlList)
-        ) {
-            if (array_key_exists($url, $urlList)) {
-                return $urlList[$url];
-            }
+        if (!strlen(File::extension($fileName))) {
+            $fileName .= '.htm';
         }
 
-        return null;
-    }
-
-    /**
-     * Returns the cache key name for the URL list.
-     * @return string
-     */
-    protected function getUrlListCacheKey()
-    {
-        return $this->getCacheKey('cms-url-list');
-    }
-
-    /**
-     * Returns the caching URL key depending on the theme.
-     * @param string $keyName Specifies the base key name.
-     * @return string Returns the theme-specific key name.
-     */
-    protected function getCacheKey($keyName)
-    {
-        return md5($this->theme->getPath()).$keyName.Lang::getLocale();
+        $router = $this->getRouterObject();
+        return $router->url($fileName, $parameters);
     }
 
     /**
@@ -287,20 +261,13 @@ class Router
     }
 
     /**
-     * Finds a URL by it's page. Returns the URL route for linking to the page and uses the supplied
-     * parameters in it's address.
-     * @param string $fileName Page file name.
-     * @param array $parameters Route parameters to consider in the URL.
-     * @return string A built URL matching the page route.
+     * Sets the current routing parameters.
+     * @param  array $parameters
+     * @return array
      */
-    public function findByFile($fileName, $parameters = [])
+    public function setParameters(array $parameters)
     {
-        if (!strlen(File::extension($fileName))) {
-            $fileName .= '.htm';
-        }
-
-        $router = $this->getRouterObject();
-        return $router->url($fileName, $parameters);
+        $this->parameters = $parameters;
     }
 
     /**
@@ -310,16 +277,6 @@ class Router
     public function getParameters()
     {
         return $this->parameters;
-    }
-
-    /**
-     * Sets the current routing parameters.
-     * @param  array $parameters
-     * @return array
-     */
-    public function setParameters(array $parameters)
-    {
-        $this->parameters = $parameters;
     }
 
     /**
@@ -342,5 +299,48 @@ class Router
         }
 
         return $default;
+    }
+
+    /**
+     * Returns the caching URL key depending on the theme.
+     * @param string $keyName Specifies the base key name.
+     * @return string Returns the theme-specific key name.
+     */
+    protected function getCacheKey($keyName)
+    {
+        return md5($this->theme->getPath()).$keyName.Lang::getLocale();
+    }
+
+    /**
+     * Returns the cache key name for the URL list.
+     * @return string
+     */
+    protected function getUrlListCacheKey()
+    {
+        return $this->getCacheKey('cms-url-list');
+    }
+
+    /**
+     * Tries to load a page file name corresponding to a specified URL from the cache.
+     * @param string $url Specifies the requested URL.
+     * @param array &$urlList The URL list loaded from the cache
+     * @return mixed Returns the page file name if the URL exists in the cache. Otherwise returns null.
+     */
+    protected function getCachedUrlFileName($url, &$urlList)
+    {
+        $key = $this->getUrlListCacheKey();
+        $urlList = Cache::get($key, false);
+
+        if (
+            $urlList &&
+            ($urlList = @unserialize(@base64_decode($urlList))) &&
+            is_array($urlList)
+        ) {
+            if (array_key_exists($url, $urlList)) {
+                return $urlList[$url];
+            }
+        }
+
+        return null;
     }
 }

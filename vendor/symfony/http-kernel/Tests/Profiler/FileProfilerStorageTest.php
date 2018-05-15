@@ -20,6 +20,21 @@ class FileProfilerStorageTest extends TestCase
     private $tmpDir;
     private $storage;
 
+    protected function setUp()
+    {
+        $this->tmpDir = sys_get_temp_dir().'/sf2_profiler_file_storage';
+        if (is_dir($this->tmpDir)) {
+            self::cleanDir();
+        }
+        $this->storage = new FileProfilerStorage('file:'.$this->tmpDir);
+        $this->storage->purge();
+    }
+
+    protected function tearDown()
+    {
+        self::cleanDir();
+    }
+
     public function testStore()
     {
         for ($i = 0; $i < 10; ++$i) {
@@ -320,16 +335,6 @@ class FileProfilerStorageTest extends TestCase
         $this->assertEquals('line1', $r->invoke($this->storage, $h));
     }
 
-    protected function setUp()
-    {
-        $this->tmpDir = sys_get_temp_dir().'/sf2_profiler_file_storage';
-        if (is_dir($this->tmpDir)) {
-            self::cleanDir();
-        }
-        $this->storage = new FileProfilerStorage('file:'.$this->tmpDir);
-        $this->storage->purge();
-    }
-
     protected function cleanDir()
     {
         $flags = \FilesystemIterator::SKIP_DOTS;
@@ -341,10 +346,5 @@ class FileProfilerStorageTest extends TestCase
                 unlink($file);
             }
         }
-    }
-
-    protected function tearDown()
-    {
-        self::cleanDir();
     }
 }

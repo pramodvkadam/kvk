@@ -21,6 +21,18 @@ trait AttachOneOrMany
     protected $public;
 
     /**
+     * Determines if the file should be flagged "public" or not.
+     */
+    public function isPublic()
+    {
+        if (isset($this->public) && $this->public !== null) {
+            return $this->public;
+        }
+
+        return true;
+    }
+
+    /**
      * Set the field (relation name) constraint on the query.
      * @return void
      */
@@ -121,15 +133,28 @@ trait AttachOneOrMany
     }
 
     /**
-     * Determines if the file should be flagged "public" or not.
+     * Create a new instance of this related model.
      */
-    public function isPublic()
+    public function create(array $attributes = [], $sessionKey = null)
     {
-        if (isset($this->public) && $this->public !== null) {
-            return $this->public;
+        // Delete siblings for single attachments
+        if ($sessionKey === null && $this instanceof AttachOne) {
+            $this->delete();
         }
 
-        return true;
+        if (!array_key_exists('is_public', $attributes)) {
+            $attributes = array_merge(['is_public' => $this->isPublic()], $attributes);
+        }
+
+        $attributes['field'] = $this->relationName;
+
+        $model = parent::create($attributes);
+
+        if ($sessionKey !== null) {
+            $this->add($model, $sessionKey);
+        }
+
+        return $model;
     }
 
     /**
@@ -166,31 +191,6 @@ trait AttachOneOrMany
         else {
             $this->parent->bindDeferred($this->relationName, $model, $sessionKey);
         }
-    }
-
-    /**
-     * Create a new instance of this related model.
-     */
-    public function create(array $attributes = [], $sessionKey = null)
-    {
-        // Delete siblings for single attachments
-        if ($sessionKey === null && $this instanceof AttachOne) {
-            $this->delete();
-        }
-
-        if (!array_key_exists('is_public', $attributes)) {
-            $attributes = array_merge(['is_public' => $this->isPublic()], $attributes);
-        }
-
-        $attributes['field'] = $this->relationName;
-
-        $model = parent::create($attributes);
-
-        if ($sessionKey !== null) {
-            $this->add($model, $sessionKey);
-        }
-
-        return $model;
     }
     
     /**
@@ -243,6 +243,22 @@ trait AttachOneOrMany
     }
 
     /**
+     * Returns true if the specified value can be used as the data attribute.
+     */
+    protected function isValidFileData($value)
+    {
+        if ($value instanceof UploadedFile) {
+            return true;
+        }
+
+        if (is_string($value) && file_exists($value)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Creates a file object suitable for validation, called from
      * the `getValidationValue` method. Value can be a file model,
      * UploadedFile object (expected) or potentially a string.
@@ -286,21 +302,5 @@ trait AttachOneOrMany
     public function getOtherKey()
     {
         return $this->localKey;
-    }
-
-    /**
-     * Returns true if the specified value can be used as the data attribute.
-     */
-    protected function isValidFileData($value)
-    {
-        if ($value instanceof UploadedFile) {
-            return true;
-        }
-
-        if (is_string($value) && file_exists($value)) {
-            return true;
-        }
-
-        return false;
     }
 }

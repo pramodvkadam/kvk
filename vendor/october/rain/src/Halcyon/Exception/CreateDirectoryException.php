@@ -12,16 +12,6 @@ class CreateDirectoryException extends RuntimeException
     protected $invalidPath;
 
     /**
-     * Get the affected directory path.
-     *
-     * @return string
-     */
-    public function getInvalidPath()
-    {
-        return $this->invalidPath;
-    }
-
-    /**
      * Set the affected directory path.
      *
      * @param  string   $model
@@ -34,5 +24,15 @@ class CreateDirectoryException extends RuntimeException
         $this->message = "Error creating directory [{$path}]. Please check write permissions.";
 
         return $this;
+    }
+
+    /**
+     * Get the affected directory path.
+     *
+     * @return string
+     */
+    public function getInvalidPath()
+    {
+        return $this->invalidPath;
     }
 }

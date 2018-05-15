@@ -37,6 +37,16 @@ class CallTimePassByReferencePassTest extends CodeCleanerTestCase
         $this->traverser->traverse($stmts);
     }
 
+    public function invalidStatements()
+    {
+        return array(
+            array('f(&$arg)'),
+            array('$object->method($first, &$arg)'),
+            array('$closure($first, &$arg, $last)'),
+            array('A::b(&$arg)'),
+        );
+    }
+
     /**
      * @dataProvider validStatements
      */
@@ -44,6 +54,9 @@ class CallTimePassByReferencePassTest extends CodeCleanerTestCase
     {
         $stmts = $this->parse($code);
         $this->traverser->traverse($stmts);
+
+        // @todo a better thing to assert here?
+        $this->assertTrue(true);
     }
 
     public function validStatements()
@@ -59,15 +72,5 @@ class CallTimePassByReferencePassTest extends CodeCleanerTestCase
         }
 
         return $data;
-    }
-
-    public function invalidStatements()
-    {
-        return array(
-            array('f(&$arg)'),
-            array('$object->method($first, &$arg)'),
-            array('$closure($first, &$arg, $last)'),
-            array('A::b(&$arg)'),
-        );
     }
 }

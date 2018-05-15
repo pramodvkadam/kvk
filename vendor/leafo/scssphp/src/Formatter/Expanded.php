@@ -2,7 +2,7 @@
 /**
  * SCSSPHP
  *
- * @copyright 2012-2017 Leaf Corcoran
+ * @copyright 2012-2018 Leaf Corcoran
  *
  * @license http://opensource.org/licenses/MIT MIT
  *
@@ -39,6 +39,14 @@ class Expanded extends Formatter
     /**
      * {@inheritdoc}
      */
+    protected function indentStr()
+    {
+        return str_repeat($this->indentChar, $this->indentLevel);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     protected function blockLines(OutputBlock $block)
     {
         $inner = $this->indentStr();
@@ -51,18 +59,10 @@ class Expanded extends Formatter
             }
         }
 
-        echo $inner . implode($glue, $block->lines);
+        $this->write($inner . implode($glue, $block->lines));
 
         if (empty($block->selectors) || ! empty($block->children)) {
-            echo $this->break;
+            $this->write($this->break);
         }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function indentStr()
-    {
-        return str_repeat($this->indentChar, $this->indentLevel);
     }
 }

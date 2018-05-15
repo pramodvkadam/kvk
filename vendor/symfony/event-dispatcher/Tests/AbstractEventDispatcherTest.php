@@ -31,6 +31,20 @@ abstract class AbstractEventDispatcherTest extends TestCase
 
     private $listener;
 
+    protected function setUp()
+    {
+        $this->dispatcher = $this->createEventDispatcher();
+        $this->listener = new TestEventListener();
+    }
+
+    protected function tearDown()
+    {
+        $this->dispatcher = null;
+        $this->listener = null;
+    }
+
+    abstract protected function createEventDispatcher();
+
     public function testInitialState()
     {
         $this->assertEquals(array(), $this->dispatcher->getListeners());
@@ -355,20 +369,6 @@ abstract class AbstractEventDispatcherTest extends TestCase
         $this->dispatcher->removeListener('foo', array($test, 'foo'));
         $this->dispatcher->addListener('bar', array($factory, 'foo'), 3);
         $this->assertSame(array('bar' => array(array($test, 'foo'))), $this->dispatcher->getListeners());
-    }
-
-    protected function setUp()
-    {
-        $this->dispatcher = $this->createEventDispatcher();
-        $this->listener = new TestEventListener();
-    }
-
-    abstract protected function createEventDispatcher();
-
-    protected function tearDown()
-    {
-        $this->dispatcher = null;
-        $this->listener = null;
     }
 }
 

@@ -16,6 +16,8 @@ namespace Psy\Reflection;
  */
 class ReflectionLanguageConstruct extends \ReflectionFunctionAbstract
 {
+    public $keyword;
+
     /**
      * Language construct parameter definitions.
      */
@@ -66,7 +68,6 @@ class ReflectionLanguageConstruct extends \ReflectionFunctionAbstract
             ),
         ),
     );
-    public $keyword;
 
     /**
      * Construct a ReflectionLanguageConstruct object.
@@ -83,18 +84,6 @@ class ReflectionLanguageConstruct extends \ReflectionFunctionAbstract
     }
 
     /**
-     * Check whether keyword is a (known) language construct.
-     *
-     * @param $keyword
-     *
-     * @return bool
-     */
-    public static function isLanguageConstruct($keyword)
-    {
-        return array_key_exists($keyword, self::$languageConstructs);
-    }
-
-    /**
      * This can't (and shouldn't) do anything :).
      *
      * @throws \RuntimeException
@@ -102,6 +91,16 @@ class ReflectionLanguageConstruct extends \ReflectionFunctionAbstract
     public static function export($name)
     {
         throw new \RuntimeException('Not yet implemented because it\'s unclear what I should do here :)');
+    }
+
+    /**
+     * Get language construct name.
+     *
+     * @return string
+     */
+    public function getName()
+    {
+        return $this->keyword;
     }
 
     /**
@@ -140,12 +139,14 @@ class ReflectionLanguageConstruct extends \ReflectionFunctionAbstract
     }
 
     /**
-     * Get language construct name.
+     * Check whether keyword is a (known) language construct.
      *
-     * @return string
+     * @param $keyword
+     *
+     * @return bool
      */
-    public function getName()
+    public static function isLanguageConstruct($keyword)
     {
-        return $this->keyword;
+        return array_key_exists($keyword, self::$languageConstructs);
     }
 }

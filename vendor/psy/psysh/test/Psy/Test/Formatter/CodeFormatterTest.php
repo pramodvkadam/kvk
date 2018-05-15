@@ -15,6 +15,11 @@ use Psy\Formatter\CodeFormatter;
 
 class CodeFormatterTest extends \PHPUnit\Framework\TestCase
 {
+    private function ignoreThisMethod($arg)
+    {
+        echo 'whot!';
+    }
+
     public function testFormat()
     {
         $expected = <<<'EOS'
@@ -56,10 +61,5 @@ EOS;
         }
 
         return array(array(null), array('not a file'));
-    }
-
-    private function ignoreThisMethod($arg)
-    {
-        echo 'whot!';
     }
 }

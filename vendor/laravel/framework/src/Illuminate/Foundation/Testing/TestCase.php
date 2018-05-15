@@ -49,19 +49,13 @@ abstract class TestCase extends BaseTestCase
     protected $setUpHasRun = false;
 
     /**
-     * Register a callback to be run after the application is created.
+     * Creates the application.
      *
-     * @param  callable  $callback
-     * @return void
+     * Needs to be implemented by subclasses.
+     *
+     * @return \Symfony\Component\HttpKernel\HttpKernelInterface
      */
-    public function afterApplicationCreated(callable $callback)
-    {
-        $this->afterApplicationCreatedCallbacks[] = $callback;
-
-        if ($this->setUpHasRun) {
-            call_user_func($callback);
-        }
-    }
+    abstract public function createApplication();
 
     /**
      * Setup the test environment.
@@ -98,15 +92,6 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Creates the application.
-     *
-     * Needs to be implemented by subclasses.
-     *
-     * @return \Symfony\Component\HttpKernel\HttpKernelInterface
-     */
-    abstract public function createApplication();
-
-    /**
      * Boot the testing helper traits.
      *
      * @return array
@@ -133,6 +118,10 @@ abstract class TestCase extends BaseTestCase
 
         if (isset($uses[WithoutEvents::class])) {
             $this->disableEventsForAllTests();
+        }
+
+        if (isset($uses[WithFaker::class])) {
+            $this->setUpFaker();
         }
 
         return $uses;
@@ -181,6 +170,21 @@ abstract class TestCase extends BaseTestCase
         $this->beforeApplicationDestroyedCallbacks = [];
 
         Artisan::forgetBootstrappers();
+    }
+
+    /**
+     * Register a callback to be run after the application is created.
+     *
+     * @param  callable  $callback
+     * @return void
+     */
+    public function afterApplicationCreated(callable $callback)
+    {
+        $this->afterApplicationCreatedCallbacks[] = $callback;
+
+        if ($this->setUpHasRun) {
+            call_user_func($callback);
+        }
     }
 
     /**

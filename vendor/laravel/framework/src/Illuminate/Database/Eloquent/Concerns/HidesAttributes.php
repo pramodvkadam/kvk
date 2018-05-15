@@ -78,6 +78,19 @@ trait HidesAttributes
     }
 
     /**
+     * Add visible attributes for the model.
+     *
+     * @param  array|string|null  $attributes
+     * @return void
+     */
+    public function addVisible($attributes = null)
+    {
+        $this->visible = array_merge(
+            $this->visible, is_array($attributes) ? $attributes : func_get_args()
+        );
+    }
+
+    /**
      * Make the given, typically hidden, attributes visible.
      *
      * @param  array|string  $attributes
@@ -92,19 +105,6 @@ trait HidesAttributes
         }
 
         return $this;
-    }
-
-    /**
-     * Add visible attributes for the model.
-     *
-     * @param  array|string|null  $attributes
-     * @return void
-     */
-    public function addVisible($attributes = null)
-    {
-        $this->visible = array_merge(
-            $this->visible, is_array($attributes) ? $attributes : func_get_args()
-        );
     }
 
     /**

@@ -46,17 +46,6 @@ class QueryBuilder extends QueryBuilderBase
     }
 
     /**
-     * Indicate that the query results should be cached forever.
-     *
-     * @param  string  $key
-     * @return \Illuminate\Database\Query\Builder|static
-     */
-    public function rememberForever($key = null)
-    {
-        return $this->remember(-1, $key);
-    }
-
-    /**
      * Indicate that the query results should be cached.
      *
      * @param  \DateTime|int  $minutes
@@ -69,6 +58,17 @@ class QueryBuilder extends QueryBuilderBase
         $this->cacheKey = $key;
 
         return $this;
+    }
+
+    /**
+     * Indicate that the query results should be cached forever.
+     *
+     * @param  string  $key
+     * @return \Illuminate\Database\Query\Builder|static
+     */
+    public function rememberForever($key = null)
+    {
+        return $this->remember(-1, $key);
     }
 
     /**
@@ -97,16 +97,6 @@ class QueryBuilder extends QueryBuilderBase
         }
 
         return parent::get($columns);
-    }
-
-    /**
-     * Determine whether we're caching duplicate queries.
-     *
-     * @return bool
-     */
-    public function cachingDuplicates()
-    {
-        return $this->cachingDuplicateQueries;
     }
 
     /**
@@ -172,6 +162,18 @@ class QueryBuilder extends QueryBuilderBase
     }
 
     /**
+     * Get the cache object with tags assigned, if applicable.
+     *
+     * @return \Illuminate\Cache\CacheManager
+     */
+    protected function getCache()
+    {
+        $cache = App::make('cache');
+
+        return $this->cacheTags ? $cache->tags($this->cacheTags) : $cache;
+    }
+
+    /**
      * Get the cache key and cache minutes as an array.
      *
      * @return array
@@ -201,18 +203,6 @@ class QueryBuilder extends QueryBuilderBase
         $name = $this->connection->getName();
 
         return md5($name.$this->toSql().serialize($this->getBindings()));
-    }
-
-    /**
-     * Get the cache object with tags assigned, if applicable.
-     *
-     * @return \Illuminate\Cache\CacheManager
-     */
-    protected function getCache()
-    {
-        $cache = App::make('cache');
-
-        return $this->cacheTags ? $cache->tags($this->cacheTags) : $cache;
     }
 
     /**
@@ -257,19 +247,6 @@ class QueryBuilder extends QueryBuilderBase
         $this->clearDuplicateCache();
 
         return parent::update($values);
-    }
-
-    /**
-     * Clear memory cache for the given table.
-     *
-     * @param  string|null  $table
-     * @return \Illuminate\Database\Query\Builder|static
-     */
-    public function clearDuplicateCache($table = null)
-    {
-        MemoryCache::instance()->forget($table ?: $this->from);
-
-        return $this;
     }
 
     /**
@@ -325,6 +302,19 @@ class QueryBuilder extends QueryBuilderBase
     }
 
     /**
+     * Clear memory cache for the given table.
+     *
+     * @param  string|null  $table
+     * @return \Illuminate\Database\Query\Builder|static
+     */
+    public function clearDuplicateCache($table = null)
+    {
+        MemoryCache::instance()->forget($table ?: $this->from);
+
+        return $this;
+    }
+
+    /**
      * Flush the memory cache.
      *
      * @return \Illuminate\Database\Query\Builder|static
@@ -358,5 +348,15 @@ class QueryBuilder extends QueryBuilderBase
         $this->cachingDuplicateQueries = false;
 
         return $this;
+    }
+
+    /**
+     * Determine whether we're caching duplicate queries.
+     *
+     * @return bool
+     */
+    public function cachingDuplicates()
+    {
+        return $this->cachingDuplicateQueries;
     }
 }

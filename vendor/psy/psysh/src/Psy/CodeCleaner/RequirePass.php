@@ -29,6 +29,36 @@ class RequirePass extends CodeCleanerPass
     private static $requireTypes = array(Include_::TYPE_REQUIRE, Include_::TYPE_REQUIRE_ONCE);
 
     /**
+     * {@inheritdoc}
+     */
+    public function enterNode(Node $origNode)
+    {
+        if (!$this->isRequireNode($origNode)) {
+            return;
+        }
+
+        $node = clone $origNode;
+
+        /*
+         * rewrite
+         *
+         *   $foo = require $bar
+         *
+         * to
+         *
+         *   $foo = require \Psy\CodeCleaner\RequirePass::resolve($bar)
+         */
+        $node->expr = new StaticCall(
+            new FullyQualifiedName('Psy\CodeCleaner\RequirePass'),
+            'resolve',
+            array(new Arg($origNode->expr), new Arg(new LNumber($origNode->getLine()))),
+            $origNode->getAttributes()
+        );
+
+        return $node;
+    }
+
+    /**
      * Runtime validation that $file can be resolved as an include path.
      *
      * If $file can be resolved, return $file. Otherwise throw a fatal error exception.
@@ -63,36 +93,6 @@ class RequirePass extends CodeCleanerPass
         }
 
         return $file;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function enterNode(Node $origNode)
-    {
-        if (!$this->isRequireNode($origNode)) {
-            return;
-        }
-
-        $node = clone $origNode;
-
-        /*
-         * rewrite
-         *
-         *   $foo = require $bar
-         *
-         * to
-         *
-         *   $foo = require \Psy\CodeCleaner\RequirePass::resolve($bar)
-         */
-        $node->expr = new StaticCall(
-            new FullyQualifiedName('Psy\CodeCleaner\RequirePass'),
-            'resolve',
-            array(new Arg($origNode->expr), new Arg(new LNumber($origNode->getLine()))),
-            $origNode->getAttributes()
-        );
-
-        return $node;
     }
 
     private function isRequireNode(Node $node)

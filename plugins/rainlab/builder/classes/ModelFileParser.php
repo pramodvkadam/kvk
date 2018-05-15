@@ -62,6 +62,36 @@ class ModelFileParser
         return $result;
     }
 
+    /**
+     * Extracts names and types of model relations.
+     * @param string $fileContents Specifies the file contents.
+     * @return array|null Returns an array with keys matching the relation types and values containing relation names as array.
+     * Returns null if the parsing fails.
+     */
+    public function extractModelRelationsFromSource($fileContents)
+    {
+        $result = [];
+
+        $stream = new PhpSourceStream($fileContents);
+
+        while ($stream->forward()) {
+            $tokenCode = $stream->getCurrentCode();
+
+            if ($tokenCode == T_PUBLIC) {
+                $relations = $this->extractRelations($stream);
+                if ($relations === false) {
+                    continue;
+                }
+            }
+        }
+
+        if (!$result) {
+            return null;
+        }
+
+        return $result;
+    }
+
     protected function extractNamespace($stream)
     {
         if ($stream->getNextExpected(T_WHITESPACE) === null) {
@@ -105,40 +135,10 @@ class ModelFileParser
         }
 
         $tableName = $stream->getCurrentText();
-        $tableName = trim($tableName, '\'');
-        $tableName = trim($tableName, '"');
+        $tableName = trim($tableName, '\''); 
+        $tableName = trim($tableName, '"'); 
 
         return $tableName;
-    }
-
-    /**
-     * Extracts names and types of model relations.
-     * @param string $fileContents Specifies the file contents.
-     * @return array|null Returns an array with keys matching the relation types and values containing relation names as array.
-     * Returns null if the parsing fails.
-     */
-    public function extractModelRelationsFromSource($fileContents)
-    {
-        $result = [];
-
-        $stream = new PhpSourceStream($fileContents);
-
-        while ($stream->forward()) {
-            $tokenCode = $stream->getCurrentCode();
-
-            if ($tokenCode == T_PUBLIC) {
-                $relations = $this->extractRelations($stream);
-                if ($relations === false) {
-                    continue;
-                }
-            }
-        }
-
-        if (!$result) {
-            return null;
-        }
-
-        return $result;
     }
 
     protected function extractRelations($stream)

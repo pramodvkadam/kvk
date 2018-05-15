@@ -59,23 +59,6 @@ class ComposerManager
     }
 
     /**
-     * Removes the vendor directory from a path.
-     * @param string $path
-     * @return string
-     */
-    protected function stripVendorDir($path, $vendorDir)
-    {
-        $path = realpath($path);
-        $vendorDir = realpath($vendorDir);
-
-        if (strpos($path, $vendorDir) === 0) {
-            $path = substr($path, strlen($vendorDir));
-        }
-
-        return $path;
-    }
-
-    /**
      * Similar function to including vendor/autoload.php.
      * @param string $vendorPath Absoulte path to the vendor directory.
      * @return void
@@ -120,5 +103,22 @@ class ComposerManager
                 $this->includeFilesPool[$relativeFile] = true;
             }
         }
+    }
+
+    /**
+     * Removes the vendor directory from a path.
+     * @param string $path
+     * @return string
+     */
+    protected function stripVendorDir($path, $vendorDir)
+    {
+        $path = realpath($path);
+        $vendorDir = realpath($vendorDir);
+
+        if (strpos($path, $vendorDir) === 0) {
+            $path = substr($path, strlen($vendorDir));
+        }
+
+        return $path;
     }
 }

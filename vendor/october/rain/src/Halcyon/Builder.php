@@ -17,71 +17,82 @@ use BadMethodCallException;
 class Builder
 {
     /**
-     * The columns that should be returned.
-     *
-     * @var array
-     */
-    public $columns;
-    /**
-     * Filter the query by these file extensions.
-     *
-     * @var array
-     */
-    public $extensions;
-    /**
-     * The directory name which the query is targeting.
-     *
-     * @var string
-     */
-    public $from;
-    /**
-     * Query should pluck a single record.
-     *
-     * @var bool
-     */
-    public $selectSingle;
-    /**
-     * Match files using the specified pattern.
-     *
-     * @var string
-     */
-    public $fileMatch;
-    /**
-     * The orderings for the query.
-     *
-     * @var array
-     */
-    public $orders;
-    /**
-     * The maximum number of records to return.
-     *
-     * @var int
-     */
-    public $limit;
-    /**
-     * The number of records to skip.
-     *
-     * @var int
-     */
-    public $offset;
-    /**
      * The datasource instance.
      *
      * @var \October\Rain\Halcyon\Datasource\DatasourceInterface
      */
     protected $datasource;
+
     /**
      * The model being queried.
      *
      * @var \October\Rain\Halcyon\Model
      */
     protected $model;
+
     /**
      * The datasource query post processor instance.
      *
      * @var \October\Rain\Halcyon\Processors\Processor
      */
     protected $processor;
+
+    /**
+     * The columns that should be returned.
+     *
+     * @var array
+     */
+    public $columns;
+
+    /**
+     * Filter the query by these file extensions.
+     *
+     * @var array
+     */
+    public $extensions;
+
+    /**
+     * The directory name which the query is targeting.
+     *
+     * @var string
+     */
+    public $from;
+
+    /**
+     * Query should pluck a single record.
+     *
+     * @var bool
+     */
+    public $selectSingle;
+
+    /**
+     * Match files using the specified pattern.
+     *
+     * @var string
+     */
+    public $fileMatch;
+
+    /**
+     * The orderings for the query.
+     *
+     * @var array
+     */
+    public $orders;
+
+    /**
+     * The maximum number of records to return.
+     *
+     * @var int
+     */
+    public $limit;
+
+    /**
+     * The number of records to skip.
+     *
+     * @var int
+     */
+    public $offset;
+
     /**
      * The key that should be used when caching the query.
      *
@@ -131,22 +142,29 @@ class Builder
     }
 
     /**
-     * Clears the internal request-level object cache.
+     * Switches mode to select a single template by its name.
+     *
+     * @param  string  $fileName
+     * @return $this
      */
-    public static function clearInternalCache()
+    public function whereFileName($fileName)
     {
-        MemoryCache::$cache = [];
+        $this->selectSingle = $this->model->getFileNameParts($fileName);
+
+        return $this;
     }
 
     /**
-     * Alias to set the "offset" value of the query.
+     * Set the directory name which the query is targeting.
      *
-     * @param  int  $value
-     * @return \October\Rain\Halcyon\Builder|static
+     * @param  string  $dirName
+     * @return $this
      */
-    public function skip($value)
+    public function from($dirName)
     {
-        return $this->offset($value);
+        $this->from = $dirName;
+
+        return $this;
     }
 
     /**
@@ -163,14 +181,14 @@ class Builder
     }
 
     /**
-     * Alias to set the "limit" value of the query.
+     * Alias to set the "offset" value of the query.
      *
      * @param  int  $value
      * @return \October\Rain\Halcyon\Builder|static
      */
-    public function take($value)
+    public function skip($value)
     {
-        return $this->limit($value);
+        return $this->offset($value);
     }
 
     /**
@@ -186,6 +204,17 @@ class Builder
         }
 
         return $this;
+    }
+
+    /**
+     * Alias to set the "limit" value of the query.
+     *
+     * @param  int  $value
+     * @return \October\Rain\Halcyon\Builder|static
+     */
+    public function take($value)
+    {
+        return $this->limit($value);
     }
 
     /**
@@ -230,125 +259,26 @@ class Builder
     }
 
     /**
-     * Execute the query as a cached "select" statement.
+     * Get an array with the values of a given column.
      *
-     * @param  array  $columns
+     * @param  string  $column
+     * @param  string  $key
      * @return array
      */
-    public function getCached($columns = ['*'])
+    public function lists($column, $key = null)
     {
-        if (is_null($this->columns)) {
-            $this->columns = $columns;
-        }
+        $select = is_null($key) ? [$column] : [$column, $key];
 
-        $key = $this->getCacheKey();
-
-        if (array_key_exists($key, MemoryCache::$cache)) {
-            return MemoryCache::$cache[$key];
-        }
-
-        $minutes = $this->cacheMinutes;
-        $cache = $this->getCache();
-        $callback = $this->getCacheCallback($columns);
-        $isNewCache = !$cache->has($key);
-
-        // If the "minutes" value is less than zero, we will use that as the indicator
-        // that the value should be remembered values should be stored indefinitely
-        // and if we have minutes we will use the typical remember function here.
-        if ($minutes < 0) {
-            $result = $cache->rememberForever($key, $callback);
+        if (!is_null($this->cacheMinutes)) {
+            $results = $this->getCached($select);
         }
         else {
-            $result = $cache->remember($key, $minutes, $callback);
+            $results = $this->getFresh($select);
         }
 
-        // If this is an old cache record, we can check if the cache has been busted
-        // by comparing the modification times. If this is the case, forget the
-        // cache and then prompt a recycle of the results.
-        if (!$isNewCache && $this->isCacheBusted($result)) {
-            $cache->forget($key);
-            $isNewCache = true;
+        $collection = new Collection($results);
 
-            if ($minutes < 0) {
-                $result = $cache->rememberForever($key, $callback);
-            }
-            else {
-                $result = $cache->remember($key, $minutes, $callback);
-            }
-        }
-
-        $this->loadedFromCache = !$isNewCache;
-
-        return MemoryCache::$cache[$key] = $result;
-    }
-
-    /**
-     * Get a unique cache key for the complete query.
-     *
-     * @return string
-     */
-    public function getCacheKey()
-    {
-        return $this->cacheKey ?: $this->generateCacheKey();
-    }
-
-    /**
-     * Generate the unique cache key for the query.
-     *
-     * @return string
-     */
-    public function generateCacheKey()
-    {
-        $payload = [];
-        $payload[] = $this->selectSingle ? serialize($this->selectSingle) : '*';
-        $payload[] = $this->orders ? serialize($this->orders) : '*';
-        $payload[] = $this->columns ? serialize($this->columns) : '*';
-        $payload[] = $this->fileMatch;
-        $payload[] = $this->limit;
-        $payload[] = $this->offset;
-
-        return $this->from . $this->datasource->makeCacheKey(implode('-', $payload));
-    }
-
-    /**
-     * Get the cache object with tags assigned, if applicable.
-     *
-     * @return \Illuminate\Cache\CacheManager
-     */
-    protected function getCache()
-    {
-        $cache = $this->model->getCacheManager()->driver($this->cacheDriver);
-
-        return $this->cacheTags ? $cache->tags($this->cacheTags) : $cache;
-    }
-
-    /**
-     * Get the Closure callback used when caching queries.
-     *
-     * @param  string  $fileName
-     * @return \Closure
-     */
-    protected function getCacheCallback($columns)
-    {
-        return function() use ($columns) { return $this->processInitCacheData($this->getFresh($columns)); };
-    }
-
-    /**
-     * Initialize the cache data of each record.
-     * @param  array  $data
-     * @return array
-     */
-    protected function processInitCacheData($data)
-    {
-        if ($data) {
-            $model = get_class($this->model);
-
-            foreach ($data as &$record) {
-                $model::initCacheItem($record);
-            }
-        }
-
-        return $data;
+        return $collection->lists($column, $key);
     }
 
     /**
@@ -388,95 +318,21 @@ class Builder
     }
 
     /**
-     * Returns true if the cache for the file is busted. This only applies
-     * to single record selection.
-     * @param  array  $result
-     * @return bool
-     */
-    protected function isCacheBusted($result)
-    {
-        if (!$this->selectSingle) {
-            return false;
-        }
-
-        $mtime = $result ? array_get(reset($result), 'mtime') : null;
-
-        list($name, $extension) = $this->selectSingle;
-
-        $currentMtime = $this->datasource->lastModified(
-            $this->from,
-            $name,
-            $extension
-        );
-
-        return $currentMtime != $mtime;
-    }
-
-    /**
-     * Get the hydrated models.
+     * Set a model instance for the model being queried.
      *
-     * @param  array  $results
-     * @return \October\Rain\Halcyon\Model[]
-     */
-    public function getModels(array $results)
-    {
-        $datasource = $this->model->getDatasourceName();
-
-        $models = $this->model->hydrate($results, $datasource);
-
-        /*
-         * Flag the models as loaded from cache, then reset the internal property.
-         */
-        if ($this->loadedFromCache) {
-            $models->each(function($model) {
-                $model->setLoadedFromCache($this->loadedFromCache);
-            });
-
-            $this->loadedFromCache = false;
-        }
-
-        return $models->all();
-    }
-
-    /**
-     * Switches mode to select a single template by its name.
-     *
-     * @param  string  $fileName
+     * @param  \October\Rain\Halcyon\Model  $model
      * @return $this
      */
-    public function whereFileName($fileName)
+    public function setModel(Model $model)
     {
-        $this->selectSingle = $this->model->getFileNameParts($fileName);
+        $this->model = $model;
+
+        $this->extensions = $this->model->getAllowedExtensions();
+
+        $this->from($this->model->getObjectTypeDirName());
 
         return $this;
     }
-
-    /**
-     * Get an array with the values of a given column.
-     *
-     * @param  string  $column
-     * @param  string  $key
-     * @return array
-     */
-    public function lists($column, $key = null)
-    {
-        $select = is_null($key) ? [$column] : [$column, $key];
-
-        if (!is_null($this->cacheMinutes)) {
-            $results = $this->getCached($select);
-        }
-        else {
-            $results = $this->getFresh($select);
-        }
-
-        $collection = new Collection($results);
-
-        return $collection->lists($column, $key);
-    }
-
-    //
-    // Validation (Hard)
-    //
 
     /**
      * Get the compiled file content representation of the query.
@@ -512,93 +368,6 @@ class Builder
             $extension,
             $result
         );
-    }
-
-    /**
-     * Validate the supplied filename, extension and path.
-     * @param string $fileName
-     */
-    protected function validateFileName($fileName = null)
-    {
-        if ($fileName === null) {
-            $fileName = $this->model->fileName;
-        }
-
-        if (!strlen($fileName)) {
-            throw (new MissingFileNameException)->setModel($this->model);
-        }
-
-        if (!$this->validateFileNamePath($fileName, $this->model->getMaxNesting())) {
-            throw (new InvalidFileNameException)->setInvalidFileName($fileName);
-        }
-
-        $this->validateFileNameExtension($fileName, $this->model->getAllowedExtensions());
-
-        return true;
-    }
-
-    /**
-     * Validates a template path.
-     * Template directory and file names can contain only alphanumeric symbols, dashes and dots.
-     * @param string $filePath Specifies a path to validate
-     * @param integer $maxNesting Specifies the maximum allowed nesting level
-     * @return void
-     */
-    protected function validateFileNamePath($filePath, $maxNesting = 2)
-    {
-        if (strpos($filePath, '..') !== false) {
-            return false;
-        }
-
-        if (strpos($filePath, './') !== false || strpos($filePath, '//') !== false) {
-            return false;
-        }
-
-        $segments = explode('/', $filePath);
-        if ($maxNesting !== null && count($segments) > $maxNesting) {
-            return false;
-        }
-
-        foreach ($segments as $segment) {
-            if (!$this->validateFileNamePattern($segment)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    //
-    // Caching
-    //
-
-    /**
-     * Validates a template file or directory name.
-     * template file names can contain only alphanumeric symbols, dashes, underscores and dots.
-     * @param string $fileName Specifies a path to validate
-     * @return boolean Returns true if the file name is valid. Otherwise returns false.
-     */
-    protected function validateFileNamePattern($fileName)
-    {
-        return preg_match('/^[a-z0-9\_\-\.\/]+$/i', $fileName) ? true : false;
-    }
-
-    /**
-     * Validates whether a file has an allowed extension.
-     * @param string $fileName Specifies a path to validate
-     * @param array $allowedExtensions A list of allowed file extensions
-     * @return void
-     */
-    protected function validateFileNameExtension($fileName, $allowedExtensions)
-    {
-        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-
-        if (strlen($extension) && !in_array($extension, $allowedExtensions)) {
-            throw (new InvalidExtensionException)
-                ->setInvalidExtension($extension)
-                ->setAllowedExtensions($allowedExtensions)
-            ;
-        }
     }
 
     /**
@@ -671,6 +440,32 @@ class Builder
     }
 
     /**
+     * Get the hydrated models.
+     *
+     * @param  array  $results
+     * @return \October\Rain\Halcyon\Model[]
+     */
+    public function getModels(array $results)
+    {
+        $datasource = $this->model->getDatasourceName();
+
+        $models = $this->model->hydrate($results, $datasource);
+
+        /*
+         * Flag the models as loaded from cache, then reset the internal property.
+         */
+        if ($this->loadedFromCache) {
+            $models->each(function($model) {
+                $model->setLoadedFromCache($this->loadedFromCache);
+            });
+
+            $this->loadedFromCache = false;
+        }
+
+        return $models->all();
+    }
+
+    /**
      * Get the model instance being queried.
      *
      * @return \October\Rain\Halcyon\Model
@@ -680,46 +475,96 @@ class Builder
         return $this->model;
     }
 
+    //
+    // Validation (Hard)
+    //
+
     /**
-     * Set a model instance for the model being queried.
-     *
-     * @param  \October\Rain\Halcyon\Model  $model
-     * @return $this
+     * Validate the supplied filename, extension and path.
+     * @param string $fileName
      */
-    public function setModel(Model $model)
+    protected function validateFileName($fileName = null)
     {
-        $this->model = $model;
+        if ($fileName === null) {
+            $fileName = $this->model->fileName;
+        }
 
-        $this->extensions = $this->model->getAllowedExtensions();
+        if (!strlen($fileName)) {
+            throw (new MissingFileNameException)->setModel($this->model);
+        }
 
-        $this->from($this->model->getObjectTypeDirName());
+        if (!$this->validateFileNamePath($fileName, $this->model->getMaxNesting())) {
+            throw (new InvalidFileNameException)->setInvalidFileName($fileName);
+        }
 
-        return $this;
+        $this->validateFileNameExtension($fileName, $this->model->getAllowedExtensions());
+
+        return true;
     }
 
     /**
-     * Set the directory name which the query is targeting.
-     *
-     * @param  string  $dirName
-     * @return $this
+     * Validates whether a file has an allowed extension.
+     * @param string $fileName Specifies a path to validate
+     * @param array $allowedExtensions A list of allowed file extensions
+     * @return void
      */
-    public function from($dirName)
+    protected function validateFileNameExtension($fileName, $allowedExtensions)
     {
-        $this->from = $dirName;
+        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 
-        return $this;
+        if (strlen($extension) && !in_array($extension, $allowedExtensions)) {
+            throw (new InvalidExtensionException)
+                ->setInvalidExtension($extension)
+                ->setAllowedExtensions($allowedExtensions)
+            ;
+        }
     }
 
     /**
-     * Indicate that the query results should be cached forever.
-     *
-     * @param  string  $key
-     * @return $this
+     * Validates a template path.
+     * Template directory and file names can contain only alphanumeric symbols, dashes and dots.
+     * @param string $filePath Specifies a path to validate
+     * @param integer $maxNesting Specifies the maximum allowed nesting level
+     * @return void
      */
-    public function rememberForever($key = null)
+    protected function validateFileNamePath($filePath, $maxNesting = 2)
     {
-        return $this->remember(-1, $key);
+        if (strpos($filePath, '..') !== false) {
+            return false;
+        }
+
+        if (strpos($filePath, './') !== false || strpos($filePath, '//') !== false) {
+            return false;
+        }
+
+        $segments = explode('/', $filePath);
+        if ($maxNesting !== null && count($segments) > $maxNesting) {
+            return false;
+        }
+
+        foreach ($segments as $segment) {
+            if (!$this->validateFileNamePattern($segment)) {
+                return false;
+            }
+        }
+
+        return true;
     }
+
+    /**
+     * Validates a template file or directory name.
+     * template file names can contain only alphanumeric symbols, dashes, underscores and dots.
+     * @param string $fileName Specifies a path to validate
+     * @return boolean Returns true if the file name is valid. Otherwise returns false.
+     */
+    protected function validateFileNamePattern($fileName)
+    {
+        return preg_match('/^[a-z0-9\_\-\.\/]+$/i', $fileName) ? true : false;
+    }
+
+    //
+    // Caching
+    //
 
     /**
      * Indicate that the query results should be cached.
@@ -733,6 +578,17 @@ class Builder
         list($this->cacheMinutes, $this->cacheKey) = array($minutes, $key);
 
         return $this;
+    }
+
+    /**
+     * Indicate that the query results should be cached forever.
+     *
+     * @param  string  $key
+     * @return $this
+     */
+    public function rememberForever($key = null)
+    {
+        return $this->remember(-1, $key);
     }
 
     /**
@@ -757,6 +613,161 @@ class Builder
     {
         $this->cacheDriver = $cacheDriver;
         return $this;
+    }
+
+    /**
+     * Execute the query as a cached "select" statement.
+     *
+     * @param  array  $columns
+     * @return array
+     */
+    public function getCached($columns = ['*'])
+    {
+        if (is_null($this->columns)) {
+            $this->columns = $columns;
+        }
+
+        $key = $this->getCacheKey();
+
+        if (array_key_exists($key, MemoryCache::$cache)) {
+            return MemoryCache::$cache[$key];
+        }
+
+        $minutes = $this->cacheMinutes;
+        $cache = $this->getCache();
+        $callback = $this->getCacheCallback($columns);
+        $isNewCache = !$cache->has($key);
+
+        // If the "minutes" value is less than zero, we will use that as the indicator
+        // that the value should be remembered values should be stored indefinitely
+        // and if we have minutes we will use the typical remember function here.
+        if ($minutes < 0) {
+            $result = $cache->rememberForever($key, $callback);
+        }
+        else {
+            $result = $cache->remember($key, $minutes, $callback);
+        }
+
+        // If this is an old cache record, we can check if the cache has been busted
+        // by comparing the modification times. If this is the case, forget the
+        // cache and then prompt a recycle of the results.
+        if (!$isNewCache && $this->isCacheBusted($result)) {
+            $cache->forget($key);
+            $isNewCache = true;
+
+            if ($minutes < 0) {
+                $result = $cache->rememberForever($key, $callback);
+            }
+            else {
+                $result = $cache->remember($key, $minutes, $callback);
+            }
+        }
+
+        $this->loadedFromCache = !$isNewCache;
+
+        return MemoryCache::$cache[$key] = $result;
+    }
+
+    /**
+     * Returns true if the cache for the file is busted. This only applies
+     * to single record selection.
+     * @param  array  $result
+     * @return bool
+     */
+    protected function isCacheBusted($result)
+    {
+        if (!$this->selectSingle) {
+            return false;
+        }
+
+        $mtime = $result ? array_get(reset($result), 'mtime') : null;
+
+        list($name, $extension) = $this->selectSingle;
+
+        $currentMtime = $this->datasource->lastModified(
+            $this->from,
+            $name,
+            $extension
+        );
+
+        return $currentMtime != $mtime;
+    }
+
+    /**
+     * Get the cache object with tags assigned, if applicable.
+     *
+     * @return \Illuminate\Cache\CacheManager
+     */
+    protected function getCache()
+    {
+        $cache = $this->model->getCacheManager()->driver($this->cacheDriver);
+
+        return $this->cacheTags ? $cache->tags($this->cacheTags) : $cache;
+    }
+
+    /**
+     * Get a unique cache key for the complete query.
+     *
+     * @return string
+     */
+    public function getCacheKey()
+    {
+        return $this->cacheKey ?: $this->generateCacheKey();
+    }
+
+    /**
+     * Generate the unique cache key for the query.
+     *
+     * @return string
+     */
+    public function generateCacheKey()
+    {
+        $payload = [];
+        $payload[] = $this->selectSingle ? serialize($this->selectSingle) : '*';
+        $payload[] = $this->orders ? serialize($this->orders) : '*';
+        $payload[] = $this->columns ? serialize($this->columns) : '*';
+        $payload[] = $this->fileMatch;
+        $payload[] = $this->limit;
+        $payload[] = $this->offset;
+
+        return $this->from . $this->datasource->makeCacheKey(implode('-', $payload));
+    }
+
+    /**
+     * Get the Closure callback used when caching queries.
+     *
+     * @param  string  $fileName
+     * @return \Closure
+     */
+    protected function getCacheCallback($columns)
+    {
+        return function() use ($columns) { return $this->processInitCacheData($this->getFresh($columns)); };
+    }
+
+    /**
+     * Initialize the cache data of each record.
+     * @param  array  $data
+     * @return array
+     */
+    protected function processInitCacheData($data)
+    {
+        if ($data) {
+            $model = get_class($this->model);
+
+            foreach ($data as &$record) {
+                $model::initCacheItem($record);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Clears the internal request-level object cache.
+     */
+    public static function clearInternalCache()
+    {
+        MemoryCache::$cache = [];
     }
 
     /**

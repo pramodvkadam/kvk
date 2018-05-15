@@ -49,28 +49,6 @@ class GlobAsset extends AssetCollection
         return parent::all();
     }
 
-    /**
-     * Initializes the collection based on the glob(s) passed in.
-     */
-    private function initialize()
-    {
-        foreach ($this->globs as $glob) {
-            $glob = VarUtils::resolve($glob, $this->getVars(), $this->getValues());
-
-            if (false !== $paths = glob($glob)) {
-                foreach ($paths as $path) {
-                    if (is_file($path)) {
-                        $asset = new FileAsset($path, array(), $this->getSourceRoot(), null, $this->getVars());
-                        $asset->setValues($this->getValues());
-                        $this->add($asset);
-                    }
-                }
-            }
-        }
-
-        $this->initialized = true;
-    }
-
     public function load(FilterInterface $additionalFilter = null)
     {
         if (!$this->initialized) {
@@ -111,5 +89,27 @@ class GlobAsset extends AssetCollection
     {
         parent::setValues($values);
         $this->initialized = false;
+    }
+
+    /**
+     * Initializes the collection based on the glob(s) passed in.
+     */
+    private function initialize()
+    {
+        foreach ($this->globs as $glob) {
+            $glob = VarUtils::resolve($glob, $this->getVars(), $this->getValues());
+
+            if (false !== $paths = glob($glob)) {
+                foreach ($paths as $path) {
+                    if (is_file($path)) {
+                        $asset = new FileAsset($path, array(), $this->getSourceRoot(), null, $this->getVars());
+                        $asset->setValues($this->getValues());
+                        $this->add($asset);
+                    }
+                }
+            }
+        }
+
+        $this->initialized = true;
     }
 }

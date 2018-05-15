@@ -32,56 +32,6 @@ class HeaderBag implements \IteratorAggregate, \Countable
     }
 
     /**
-     * Sets a header by name.
-     *
-     * @param string       $key     The key
-     * @param string|array $values  The value or an array of values
-     * @param bool         $replace Whether to replace the actual value or not (true by default)
-     */
-    public function set($key, $values, $replace = true)
-    {
-        $key = str_replace('_', '-', strtolower($key));
-
-        if (\is_array($values)) {
-            $values = array_values($values);
-
-            if (true === $replace || !isset($this->headers[$key])) {
-                $this->headers[$key] = $values;
-            } else {
-                $this->headers[$key] = array_merge($this->headers[$key], $values);
-            }
-        } else {
-            if (true === $replace || !isset($this->headers[$key])) {
-                $this->headers[$key] = array($values);
-            } else {
-                $this->headers[$key][] = $values;
-            }
-        }
-
-        if ('cache-control' === $key) {
-            $this->cacheControl = $this->parseCacheControl(implode(', ', $this->headers[$key]));
-        }
-    }
-
-    /**
-     * Parses a Cache-Control HTTP header.
-     *
-     * @param string $header The value of the Cache-Control HTTP header
-     *
-     * @return array An array representing the attribute values
-     */
-    protected function parseCacheControl($header)
-    {
-        $cacheControl = array();
-        preg_match_all('#([a-zA-Z][a-zA-Z_-]*)\s*(?:=(?:"([^"]*)"|([^ \t",;]*)))?#', $header, $matches, PREG_SET_ORDER);
-        foreach ($matches as $match) {
-            $cacheControl[strtolower($match[1])] = isset($match[3]) ? $match[3] : (isset($match[2]) ? $match[2] : true);
-        }
-
-        return $cacheControl;
-    }
-
-    /**
      * Returns the headers as a string.
      *
      * @return string The headers
@@ -149,6 +99,67 @@ class HeaderBag implements \IteratorAggregate, \Countable
     }
 
     /**
+     * Returns a header value by name.
+     *
+     * @param string          $key     The header name
+     * @param string|string[] $default The default value
+     * @param bool            $first   Whether to return the first value or all header values
+     *
+     * @return string|string[] The first header value or default value if $first is true, an array of values otherwise
+     */
+    public function get($key, $default = null, $first = true)
+    {
+        $key = str_replace('_', '-', strtolower($key));
+        $headers = $this->all();
+
+        if (!array_key_exists($key, $headers)) {
+            if (null === $default) {
+                return $first ? null : array();
+            }
+
+            return $first ? $default : array($default);
+        }
+
+        if ($first) {
+            return \count($headers[$key]) ? $headers[$key][0] : $default;
+        }
+
+        return $headers[$key];
+    }
+
+    /**
+     * Sets a header by name.
+     *
+     * @param string          $key     The key
+     * @param string|string[] $values  The value or an array of values
+     * @param bool            $replace Whether to replace the actual value or not (true by default)
+     */
+    public function set($key, $values, $replace = true)
+    {
+        $key = str_replace('_', '-', strtolower($key));
+
+        if (\is_array($values)) {
+            $values = array_values($values);
+
+            if (true === $replace || !isset($this->headers[$key])) {
+                $this->headers[$key] = $values;
+            } else {
+                $this->headers[$key] = array_merge($this->headers[$key], $values);
+            }
+        } else {
+            if (true === $replace || !isset($this->headers[$key])) {
+                $this->headers[$key] = array($values);
+            } else {
+                $this->headers[$key][] = $values;
+            }
+        }
+
+        if ('cache-control' === $key) {
+            $this->cacheControl = $this->parseCacheControl(implode(', ', $this->headers[$key]));
+        }
+    }
+
+    /**
      * Returns true if the HTTP header is defined.
      *
      * @param string $key The HTTP header
@@ -171,35 +182,6 @@ class HeaderBag implements \IteratorAggregate, \Countable
     public function contains($key, $value)
     {
         return in_array($value, $this->get($key, null, false));
-    }
-
-    /**
-     * Returns a header value by name.
-     *
-     * @param string $key     The header name
-     * @param mixed  $default The default value
-     * @param bool   $first   Whether to return the first value or all header values
-     *
-     * @return string|array The first header value if $first is true, an array of values otherwise
-     */
-    public function get($key, $default = null, $first = true)
-    {
-        $key = str_replace('_', '-', strtolower($key));
-        $headers = $this->all();
-
-        if (!array_key_exists($key, $headers)) {
-            if (null === $default) {
-                return $first ? null : array();
-            }
-
-            return $first ? $default : array($default);
-        }
-
-        if ($first) {
-            return \count($headers[$key]) ? $headers[$key][0] : $default;
-        }
-
-        return $headers[$key];
     }
 
     /**
@@ -252,25 +234,6 @@ class HeaderBag implements \IteratorAggregate, \Countable
         $this->cacheControl[$key] = $value;
 
         $this->set('Cache-Control', $this->getCacheControlHeader());
-    }
-
-    protected function getCacheControlHeader()
-    {
-        $parts = array();
-        ksort($this->cacheControl);
-        foreach ($this->cacheControl as $key => $value) {
-            if (true === $value) {
-                $parts[] = $key;
-            } else {
-                if (preg_match('#[^a-zA-Z0-9._-]#', $value)) {
-                    $value = '"'.$value.'"';
-                }
-
-                $parts[] = "$key=$value";
-            }
-        }
-
-        return implode(', ', $parts);
     }
 
     /**
@@ -327,5 +290,42 @@ class HeaderBag implements \IteratorAggregate, \Countable
     public function count()
     {
         return count($this->headers);
+    }
+
+    protected function getCacheControlHeader()
+    {
+        $parts = array();
+        ksort($this->cacheControl);
+        foreach ($this->cacheControl as $key => $value) {
+            if (true === $value) {
+                $parts[] = $key;
+            } else {
+                if (preg_match('#[^a-zA-Z0-9._-]#', $value)) {
+                    $value = '"'.$value.'"';
+                }
+
+                $parts[] = "$key=$value";
+            }
+        }
+
+        return implode(', ', $parts);
+    }
+
+    /**
+     * Parses a Cache-Control HTTP header.
+     *
+     * @param string $header The value of the Cache-Control HTTP header
+     *
+     * @return array An array representing the attribute values
+     */
+    protected function parseCacheControl($header)
+    {
+        $cacheControl = array();
+        preg_match_all('#([a-zA-Z][a-zA-Z_-]*)\s*(?:=(?:"([^"]*)"|([^ \t",;]*)))?#', $header, $matches, PREG_SET_ORDER);
+        foreach ($matches as $match) {
+            $cacheControl[strtolower($match[1])] = isset($match[3]) ? $match[3] : (isset($match[2]) ? $match[2] : true);
+        }
+
+        return $cacheControl;
     }
 }

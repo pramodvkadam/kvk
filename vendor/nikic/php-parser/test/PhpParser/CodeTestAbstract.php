@@ -4,8 +4,7 @@ namespace PhpParser;
 
 abstract class CodeTestAbstract extends \PHPUnit_Framework_TestCase
 {
-    protected function getTests($directory, $fileExtension)
-    {
+    protected function getTests($directory, $fileExtension) {
         $directory = realpath($directory);
         $it = new \RecursiveDirectoryIterator($directory);
         $it = new \RecursiveIteratorIterator($it, \RecursiveIteratorIterator::LEAVES_ONLY);
@@ -20,7 +19,7 @@ abstract class CodeTestAbstract extends \PHPUnit_Framework_TestCase
             // evaluate @@{expr}@@ expressions
             $fileContents = preg_replace_callback(
                 '/@@\{(.*?)\}@@/',
-                function ($matches) {
+                function($matches) {
                     return eval('return ' . $matches[1] . ';');
                 },
                 $fileContents
@@ -45,8 +44,7 @@ abstract class CodeTestAbstract extends \PHPUnit_Framework_TestCase
         return $tests;
     }
 
-    private function extractMode($expected)
-    {
+    private function extractMode($expected) {
         $firstNewLine = strpos($expected, "\n");
         if (false === $firstNewLine) {
             $firstNewLine = strlen($expected);
@@ -57,7 +55,7 @@ abstract class CodeTestAbstract extends \PHPUnit_Framework_TestCase
             return [$expected, null];
         }
 
-        $expected = (string)substr($expected, $firstNewLine + 1);
+        $expected = (string) substr($expected, $firstNewLine + 1);
         return [$expected, substr($firstLine, 2)];
     }
 }

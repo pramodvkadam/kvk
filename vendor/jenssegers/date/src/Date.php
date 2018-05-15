@@ -89,149 +89,6 @@ class Date extends Carbon
     }
 
     /**
-     * Translate a locale based time string to its english equivalent.
-     *
-     * @param  string $time
-     * @return string
-     */
-    public static function translateTimeString($time)
-    {
-        // Don't run translations for english.
-        if (static::getLocale() == 'en') {
-            return $time;
-        }
-
-        // All the language file items we can translate.
-        $keys = [
-            'january',
-            'february',
-            'march',
-            'april',
-            'may',
-            'june',
-            'july',
-            'august',
-            'september',
-            'october',
-            'november',
-            'december',
-            'monday',
-            'tuesday',
-            'wednesday',
-            'thursday',
-            'friday',
-            'saturday',
-            'sunday',
-        ];
-
-        // Get all the language lines of the current locale.
-        $all = static::getTranslator()->getCatalogue()->all();
-        $terms = array_intersect_key($all['messages'], array_flip((array) $keys));
-
-        // Split terms with a | sign.
-        foreach ($terms as $i => $term) {
-            if (strpos($term, '|') === false) {
-                continue;
-            }
-
-            // Split term options.
-            $options = explode('|', $term);
-
-            // Remove :count and {count} placeholders.
-            $options = array_map(function ($option) {
-                $option = trim(str_replace(':count', '', $option));
-                $option = preg_replace('/({\d+(,(\d+|Inf))?}|\[\d+(,(\d+|Inf))?\])/', '', $option);
-
-                return $option;
-            }, $options);
-
-            $terms[$i] = $options;
-        }
-
-        // Replace the localized words with English words.
-        $translated = $time;
-        foreach ($terms as $english => $localized) {
-            $translated = str_ireplace($localized, $english, $translated);
-        }
-
-        return $translated;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public static function getLocale()
-    {
-        return static::getTranslator()->getLocale();
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public static function getTranslator()
-    {
-        if (static::$translator === null) {
-            static::$translator = new Translator('en');
-            static::$translator->addLoader('array', new ArrayLoader());
-            static::setLocale('en');
-        }
-
-        return static::$translator;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public static function setTranslator(TranslatorInterface $translator)
-    {
-        static::$translator = $translator;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public static function setLocale($locale)
-    {
-        // Use RFC 5646 for filenames.
-        $resource = __DIR__.'/Lang/'.str_replace('_', '-', $locale).'.php';
-
-        if (! file_exists($resource)) {
-            static::setLocale(static::getFallbackLocale());
-
-            return;
-        }
-
-        // Symfony locale format.
-        $locale = str_replace('-', '_', $locale);
-
-        // Set locale and load translations.
-        static::getTranslator()->setLocale($locale);
-        static::getTranslator()->addResource('array', require $resource, $locale);
-    }
-
-    /**
-     * Get the fallback locale.
-     *
-     * @return string
-     */
-    public static function getFallbackLocale()
-    {
-        return static::$fallbackLocale;
-    }
-
-    /**
-     * Set the fallback locale.
-     *
-     * @param  string $locale
-     * @return void
-     */
-    public static function setFallbackLocale($locale)
-    {
-        static::$fallbackLocale = $locale;
-        static::getTranslator()->setFallbackLocales([$locale]);
-    }
-
-    /**
      * @inheritdoc
      */
     public static function createFromFormat($format, $time, $timezone = null)
@@ -239,29 +96,6 @@ class Date extends Carbon
         $time = static::translateTimeString($time);
 
         return parent::createFromFormat($format, $time, $timezone);
-    }
-
-    /**
-     * Alias for diffForHumans.
-     *
-     * @param  Date $since
-     * @return string
-     */
-    public function until($since = null)
-    {
-        return $this->ago($since);
-    }
-
-    /**
-     * Alias for diffForHumans.
-     *
-     * @param  Date $since
-     * @param  bool $absolute Removes time difference modifiers ago, after, etc
-     * @return string
-     */
-    public function ago($since = null, $absolute = false)
-    {
-        return $this->diffForHumans($since, $absolute);
     }
 
     /**
@@ -343,6 +177,29 @@ class Date extends Carbon
         }
 
         return $lang->transChoice($suffix, $count, [':time' => $ago]);
+    }
+
+    /**
+     * Alias for diffForHumans.
+     *
+     * @param  Date $since
+     * @param  bool $absolute Removes time difference modifiers ago, after, etc
+     * @return string
+     */
+    public function ago($since = null, $absolute = false)
+    {
+        return $this->diffForHumans($since, $absolute);
+    }
+
+    /**
+     * Alias for diffForHumans.
+     *
+     * @param  Date $since
+     * @return string
+     */
+    public function until($since = null)
+    {
+        return $this->ago($since);
     }
 
     /**
@@ -504,5 +361,148 @@ class Date extends Carbon
         }
 
         return parent::sub($interval) ? $this : false;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function getLocale()
+    {
+        return static::getTranslator()->getLocale();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function setLocale($locale)
+    {
+        // Use RFC 5646 for filenames.
+        $resource = __DIR__.'/Lang/'.str_replace('_', '-', $locale).'.php';
+
+        if (! file_exists($resource)) {
+            static::setLocale(static::getFallbackLocale());
+
+            return;
+        }
+
+        // Symfony locale format.
+        $locale = str_replace('-', '_', $locale);
+
+        // Set locale and load translations.
+        static::getTranslator()->setLocale($locale);
+        static::getTranslator()->addResource('array', require $resource, $locale);
+    }
+
+    /**
+     * Set the fallback locale.
+     *
+     * @param  string $locale
+     * @return void
+     */
+    public static function setFallbackLocale($locale)
+    {
+        static::$fallbackLocale = $locale;
+        static::getTranslator()->setFallbackLocales([$locale]);
+    }
+
+    /**
+     * Get the fallback locale.
+     *
+     * @return string
+     */
+    public static function getFallbackLocale()
+    {
+        return static::$fallbackLocale;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function getTranslator()
+    {
+        if (static::$translator === null) {
+            static::$translator = new Translator('en');
+            static::$translator->addLoader('array', new ArrayLoader());
+            static::setLocale('en');
+        }
+
+        return static::$translator;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function setTranslator(TranslatorInterface $translator)
+    {
+        static::$translator = $translator;
+    }
+
+    /**
+     * Translate a locale based time string to its english equivalent.
+     *
+     * @param  string $time
+     * @return string
+     */
+    public static function translateTimeString($time)
+    {
+        // Don't run translations for english.
+        if (static::getLocale() == 'en') {
+            return $time;
+        }
+
+        // All the language file items we can translate.
+        $keys = [
+            'january',
+            'february',
+            'march',
+            'april',
+            'may',
+            'june',
+            'july',
+            'august',
+            'september',
+            'october',
+            'november',
+            'december',
+            'monday',
+            'tuesday',
+            'wednesday',
+            'thursday',
+            'friday',
+            'saturday',
+            'sunday',
+        ];
+
+        // Get all the language lines of the current locale.
+        $all = static::getTranslator()->getCatalogue()->all();
+        $terms = array_intersect_key($all['messages'], array_flip((array) $keys));
+
+        // Split terms with a | sign.
+        foreach ($terms as $i => $term) {
+            if (strpos($term, '|') === false) {
+                continue;
+            }
+
+            // Split term options.
+            $options = explode('|', $term);
+
+            // Remove :count and {count} placeholders.
+            $options = array_map(function ($option) {
+                $option = trim(str_replace(':count', '', $option));
+                $option = preg_replace('/({\d+(,(\d+|Inf))?}|\[\d+(,(\d+|Inf))?\])/', '', $option);
+
+                return $option;
+            }, $options);
+
+            $terms[$i] = $options;
+        }
+
+        // Replace the localized words with English words.
+        $translated = $time;
+        foreach ($terms as $english => $localized) {
+            $translated = str_ireplace($localized, $english, $translated);
+        }
+
+        return $translated;
     }
 }

@@ -86,6 +86,16 @@ class ConsoleLogger extends AbstractLogger
     }
 
     /**
+     * Returns true when any messages have been logged at error levels.
+     *
+     * @return bool
+     */
+    public function hasErrored()
+    {
+        return $this->errored;
+    }
+
+    /**
      * Interpolates context values into the message placeholders.
      *
      * @author PHP Framework Interoperability Group
@@ -115,15 +125,5 @@ class ConsoleLogger extends AbstractLogger
         }
 
         return strtr($message, $replacements);
-    }
-
-    /**
-     * Returns true when any messages have been logged at error levels.
-     *
-     * @return bool
-     */
-    public function hasErrored()
-    {
-        return $this->errored;
     }
 }

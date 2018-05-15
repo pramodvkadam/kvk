@@ -69,16 +69,6 @@ class SoftDeletedInDatabase extends Constraint
     }
 
     /**
-     * Get a string representation of the object.
-     *
-     * @return string
-     */
-    public function toString()
-    {
-        return json_encode($this->data);
-    }
-
-    /**
      * Get additional info about the records found in the database table.
      *
      * @param  string  $table
@@ -99,5 +89,15 @@ class SoftDeletedInDatabase extends Constraint
         }
 
         return $description;
+    }
+
+    /**
+     * Get a string representation of the object.
+     *
+     * @return string
+     */
+    public function toString()
+    {
+        return json_encode($this->data);
     }
 }

@@ -37,6 +37,16 @@ class Markdown
     protected $parser;
 
     /**
+     * Parse text using Markdown and Markdown-Extra
+     * @param  string $text Markdown text to parse
+     * @return string       Resulting HTML
+     */
+    public function parse($text)
+    {
+        return $this->parseInternal($text);
+    }
+
+    /**
      * Disables code blocks caused by indentation.
      * @param  string $text Markdown text to parse
      * @return string       Resulting HTML
@@ -52,23 +62,14 @@ class Markdown
         return $result;
     }
 
-    protected function getParser()
-    {
-        if ($this->parser === null) {
-            $this->parser = new Parsedown;
-        }
-
-        return $this->parser;
-    }
-
     /**
-     * Parse text using Markdown and Markdown-Extra
+     * Parse a single line
      * @param  string $text Markdown text to parse
      * @return string       Resulting HTML
      */
-    public function parse($text)
+    public function parseLine($text)
     {
-        return $this->parseInternal($text);
+        return $this->parseInternal($text, 'line');
     }
 
     /**
@@ -95,13 +96,12 @@ class Markdown
         return $data->text;
     }
 
-    /**
-     * Parse a single line
-     * @param  string $text Markdown text to parse
-     * @return string       Resulting HTML
-     */
-    public function parseLine($text)
+    protected function getParser()
     {
-        return $this->parseInternal($text, 'line');
+        if ($this->parser === null) {
+            $this->parser = new Parsedown;
+        }
+
+        return $this->parser;
     }
 }

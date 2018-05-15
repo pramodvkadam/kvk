@@ -54,6 +54,46 @@ class Application extends ApplicationBase
     }
 
     /**
+     * Register all of the base service providers.
+     *
+     * @return void
+     */
+    protected function registerBaseServiceProviders()
+    {
+        $this->register(new EventServiceProvider($this));
+
+        $this->register(new LogServiceProvider($this));
+
+        $this->register(new RoutingServiceProvider($this));
+
+        $this->register(new MakerServiceProvider($this));
+    }
+
+    /**
+     * Bind all of the application paths in the container.
+     *
+     * @return void
+     */
+    protected function bindPathsInContainer()
+    {
+        parent::bindPathsInContainer();
+
+        $this->instance('path.plugins', $this->pluginsPath());
+        $this->instance('path.themes', $this->themesPath());
+        $this->instance('path.temp', $this->tempPath());
+    }
+
+    /**
+     * Get the path to the public / web directory.
+     *
+     * @return string
+     */
+    public function pluginsPath()
+    {
+        return $this->pluginsPath ?: $this->basePath.'/plugins';
+    }
+
+    /**
      * Set the plugins path for the application.
      *
      * @param  string $path
@@ -67,6 +107,16 @@ class Application extends ApplicationBase
     }
 
     /**
+     * Get the path to the public / web directory.
+     *
+     * @return string
+     */
+    public function themesPath()
+    {
+        return $this->themesPath ?: $this->basePath.'/themes';
+    }
+
+    /**
      * Set the themes path for the application.
      *
      * @param  string $path
@@ -77,6 +127,39 @@ class Application extends ApplicationBase
         $this->themesPath = $path;
         $this->instance('path.themes', $path);
         return $this;
+    }
+
+    /**
+     * Get the path to the public / web directory.
+     *
+     * @return string
+     */
+    public function tempPath()
+    {
+        return $this->basePath.'/storage/temp';
+    }
+
+    /**
+     * Resolve the given type from the container.
+     *
+     * (Overriding Container::make)
+     *
+     * @param  string  $abstract
+     * @return mixed
+     */
+    public function make($abstract, array $parameters = [])
+    {
+        $abstract = $this->getAlias($abstract);
+
+        if (isset($this->deferredServices[$abstract])) {
+            $this->loadDeferredProvider($abstract);
+        }
+
+        if ($parameters) {
+            return $this->make(Maker::class)->make($abstract, $parameters);
+        }
+
+        return parent::make($abstract);
     }
 
     /**
@@ -102,19 +185,6 @@ class Application extends ApplicationBase
     }
 
     /**
-     * Register an error handler for fatal errors.
-     *
-     * @param  \Closure  $callback
-     * @return void
-     */
-    public function fatal(Closure $callback)
-    {
-        $this->error(function(FatalErrorException $e) use ($callback) {
-            return call_user_func($callback, $e);
-        });
-    }
-
-    /**
      * Register an application error handler.
      *
      * @param  \Closure  $callback
@@ -126,26 +196,16 @@ class Application extends ApplicationBase
     }
 
     /**
-     * Resolve the given type from the container.
+     * Register an error handler for fatal errors.
      *
-     * (Overriding Container::make)
-     *
-     * @param  string  $abstract
-     * @return mixed
+     * @param  \Closure  $callback
+     * @return void
      */
-    public function make($abstract, array $parameters = [])
+    public function fatal(Closure $callback)
     {
-        $abstract = $this->getAlias($abstract);
-
-        if (isset($this->deferredServices[$abstract])) {
-            $this->loadDeferredProvider($abstract);
-        }
-
-        if ($parameters) {
-            return $this->make(Maker::class)->make($abstract, $parameters);
-        }
-
-        return parent::make($abstract);
+        $this->error(function(FatalErrorException $e) use ($callback) {
+            return call_user_func($callback, $e);
+        });
     }
 
     /**
@@ -187,6 +247,22 @@ class Application extends ApplicationBase
 
         return true;
     }
+
+    /**
+     * Set the current application locale.
+     * @param  string  $locale
+     * @return void
+     */
+    public function setLocale($locale)
+    {
+        parent::setLocale($locale);
+
+        $this['events']->fire('locale.changed', [$locale]);
+    }
+
+    //
+    // Core aliases
+    //
 
     /**
      * Register the core class aliases in the container.
@@ -235,6 +311,10 @@ class Application extends ApplicationBase
         }
     }
 
+    //
+    // Caching
+    //
+
     /**
      * Get the path to the configuration cache file.
      *
@@ -275,10 +355,6 @@ class Application extends ApplicationBase
         return $this->storagePath().'/framework/services.php';
     }
 
-    //
-    // Core aliases
-    //
-
     /**
      * Get the path to the cached packages.php file.
      *
@@ -289,10 +365,6 @@ class Application extends ApplicationBase
         return $this->storagePath().'/framework/packages.php';
     }
 
-    //
-    // Caching
-    //
-
     /**
      * Get the path to the cached packages.php file.
      *
@@ -301,65 +373,5 @@ class Application extends ApplicationBase
     public function getCachedClassesPath()
     {
         return $this->storagePath().'/framework/classes.php';
-    }
-
-    /**
-     * Register all of the base service providers.
-     *
-     * @return void
-     */
-    protected function registerBaseServiceProviders()
-    {
-        $this->register(new EventServiceProvider($this));
-
-        $this->register(new LogServiceProvider($this));
-
-        $this->register(new RoutingServiceProvider($this));
-
-        $this->register(new MakerServiceProvider($this));
-    }
-
-    /**
-     * Bind all of the application paths in the container.
-     *
-     * @return void
-     */
-    protected function bindPathsInContainer()
-    {
-        parent::bindPathsInContainer();
-
-        $this->instance('path.plugins', $this->pluginsPath());
-        $this->instance('path.themes', $this->themesPath());
-        $this->instance('path.temp', $this->tempPath());
-    }
-
-    /**
-     * Get the path to the public / web directory.
-     *
-     * @return string
-     */
-    public function pluginsPath()
-    {
-        return $this->pluginsPath ?: $this->basePath.'/plugins';
-    }
-
-    /**
-     * Get the path to the public / web directory.
-     *
-     * @return string
-     */
-    public function themesPath()
-    {
-        return $this->themesPath ?: $this->basePath.'/themes';
-    }
-
-    /**
-     * Get the path to the public / web directory.
-     *
-     * @return string
-     */
-    public function tempPath()
-    {
-        return $this->basePath.'/storage/temp';
     }
 }

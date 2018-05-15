@@ -44,18 +44,21 @@ class Search extends WidgetBase
     //
     // Object properties
     //
-    /**
-     * @var array List of CSS classes to apply to the list container element.
-     */
-    public $cssClasses = [];
+
     /**
      * @inheritDoc
      */
     protected $defaultAlias = 'search';
+
     /**
      * @var string Active search term pulled from session data.
      */
     protected $activeTerm;
+
+    /**
+     * @var array List of CSS classes to apply to the list container element.
+     */
+    public $cssClasses = [];
 
     /**
      * Initialize the widget, called by the constructor and free from its parameters.
@@ -106,6 +109,26 @@ class Search extends WidgetBase
     }
 
     /**
+     * Search field has been submitted.
+     */
+    public function onSubmit()
+    {
+        /*
+         * Save or reset search term in session
+         */
+        $this->setActiveTerm(post($this->getName()));
+
+        /*
+         * Trigger class event, merge results as viewable array
+         */
+        $params = func_get_args();
+        $result = $this->fireEvent('search.submit', [$params]);
+        if ($result && is_array($result)) {
+            return call_user_func_array('array_merge', $result);
+        }
+    }
+
+    /**
      * Returns an active search term for this widget instance.
      */
     public function getActiveTerm()
@@ -126,26 +149,6 @@ class Search extends WidgetBase
         }
 
         $this->activeTerm = $term;
-    }
-
-    /**
-     * Search field has been submitted.
-     */
-    public function onSubmit()
-    {
-        /*
-         * Save or reset search term in session
-         */
-        $this->setActiveTerm(post($this->getName()));
-
-        /*
-         * Trigger class event, merge results as viewable array
-         */
-        $params = func_get_args();
-        $result = $this->fireEvent('search.submit', [$params]);
-        if ($result && is_array($result)) {
-            return call_user_func_array('array_merge', $result);
-        }
     }
 
     /**

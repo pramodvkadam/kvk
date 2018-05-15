@@ -24,6 +24,38 @@ use Doctrine\DBAL\Driver\Statement;
 class DB2Statement implements \IteratorAggregate, Statement
 {
     /**
+     * @var resource
+     */
+    private $_stmt = null;
+
+    /**
+     * @var array
+     */
+    private $_bindParam = array();
+
+    /**
+     * @var string Name of the default class to instantiate when fetch mode is \PDO::FETCH_CLASS.
+     */
+    private $defaultFetchClass = '\stdClass';
+
+    /**
+     * @var string Constructor arguments for the default class to instantiate when fetch mode is \PDO::FETCH_CLASS.
+     */
+    private $defaultFetchClassCtorArgs = array();
+
+    /**
+     * @var integer
+     */
+    private $_defaultFetchMode = \PDO::FETCH_BOTH;
+
+    /**
+     * Indicates whether the statement is in the state when fetching results is possible
+     *
+     * @var bool
+     */
+    private $result = false;
+
+    /**
      * DB2_BINARY, DB2_CHAR, DB2_DOUBLE, or DB2_LONG
      *
      * @var array
@@ -32,32 +64,6 @@ class DB2Statement implements \IteratorAggregate, Statement
         \PDO::PARAM_INT => DB2_LONG,
         \PDO::PARAM_STR => DB2_CHAR,
     );
-    /**
-     * @var resource
-     */
-    private $_stmt = null;
-    /**
-     * @var array
-     */
-    private $_bindParam = array();
-    /**
-     * @var string Name of the default class to instantiate when fetch mode is \PDO::FETCH_CLASS.
-     */
-    private $defaultFetchClass = '\stdClass';
-    /**
-     * @var string Constructor arguments for the default class to instantiate when fetch mode is \PDO::FETCH_CLASS.
-     */
-    private $defaultFetchClassCtorArgs = array();
-    /**
-     * @var integer
-     */
-    private $_defaultFetchMode = \PDO::FETCH_BOTH;
-    /**
-     * Indicates whether the statement is in the state when fetching results is possible
-     *
-     * @var bool
-     */
-    private $result = false;
 
     /**
      * @param resource $stmt
@@ -201,6 +207,49 @@ class DB2Statement implements \IteratorAggregate, Statement
     /**
      * {@inheritdoc}
      */
+    public function fetch($fetchMode = null)
+    {
+        // do not try fetching from the statement if it's not expected to contain result
+        // in order to prevent exceptional situation
+        if (!$this->result) {
+            return false;
+        }
+
+        $fetchMode = $fetchMode ?: $this->_defaultFetchMode;
+        switch ($fetchMode) {
+            case \PDO::FETCH_BOTH:
+                return db2_fetch_both($this->_stmt);
+            case \PDO::FETCH_ASSOC:
+                return db2_fetch_assoc($this->_stmt);
+            case \PDO::FETCH_CLASS:
+                $className = $this->defaultFetchClass;
+                $ctorArgs  = $this->defaultFetchClassCtorArgs;
+
+                if (func_num_args() >= 2) {
+                    $args      = func_get_args();
+                    $className = $args[1];
+                    $ctorArgs  = isset($args[2]) ? $args[2] : array();
+                }
+
+                $result = db2_fetch_object($this->_stmt);
+
+                if ($result instanceof \stdClass) {
+                    $result = $this->castObject($result, $className, $ctorArgs);
+                }
+
+                return $result;
+            case \PDO::FETCH_NUM:
+                return db2_fetch_array($this->_stmt);
+            case \PDO::FETCH_OBJ:
+                return db2_fetch_object($this->_stmt);
+            default:
+                throw new DB2Exception("Given Fetch-Style " . $fetchMode . " is not supported.");
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function fetchAll($fetchMode = null)
     {
         $rows = array();
@@ -242,44 +291,9 @@ class DB2Statement implements \IteratorAggregate, Statement
     /**
      * {@inheritdoc}
      */
-    public function fetch($fetchMode = null)
+    public function rowCount()
     {
-        // do not try fetching from the statement if it's not expected to contain result
-        // in order to prevent exceptional situation
-        if (!$this->result) {
-            return false;
-        }
-
-        $fetchMode = $fetchMode ?: $this->_defaultFetchMode;
-        switch ($fetchMode) {
-            case \PDO::FETCH_BOTH:
-                return db2_fetch_both($this->_stmt);
-            case \PDO::FETCH_ASSOC:
-                return db2_fetch_assoc($this->_stmt);
-            case \PDO::FETCH_CLASS:
-                $className = $this->defaultFetchClass;
-                $ctorArgs  = $this->defaultFetchClassCtorArgs;
-
-                if (func_num_args() >= 2) {
-                    $args      = func_get_args();
-                    $className = $args[1];
-                    $ctorArgs  = isset($args[2]) ? $args[2] : array();
-                }
-
-                $result = db2_fetch_object($this->_stmt);
-
-                if ($result instanceof \stdClass) {
-                    $result = $this->castObject($result, $className, $ctorArgs);
-                }
-
-                return $result;
-            case \PDO::FETCH_NUM:
-                return db2_fetch_array($this->_stmt);
-            case \PDO::FETCH_OBJ:
-                return db2_fetch_object($this->_stmt);
-            default:
-                throw new DB2Exception("Given Fetch-Style " . $fetchMode . " is not supported.");
-        }
+        return (@db2_num_rows($this->_stmt))?:0;
     }
 
     /**
@@ -344,13 +358,5 @@ class DB2Statement implements \IteratorAggregate, Statement
         }
 
         return $destinationClass;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function rowCount()
-    {
-        return (@db2_num_rows($this->_stmt))?:0;
     }
 }

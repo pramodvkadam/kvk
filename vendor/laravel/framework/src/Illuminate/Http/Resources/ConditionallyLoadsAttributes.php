@@ -69,6 +69,23 @@ trait ConditionallyLoadsAttributes
     }
 
     /**
+     * Retrieve a value based on a given condition.
+     *
+     * @param  bool  $condition
+     * @param  mixed  $value
+     * @param  mixed  $default
+     * @return \Illuminate\Http\Resources\MissingValue|mixed
+     */
+    protected function when($condition, $value, $default = null)
+    {
+        if ($condition) {
+            return value($value);
+        }
+
+        return func_num_args() === 3 ? value($default) : new MissingValue;
+    }
+
+    /**
      * Merge a value based on a given condition.
      *
      * @param  bool  $condition
@@ -142,23 +159,6 @@ trait ConditionallyLoadsAttributes
              $this->resource->pivot->getTable() === $table),
             ...[$value, $default]
         );
-    }
-
-    /**
-     * Retrieve a value based on a given condition.
-     *
-     * @param  bool  $condition
-     * @param  mixed  $value
-     * @param  mixed  $default
-     * @return \Illuminate\Http\Resources\MissingValue|mixed
-     */
-    protected function when($condition, $value, $default = null)
-    {
-        if ($condition) {
-            return value($value);
-        }
-
-        return func_num_args() === 3 ? value($default) : new MissingValue;
     }
 
     /**

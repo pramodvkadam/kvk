@@ -99,27 +99,67 @@ class Resizer
     }
 
     /**
-     * Open a file, detect its mime-type and create an image resource from it.
-     * @param array $file Attributes of file from the $_FILES array
-     * @return mixed
+     * Static call, Laravel style.
+     * Returns a new Resizer object, allowing for chainable calls
+     * @param  mixed $file The file array provided by Laravel's Input::file('field_name') or a path to a file
+     * @return Resizer
      */
-    protected function openImage($file)
+    public static function open($file)
     {
-        $mime = $file->getMimeType();
-        $filePath = $file->getPathname();
+        return new Resizer($file);
+    }
 
-        switch ($mime) {
-            case 'image/jpeg': $img = @imagecreatefromjpeg($filePath); break;
-            case 'image/gif':  $img = @imagecreatefromgif($filePath);  break;
-            case 'image/png':  $img = @imagecreatefrompng($filePath);  break;
-            case 'image/webp': $img = @imagecreatefromwebp($filePath); break;
+    /**
+     * Resets the image back to the original.
+     * @return self
+     */
+    public function reset()
+    {
+        $this->image = $this->originalImage;
 
-            default:
-                throw new Exception(sprintf('Invalid mime type: %s. Accepted types: image/jpeg, image/gif, image/png, image/webp.', $mime));
-                break;
-        }
+        return $this;
+    }
 
-        return $img;
+    /**
+     * Sets resizer options. Available options are:
+     *  - mode: Either exact, portrait, landscape, auto or crop.
+     *  - offset: The offset of the crop = [ left, top ]
+     *  - sharpen: Sharpen image, from 0 - 100 (default: 0)
+     *  - interlace: Interlace image,  Boolean: false (disabled: default), true (enabled)
+     *  - quality: Image quality, from 0 - 100 (default: 95)
+     * @return self
+     */
+    public function setOptions($options)
+    {
+        $this->options = array_merge([
+            'mode'      => 'auto',
+            'offset'    => [0, 0],
+            'sharpen'   => 0,
+            'interlace' => false,
+            'quality'   => 90
+        ], $options);
+
+        return $this;
+    }
+
+    /**
+     * Sets an individual resizer option.
+     * @return self
+     */
+    protected function setOption($option, $value)
+    {
+        $this->options[$option] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Gets an individual resizer option.
+     * @return self
+     */
+    protected function getOption($option)
+    {
+        return array_get($this->options, $option);
     }
 
     /**
@@ -191,47 +231,34 @@ class Resizer
     }
 
     /**
-     * Sets resizer options. Available options are:
-     *  - mode: Either exact, portrait, landscape, auto or crop.
-     *  - offset: The offset of the crop = [ left, top ]
-     *  - sharpen: Sharpen image, from 0 - 100 (default: 0)
-     *  - interlace: Interlace image,  Boolean: false (disabled: default), true (enabled)
-     *  - quality: Image quality, from 0 - 100 (default: 95)
-     * @return self
+     * Receives the original but rotated image
+     * according to exif orientation
+     * @return resource (gd)
      */
-    public function setOptions($options)
+    protected function getRotatedOriginal()
     {
-        $this->options = array_merge([
-            'mode'      => 'auto',
-            'offset'    => [0, 0],
-            'sharpen'   => 0,
-            'interlace' => false,
-            'quality'   => 90
-        ], $options);
+        switch ($this->orientation) {
+            case 6:
+                $angle = 270.0;
+                break;
 
-        return $this;
-    }
+            case 8:
+                $angle = 90.0;
+                break;
 
-    /**
-     * Static call, Laravel style.
-     * Returns a new Resizer object, allowing for chainable calls
-     * @param  mixed $file The file array provided by Laravel's Input::file('field_name') or a path to a file
-     * @return Resizer
-     */
-    public static function open($file)
-    {
-        return new Resizer($file);
-    }
+            case 3:
+                $angle = 180.0;
+                break;
 
-    /**
-     * Resets the image back to the original.
-     * @return self
-     */
-    public function reset()
-    {
-        $this->image = $this->originalImage;
+            case 1:
+            default:
+                return $this->image;
+        }
 
-        return $this;
+        $bgcolor = imagecolorallocate($this->image, 0, 0, 0);
+        $rotatedOriginal = imagerotate($this->image,$angle,$bgcolor);
+
+        return $rotatedOriginal;
     }
 
     /**
@@ -299,180 +326,6 @@ class Resizer
         }
 
         return $this;
-    }
-
-    /**
-     * Returns the width based on the image height
-     * @param int $newHeight The height of the image
-     * @return int
-     */
-    protected function getSizeByFixedHeight($newHeight)
-    {
-        $ratio = $this->width / $this->height;
-        $newWidth = $newHeight * $ratio;
-
-        return $newWidth;
-    }
-
-    /**
-     * Returns the height based on the image width
-     * @param int $newWidth The width of the image
-     * @return int
-     */
-    protected function getSizeByFixedWidth($newWidth)
-    {
-        $ratio = $this->height / $this->width;
-        $newHeight = $newWidth * $ratio;
-
-        return $newHeight;
-    }
-
-    /**
-     * Return the image dimensions based on the option that was chosen.
-     * @param int $newWidth The width of the image
-     * @param int $newHeight The height of the image
-     * @param string $option Either exact, portrait, landscape, auto or crop.
-     * @return array
-     */
-    protected function getDimensions($newWidth, $newHeight)
-    {
-        $mode = $this->getOption('mode');
-
-        switch ($mode) {
-            case 'exact':
-                return [$newWidth, $newHeight];
-
-            case 'portrait':
-                return [$this->getSizeByFixedHeight($newHeight), $newHeight];
-
-            case 'landscape':
-                return [$newWidth, $this->getSizeByFixedWidth($newWidth)];
-
-            case 'auto':
-                return $this->getSizeByAuto($newWidth, $newHeight);
-
-            case 'crop':
-                return $this->getOptimalCrop($newWidth, $newHeight);
-
-            default:
-                throw new Exception('Invalid dimension type. Accepted types: exact, portrait, landscape, auto, crop.');
-        }
-    }
-
-    /**
-     * Gets an individual resizer option.
-     * @return self
-     */
-    protected function getOption($option)
-    {
-        return array_get($this->options, $option);
-    }
-
-    /**
-     * Checks to see if an image is portrait or landscape and resizes accordingly.
-     * @param int $newWidth  The width of the image
-     * @param int $newHeight The height of the image
-     * @return array
-     */
-    protected function getSizeByAuto($newWidth, $newHeight)
-    {
-        // Less than 1 pixel height and width? (revert to original)
-        if ($newWidth <= 1 && $newHeight <= 1) {
-            $newWidth = $this->width;
-            $newHeight = $this->height;
-        }
-        elseif ($newWidth <= 1) {
-            $newWidth = $this->getSizeByFixedHeight($newHeight);
-        }
-        // Less than 1 pixel height? (portrait)
-        elseif ($newHeight <= 1) {
-            $newHeight = $this->getSizeByFixedWidth($newWidth);
-        }
-
-        // Image to be resized is wider (landscape)
-        if ($this->height < $this->width) {
-            $optimalWidth = $newWidth;
-            $optimalHeight = $this->getSizeByFixedWidth($newWidth);
-        }
-        // Image to be resized is taller (portrait)
-        elseif ($this->height > $this->width) {
-            $optimalWidth = $this->getSizeByFixedHeight($newHeight);
-            $optimalHeight = $newHeight;
-        }
-        // Image to be resized is a square
-        else {
-            if ($newHeight < $newWidth) {
-                $optimalWidth = $newWidth;
-                $optimalHeight = $this->getSizeByFixedWidth($newWidth);
-            }
-            elseif ($newHeight > $newWidth) {
-                $optimalWidth = $this->getSizeByFixedHeight($newHeight);
-                $optimalHeight = $newHeight;
-            }
-            else {
-                // Square being resized to a square
-                $optimalWidth = $newWidth;
-                $optimalHeight = $newHeight;
-            }
-        }
-
-        return [$optimalWidth, $optimalHeight];
-    }
-
-    /**
-     * Attempts to find the best way to crop. Whether crop is based on the
-     * image being portrait or landscape.
-     * @param int $newWidth  The width of the image
-     * @param int $newHeight The height of the image
-     * @return array
-     */
-    protected function getOptimalCrop($newWidth, $newHeight)
-    {
-        $heightRatio = $this->height / $newHeight;
-        $widthRatio  = $this->width /  $newWidth;
-
-        if ($heightRatio < $widthRatio) {
-            $optimalRatio = $heightRatio;
-        }
-        else {
-            $optimalRatio = $widthRatio;
-        }
-
-        $optimalHeight = round($this->height / $optimalRatio);
-        $optimalWidth  = round($this->width  / $optimalRatio);
-
-        return [$optimalWidth, $optimalHeight];
-    }
-
-    /**
-     * Receives the original but rotated image
-     * according to exif orientation
-     * @return resource (gd)
-     */
-    protected function getRotatedOriginal()
-    {
-        switch ($this->orientation) {
-            case 6:
-                $angle = 270.0;
-                break;
-
-            case 8:
-                $angle = 90.0;
-                break;
-
-            case 3:
-                $angle = 180.0;
-                break;
-
-            case 1:
-            default:
-                return $this->image;
-        }
-
-        $bgcolor = imagecolorallocate($this->image, 0, 0, 0);
-        $rotatedOriginal = imagerotate($this->image,$angle,$bgcolor);
-
-        return $rotatedOriginal;
     }
 
     /**
@@ -553,7 +406,7 @@ class Resizer
         $image = $this->image;
 
         $imageQuality = $this->getOption('quality');
-
+        
         if ($this->getOption('interlace')) {
             imageinterlace($image, true);
         }
@@ -590,14 +443,14 @@ class Resizer
                     imagepng($image, $savePath, $invertScaleQuality);
                 }
                 break;
-
+                
             case 'webp':
                 // Check WEBP support is enabled
                 if (imagetypes() & IMG_WEBP) {
                     imagewebp($image, $savePath, $imageQuality);
                 }
                 break;
-
+                
             default:
                 throw new Exception(sprintf('Invalid image type: %s. Accepted types: jpg, gif, png, webp.', $extension));
                 break;
@@ -608,13 +461,160 @@ class Resizer
     }
 
     /**
-     * Sets an individual resizer option.
-     * @return self
+     * Open a file, detect its mime-type and create an image resource from it.
+     * @param array $file Attributes of file from the $_FILES array
+     * @return mixed
      */
-    protected function setOption($option, $value)
+    protected function openImage($file)
     {
-        $this->options[$option] = $value;
+        $mime = $file->getMimeType();
+        $filePath = $file->getPathname();
 
-        return $this;
+        switch ($mime) {
+            case 'image/jpeg': $img = @imagecreatefromjpeg($filePath); break;
+            case 'image/gif':  $img = @imagecreatefromgif($filePath);  break;
+            case 'image/png':  $img = @imagecreatefrompng($filePath);  break;
+            case 'image/webp': $img = @imagecreatefromwebp($filePath); break;
+
+            default:
+                throw new Exception(sprintf('Invalid mime type: %s. Accepted types: image/jpeg, image/gif, image/png, image/webp.', $mime));
+                break;
+        }
+
+        return $img;
+    }
+
+    /**
+     * Return the image dimensions based on the option that was chosen.
+     * @param int $newWidth The width of the image
+     * @param int $newHeight The height of the image
+     * @param string $option Either exact, portrait, landscape, auto or crop.
+     * @return array
+     */
+    protected function getDimensions($newWidth, $newHeight)
+    {
+        $mode = $this->getOption('mode');
+
+        switch ($mode) {
+            case 'exact':
+                return [$newWidth, $newHeight];
+
+            case 'portrait':
+                return [$this->getSizeByFixedHeight($newHeight), $newHeight];
+
+            case 'landscape':
+                return [$newWidth, $this->getSizeByFixedWidth($newWidth)];
+
+            case 'auto':
+                return $this->getSizeByAuto($newWidth, $newHeight);
+
+            case 'crop':
+                return $this->getOptimalCrop($newWidth, $newHeight);
+
+            default:
+                throw new Exception('Invalid dimension type. Accepted types: exact, portrait, landscape, auto, crop.');
+        }
+    }
+
+    /**
+     * Returns the width based on the image height
+     * @param int $newHeight The height of the image
+     * @return int
+     */
+    protected function getSizeByFixedHeight($newHeight)
+    {
+        $ratio = $this->width / $this->height;
+        $newWidth = $newHeight * $ratio;
+
+        return $newWidth;
+    }
+
+    /**
+     * Returns the height based on the image width
+     * @param int $newWidth The width of the image
+     * @return int
+     */
+    protected function getSizeByFixedWidth($newWidth)
+    {
+        $ratio = $this->height / $this->width;
+        $newHeight = $newWidth * $ratio;
+
+        return $newHeight;
+    }
+
+    /**
+     * Checks to see if an image is portrait or landscape and resizes accordingly.
+     * @param int $newWidth  The width of the image
+     * @param int $newHeight The height of the image
+     * @return array
+     */
+    protected function getSizeByAuto($newWidth, $newHeight)
+    {
+        // Less than 1 pixel height and width? (revert to original)
+        if ($newWidth <= 1 && $newHeight <= 1) {
+            $newWidth = $this->width;
+            $newHeight = $this->height;
+        }
+        elseif ($newWidth <= 1) {
+            $newWidth = $this->getSizeByFixedHeight($newHeight);
+        }
+        // Less than 1 pixel height? (portrait)
+        elseif ($newHeight <= 1) {
+            $newHeight = $this->getSizeByFixedWidth($newWidth);
+        }
+
+        // Image to be resized is wider (landscape)
+        if ($this->height < $this->width) {
+            $optimalWidth = $newWidth;
+            $optimalHeight = $this->getSizeByFixedWidth($newWidth);
+        }
+        // Image to be resized is taller (portrait)
+        elseif ($this->height > $this->width) {
+            $optimalWidth = $this->getSizeByFixedHeight($newHeight);
+            $optimalHeight = $newHeight;
+        }
+        // Image to be resized is a square
+        else {
+            if ($newHeight < $newWidth) {
+                $optimalWidth = $newWidth;
+                $optimalHeight = $this->getSizeByFixedWidth($newWidth);
+            }
+            elseif ($newHeight > $newWidth) {
+                $optimalWidth = $this->getSizeByFixedHeight($newHeight);
+                $optimalHeight = $newHeight;
+            }
+            else {
+                // Square being resized to a square
+                $optimalWidth = $newWidth;
+                $optimalHeight = $newHeight;
+            }
+        }
+
+        return [$optimalWidth, $optimalHeight];
+    }
+
+    /**
+     * Attempts to find the best way to crop. Whether crop is based on the
+     * image being portrait or landscape.
+     * @param int $newWidth  The width of the image
+     * @param int $newHeight The height of the image
+     * @return array
+     */
+    protected function getOptimalCrop($newWidth, $newHeight)
+    {
+        $heightRatio = $this->height / $newHeight;
+        $widthRatio  = $this->width /  $newWidth;
+
+        if ($heightRatio < $widthRatio) {
+            $optimalRatio = $heightRatio;
+        }
+        else {
+            $optimalRatio = $widthRatio;
+        }
+
+        $optimalHeight = round($this->height / $optimalRatio);
+        $optimalWidth  = round($this->width  / $optimalRatio);
+
+        return [$optimalWidth, $optimalHeight];
     }
 }

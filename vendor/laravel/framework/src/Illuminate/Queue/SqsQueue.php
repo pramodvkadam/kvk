@@ -63,20 +63,6 @@ class SqsQueue extends Queue implements QueueContract
     }
 
     /**
-     * Get the queue or return the default.
-     *
-     * @param  string|null  $queue
-     * @return string
-     */
-    public function getQueue($queue)
-    {
-        $queue = $queue ?: $this->default;
-
-        return filter_var($queue, FILTER_VALIDATE_URL) === false
-                        ? rtrim($this->prefix, '/').'/'.$queue : $queue;
-    }
-
-    /**
      * Push a new job onto the queue.
      *
      * @param  string  $job
@@ -135,12 +121,26 @@ class SqsQueue extends Queue implements QueueContract
             'AttributeNames' => ['ApproximateReceiveCount'],
         ]);
 
-        if (count($response['Messages']) > 0) {
+        if (! is_null($response['Messages']) && count($response['Messages']) > 0) {
             return new SqsJob(
                 $this->container, $this->sqs, $response['Messages'][0],
                 $this->connectionName, $queue
             );
         }
+    }
+
+    /**
+     * Get the queue or return the default.
+     *
+     * @param  string|null  $queue
+     * @return string
+     */
+    public function getQueue($queue)
+    {
+        $queue = $queue ?: $this->default;
+
+        return filter_var($queue, FILTER_VALIDATE_URL) === false
+                        ? rtrim($this->prefix, '/').'/'.$queue : $queue;
     }
 
     /**

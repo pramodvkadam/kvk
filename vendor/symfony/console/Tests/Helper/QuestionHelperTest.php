@@ -83,20 +83,10 @@ class QuestionHelperTest extends AbstractQuestionHelperTest
         $question->setMultiselect(true);
 
         $this->assertEquals(array('Superman', 'Batman'), $questionHelper->ask($this->createStreamableInputInterfaceMock($inputStream), $this->createOutputInterface(), $question));
-    }
 
-    protected function getInputStream($input)
-    {
-        $stream = fopen('php://memory', 'r+', false);
-        fwrite($stream, $input);
-        rewind($stream);
-
-        return $stream;
-    }
-
-    protected function createOutputInterface()
-    {
-        return new StreamOutput(fopen('php://memory', 'r+', false));
+        $question = new ChoiceQuestion('What is your favorite superhero?', $heroes, 0);
+        // We are supposed to get the default value since we are not in interactive mode
+        $this->assertEquals('Superman', $questionHelper->ask($this->createStreamableInputInterfaceMock($inputStream, true), $this->createOutputInterface(), $question));
     }
 
     public function testAsk()
@@ -146,13 +136,6 @@ class QuestionHelperTest extends AbstractQuestionHelperTest
         $this->assertEquals('AcmeDemoBundle', $dialog->ask($this->createStreamableInputInterfaceMock($inputStream), $this->createOutputInterface(), $question));
         $this->assertEquals('AsseticBundle', $dialog->ask($this->createStreamableInputInterfaceMock($inputStream), $this->createOutputInterface(), $question));
         $this->assertEquals('FooBundle', $dialog->ask($this->createStreamableInputInterfaceMock($inputStream), $this->createOutputInterface(), $question));
-    }
-
-    private function hasSttyAvailable()
-    {
-        exec('stty 2>&1', $output, $exitcode);
-
-        return 0 === $exitcode;
     }
 
     public function testAskWithAutocompleteWithNonSequentialKeys()
@@ -547,16 +530,6 @@ class QuestionHelperTest extends AbstractQuestionHelperTest
         $this->assertEquals(array('Superman', 'Batman'), $questionHelper->ask($this->createInputInterfaceMock(), $this->createOutputInterface(), $question));
     }
 
-    protected function createInputInterfaceMock($interactive = true)
-    {
-        $mock = $this->getMockBuilder('Symfony\Component\Console\Input\InputInterface')->getMock();
-        $mock->expects($this->any())
-            ->method('isInteractive')
-            ->will($this->returnValue($interactive));
-
-        return $mock;
-    }
-
     /**
      * @group legacy
      */
@@ -913,6 +886,37 @@ class QuestionHelperTest extends AbstractQuestionHelperTest
         $this->assertEquals('AcmeDemoBundle', $dialog->ask($this->createStreamableInputInterfaceMock($inputStream), $this->createOutputInterface(), $question));
         $this->assertEquals('AsseticBundle', $dialog->ask($this->createStreamableInputInterfaceMock($inputStream), $this->createOutputInterface(), $question));
         $this->assertEquals('FooBundle', $dialog->ask($this->createStreamableInputInterfaceMock($inputStream), $this->createOutputInterface(), $question));
+    }
+
+    protected function getInputStream($input)
+    {
+        $stream = fopen('php://memory', 'r+', false);
+        fwrite($stream, $input);
+        rewind($stream);
+
+        return $stream;
+    }
+
+    protected function createOutputInterface()
+    {
+        return new StreamOutput(fopen('php://memory', 'r+', false));
+    }
+
+    protected function createInputInterfaceMock($interactive = true)
+    {
+        $mock = $this->getMockBuilder('Symfony\Component\Console\Input\InputInterface')->getMock();
+        $mock->expects($this->any())
+            ->method('isInteractive')
+            ->will($this->returnValue($interactive));
+
+        return $mock;
+    }
+
+    private function hasSttyAvailable()
+    {
+        exec('stty 2>&1', $output, $exitcode);
+
+        return 0 === $exitcode;
     }
 }
 

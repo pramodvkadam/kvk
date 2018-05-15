@@ -42,14 +42,6 @@ class StaticReflectionClass extends ReflectionClass
     /**
      * {@inheritDoc}
      */
-    public static function export($argument, $return = false)
-    {
-        throw new ReflectionException('Method not implemented');
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getName()
     {
         return $this->staticReflectionParser->getClassName();
@@ -93,6 +85,14 @@ class StaticReflectionClass extends ReflectionClass
     public function getProperty($name)
     {
         return $this->staticReflectionParser->getReflectionProperty($name);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public static function export($argument, $return = false)
+    {
+        throw new ReflectionException('Method not implemented');
     }
 
     /**

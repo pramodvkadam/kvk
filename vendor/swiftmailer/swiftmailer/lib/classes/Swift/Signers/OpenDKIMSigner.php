@@ -16,13 +16,16 @@
  */
 class Swift_Signers_OpenDKIMSigner extends Swift_Signers_DKIMSigner
 {
+    private $peclLoaded = false;
+
+    private $dkimHandler = null;
+
+    private $dropFirstLF = true;
+
     const CANON_RELAXED = 1;
     const CANON_SIMPLE = 2;
     const SIG_RSA_SHA1 = 3;
     const SIG_RSA_SHA256 = 4;
-    private $peclLoaded = false;
-    private $dkimHandler = null;
-    private $dropFirstLF = true;
 
     public function __construct($privateKey, $domainName, $selector)
     {

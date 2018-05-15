@@ -32,16 +32,6 @@ trait InteractsWithExceptionHandling
     }
 
     /**
-     * Only handle validation exceptions via the exception handler.
-     *
-     * @return $this
-     */
-    protected function handleValidationExceptions()
-    {
-        return $this->handleExceptions([ValidationException::class]);
-    }
-
-    /**
      * Only handle the given exceptions via the exception handler.
      *
      * @param  array  $exceptions
@@ -50,6 +40,16 @@ trait InteractsWithExceptionHandling
     protected function handleExceptions(array $exceptions)
     {
         return $this->withoutExceptionHandling($exceptions);
+    }
+
+    /**
+     * Only handle validation exceptions via the exception handler.
+     *
+     * @return $this
+     */
+    protected function handleValidationExceptions()
+    {
+        return $this->handleExceptions([ValidationException::class]);
     }
 
     /**

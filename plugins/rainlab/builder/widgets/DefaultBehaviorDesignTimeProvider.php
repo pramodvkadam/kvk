@@ -65,6 +65,14 @@ class DefaultBehaviorDesignTimeProvider extends BehaviorDesignTimeProviderBase
         }
     }
 
+    protected function renderUnknownControl($class, $properties)
+    {
+        return $this->makePartial('behavior-unknown', [
+            'properties'=>$properties,
+            'class'=>$class
+        ]);
+    }
+
     protected function getFormControllerDefaultConfiguration($controllerModel, $controllerGenerator)
     {
         if (!$controllerModel->baseModelClassName) {
@@ -98,22 +106,7 @@ class DefaultBehaviorDesignTimeProvider extends BehaviorDesignTimeProviderBase
         ];
 
         return $result;
-    }
-
-    protected function getControllerlUrl($pluginCodeObj, $controller)
-    {
-         return $pluginCodeObj->toUrl().'/'.strtolower($controller);
-    }
-
-    protected function getModelFilePath($pluginCodeObj, $modelClassName, $file)
-    {
-        return '$/' . $pluginCodeObj->toFilesystemPath() . '/models/' . strtolower($modelClassName) . '/' . $file;
-    }
-
-    protected function getFullModelClass($pluginCodeObj, $modelClassName)
-    {
-        return $pluginCodeObj->toPluginNamespace().'\\Models\\'.$modelClassName;
-    }
+    } 
 
     protected function getListControllerDefaultConfiguration($controllerModel, $controllerGenerator)
     {
@@ -155,7 +148,7 @@ class DefaultBehaviorDesignTimeProvider extends BehaviorDesignTimeProviderBase
             $controllerGenerator->setTemplateVariable('hasFormBehavior', true);
             $controllerGenerator->setTemplateVariable('createUrl', $createUrl);
         }
-
+        
         if (in_array('Backend\Behaviors\ReorderController', $controllerModel->behaviors)) {
             $reorderUrl = $this->getControllerlUrl($pluginCodeObj, $controllerModel->controller).'/reorder';
             $controllerGenerator->setTemplateVariable('hasReorderBehavior', true);
@@ -186,11 +179,18 @@ class DefaultBehaviorDesignTimeProvider extends BehaviorDesignTimeProviderBase
         return $result;
     }
 
-    protected function renderUnknownControl($class, $properties)
+    protected function getFullModelClass($pluginCodeObj, $modelClassName)
     {
-        return $this->makePartial('behavior-unknown', [
-            'properties'=>$properties,
-            'class'=>$class
-        ]);
+        return $pluginCodeObj->toPluginNamespace().'\\Models\\'.$modelClassName;
+    }
+
+    protected function getModelFilePath($pluginCodeObj, $modelClassName, $file)
+    {
+        return '$/' . $pluginCodeObj->toFilesystemPath() . '/models/' . strtolower($modelClassName) . '/' . $file;
+    }
+
+    protected function getControllerlUrl($pluginCodeObj, $controller)
+    {
+         return $pluginCodeObj->toUrl().'/'.strtolower($controller);
     }
 }

@@ -7,16 +7,18 @@ use PhpParser\Parser\Tokens;
 
 class Emulative extends \PhpParser\Lexer
 {
+    protected $newKeywords;
+    protected $inObjectAccess;
+
     const T_ELLIPSIS   = 1001;
     const T_POW        = 1002;
     const T_POW_EQUAL  = 1003;
     const T_COALESCE   = 1004;
     const T_SPACESHIP  = 1005;
     const T_YIELD_FROM = 1006;
+
     const PHP_7_0 = '7.0.0dev';
     const PHP_5_6 = '5.6.0rc1';
-    protected $newKeywords;
-    protected $inObjectAccess;
 
     public function __construct(array $options = array()) {
         parent::__construct($options);

@@ -41,16 +41,6 @@ class ErrorListenerTest extends TestCase
         $listener->onConsoleError(new ConsoleErrorEvent(new ArgvInput(array('console.php', 'test:run', '--foo=baz', 'buzz')), $this->getOutput(), $error, new Command('test:run')));
     }
 
-    private function getLogger()
-    {
-        return $this->getMockForAbstractClass(LoggerInterface::class);
-    }
-
-    private function getOutput()
-    {
-        return $this->getMockBuilder(OutputInterface::class)->getMock();
-    }
-
     public function testOnConsoleErrorWithNoCommandAndNoInputString()
     {
         $error = new \RuntimeException('An error occurred');
@@ -77,11 +67,6 @@ class ErrorListenerTest extends TestCase
 
         $listener = new ErrorListener($logger);
         $listener->onConsoleTerminate($this->getConsoleTerminateEvent(new ArgvInput(array('console.php', 'test:run')), 255));
-    }
-
-    private function getConsoleTerminateEvent(InputInterface $input, $exitCode)
-    {
-        return new ConsoleTerminateEvent(new Command('test:run'), $input, $this->getOutput(), $exitCode);
     }
 
     public function testOnConsoleTerminateForZeroExitCodeDoesNotWriteToLog()
@@ -133,6 +118,21 @@ class ErrorListenerTest extends TestCase
 
         $listener = new ErrorListener($logger);
         $listener->onConsoleTerminate($this->getConsoleTerminateEvent($this->getMockBuilder(InputInterface::class)->getMock(), 255));
+    }
+
+    private function getLogger()
+    {
+        return $this->getMockForAbstractClass(LoggerInterface::class);
+    }
+
+    private function getConsoleTerminateEvent(InputInterface $input, $exitCode)
+    {
+        return new ConsoleTerminateEvent(new Command('test:run'), $input, $this->getOutput(), $exitCode);
+    }
+
+    private function getOutput()
+    {
+        return $this->getMockBuilder(OutputInterface::class)->getMock();
     }
 }
 

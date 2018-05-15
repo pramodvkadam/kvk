@@ -47,24 +47,6 @@ class CookieJar implements JarContract
     protected $queued = [];
 
     /**
-     * Create a cookie that lasts "forever" (five years).
-     *
-     * @param  string       $name
-     * @param  string       $value
-     * @param  string       $path
-     * @param  string       $domain
-     * @param  bool         $secure
-     * @param  bool         $httpOnly
-     * @param  bool         $raw
-     * @param  string|null  $sameSite
-     * @return \Symfony\Component\HttpFoundation\Cookie
-     */
-    public function forever($name, $value, $path = null, $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null)
-    {
-        return $this->make($name, $value, 2628000, $path, $domain, $secure, $httpOnly, $raw, $sameSite);
-    }
-
-    /**
      * Create a new cookie instance.
      *
      * @param  string       $name
@@ -88,17 +70,21 @@ class CookieJar implements JarContract
     }
 
     /**
-     * Get the path and domain, or the default values.
+     * Create a cookie that lasts "forever" (five years).
      *
-     * @param  string  $path
-     * @param  string  $domain
-     * @param  bool    $secure
-     * @param  string  $sameSite
-     * @return array
+     * @param  string       $name
+     * @param  string       $value
+     * @param  string       $path
+     * @param  string       $domain
+     * @param  bool         $secure
+     * @param  bool         $httpOnly
+     * @param  bool         $raw
+     * @param  string|null  $sameSite
+     * @return \Symfony\Component\HttpFoundation\Cookie
      */
-    protected function getPathAndDomain($path, $domain, $secure = false, $sameSite = null)
+    public function forever($name, $value, $path = null, $domain = null, $secure = false, $httpOnly = true, $raw = false, $sameSite = null)
     {
-        return [$path ?: $this->path, $domain ?: $this->domain, $secure ?: $this->secure, $sameSite ?: $this->sameSite];
+        return $this->make($name, $value, 2628000, $path, $domain, $secure, $httpOnly, $raw, $sameSite);
     }
 
     /**
@@ -163,6 +149,20 @@ class CookieJar implements JarContract
     public function unqueue($name)
     {
         unset($this->queued[$name]);
+    }
+
+    /**
+     * Get the path and domain, or the default values.
+     *
+     * @param  string  $path
+     * @param  string  $domain
+     * @param  bool    $secure
+     * @param  string  $sameSite
+     * @return array
+     */
+    protected function getPathAndDomain($path, $domain, $secure = false, $sameSite = null)
+    {
+        return [$path ?: $this->path, $domain ?: $this->domain, $secure ?: $this->secure, $sameSite ?: $this->sameSite];
     }
 
     /**

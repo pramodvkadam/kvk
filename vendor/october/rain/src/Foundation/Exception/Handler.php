@@ -100,6 +100,31 @@ class Handler extends ExceptionHandler
     }
 
     /**
+     * Get the default context variables for logging.
+     *
+     * @return array
+     */
+    protected function context()
+    {
+        return [];
+    }
+
+    //
+    // Custom handlers
+    //
+
+    /**
+     * Register an application error handler.
+     *
+     * @param  \Closure  $callback
+     * @return void
+     */
+    public function error(Closure $callback)
+    {
+        array_unshift($this->handlers, $callback);
+    }
+
+    /**
      * Handle the given exception.
      *
      * @param  \Exception  $exception
@@ -136,10 +161,6 @@ class Handler extends ExceptionHandler
         }
     }
 
-    //
-    // Custom handlers
-    //
-
     /**
      * Determine if the given handler handles this exception.
      *
@@ -165,26 +186,5 @@ class Handler extends ExceptionHandler
         $parameters = $reflection->getParameters();
         $expected = $parameters[0];
         return !$expected->getClass() || $expected->getClass()->isInstance($exception);
-    }
-
-    /**
-     * Register an application error handler.
-     *
-     * @param  \Closure  $callback
-     * @return void
-     */
-    public function error(Closure $callback)
-    {
-        array_unshift($this->handlers, $callback);
-    }
-
-    /**
-     * Get the default context variables for logging.
-     *
-     * @return array
-     */
-    protected function context()
-    {
-        return [];
     }
 }

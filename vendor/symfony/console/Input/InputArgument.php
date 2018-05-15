@@ -84,16 +84,6 @@ class InputArgument
     }
 
     /**
-     * Returns the default value.
-     *
-     * @return mixed The default value
-     */
-    public function getDefault()
-    {
-        return $this->default;
-    }
-
-    /**
      * Sets the default value.
      *
      * @param mixed $default The default value
@@ -115,6 +105,16 @@ class InputArgument
         }
 
         $this->default = $default;
+    }
+
+    /**
+     * Returns the default value.
+     *
+     * @return mixed The default value
+     */
+    public function getDefault()
+    {
+        return $this->default;
     }
 
     /**

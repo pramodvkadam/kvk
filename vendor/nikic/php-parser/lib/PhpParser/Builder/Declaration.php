@@ -8,6 +8,8 @@ abstract class Declaration extends PhpParser\BuilderAbstract
 {
     protected $attributes = array();
 
+    abstract public function addStmt($stmt);
+
     /**
      * Adds multiple statements.
      *
@@ -22,8 +24,6 @@ abstract class Declaration extends PhpParser\BuilderAbstract
 
         return $this;
     }
-
-    abstract public function addStmt($stmt);
 
     /**
      * Sets doc comment for the declaration.

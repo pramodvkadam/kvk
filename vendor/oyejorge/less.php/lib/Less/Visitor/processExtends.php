@@ -122,6 +122,63 @@ class Less_Visitor_processExtends extends Less_Visitor{
 		return array_merge($extendsList, $extendsToAdd);
 	}
 
+
+	protected function visitRule( $ruleNode, &$visitDeeper ){
+		$visitDeeper = false;
+	}
+
+	protected function visitMixinDefinition( $mixinDefinitionNode, &$visitDeeper ){
+		$visitDeeper = false;
+	}
+
+	protected function visitSelector( $selectorNode, &$visitDeeper ){
+		$visitDeeper = false;
+	}
+
+	protected function visitRuleset($rulesetNode){
+
+
+		if( $rulesetNode->root ){
+			return;
+		}
+
+		$allExtends	= end($this->allExtendsStack);
+		$paths_len = count($rulesetNode->paths);
+
+		// look at each selector path in the ruleset, find any extend matches and then copy, find and replace
+		foreach($allExtends as $allExtend){
+			for($pathIndex = 0; $pathIndex < $paths_len; $pathIndex++ ){
+
+				// extending extends happens initially, before the main pass
+				if( isset($rulesetNode->extendOnEveryPath) && $rulesetNode->extendOnEveryPath ){
+					continue;
+				}
+
+				$selectorPath = $rulesetNode->paths[$pathIndex];
+
+				if( end($selectorPath)->extendList ){
+					continue;
+				}
+
+				$this->ExtendMatch( $rulesetNode, $allExtend, $selectorPath);
+
+			}
+		}
+	}
+
+
+	private function ExtendMatch( $rulesetNode, $extend, $selectorPath ){
+		$matches = $this->findMatch($extend, $selectorPath);
+
+		if( $matches ){
+			foreach($extend->selfSelectors as $selfSelector ){
+				$rulesetNode->paths[] = $this->extendSelector($matches, $selectorPath, $selfSelector);
+			}
+		}
+	}
+
+
+
 	private function findMatch($extend, $haystackSelectorPath ){
 
 
@@ -196,6 +253,9 @@ class Less_Visitor_processExtends extends Less_Visitor{
 		return $matches;
 	}
 
+
+	// Before going through all the nested loops, lets check to see if a match is possible
+	// Reduces Bootstrap 3.1 compile time from ~6.5s to ~5.6s
 	private function HasMatches($extend, $haystackSelectorPath){
 
 		if( !$extend->selector->cacheable ){
@@ -216,6 +276,7 @@ class Less_Visitor_processExtends extends Less_Visitor{
 
 		return false;
 	}
+
 
 	/**
 	 * @param integer $hackstackElementIndex
@@ -249,6 +310,7 @@ class Less_Visitor_processExtends extends Less_Visitor{
 		return $potentialMatch;
 	}
 
+
 	private function isElementValuesEqual( $elementValue1, $elementValue2 ){
 
 		if( $elementValue1 === $elementValue2 ){
@@ -271,27 +333,6 @@ class Less_Visitor_processExtends extends Less_Visitor{
 		return false;
 	}
 
-	/**
-	 * @param Less_Tree_Attribute $elementValue1
-	 */
-	private function isAttributeValuesEqual( $elementValue1, $elementValue2 ){
-
-		if( $elementValue1->op !== $elementValue2->op || $elementValue1->key !== $elementValue2->key ){
-			return false;
-		}
-
-		if( !$elementValue1->value || !$elementValue2->value ){
-			if( $elementValue1->value || $elementValue2->value ) {
-				return false;
-			}
-			return true;
-		}
-
-		$elementValue1 = ($elementValue1->value->value ? $elementValue1->value->value : $elementValue1->value );
-		$elementValue2 = ($elementValue2->value->value ? $elementValue2->value->value : $elementValue2->value );
-
-		return $elementValue1 === $elementValue2;
-	}
 
 	/**
 	 * @param Less_Tree_Selector $elementValue1
@@ -320,8 +361,28 @@ class Less_Visitor_processExtends extends Less_Visitor{
 	}
 
 
-	// Before going through all the nested loops, lets check to see if a match is possible
-	// Reduces Bootstrap 3.1 compile time from ~6.5s to ~5.6s
+	/**
+	 * @param Less_Tree_Attribute $elementValue1
+	 */
+	private function isAttributeValuesEqual( $elementValue1, $elementValue2 ){
+
+		if( $elementValue1->op !== $elementValue2->op || $elementValue1->key !== $elementValue2->key ){
+			return false;
+		}
+
+		if( !$elementValue1->value || !$elementValue2->value ){
+			if( $elementValue1->value || $elementValue2->value ) {
+				return false;
+			}
+			return true;
+		}
+
+		$elementValue1 = ($elementValue1->value->value ? $elementValue1->value->value : $elementValue1->value );
+		$elementValue2 = ($elementValue2->value->value ? $elementValue2->value->value : $elementValue2->value );
+
+		return $elementValue1 === $elementValue2;
+	}
+
 
 	private function extendSelector($matches, $selectorPath, $replacementSelector){
 
@@ -386,58 +447,6 @@ class Less_Visitor_processExtends extends Less_Visitor{
 		return $path;
 	}
 
-	protected function visitRule( $ruleNode, &$visitDeeper ){
-		$visitDeeper = false;
-	}
-
-	protected function visitMixinDefinition( $mixinDefinitionNode, &$visitDeeper ){
-		$visitDeeper = false;
-	}
-
-	protected function visitSelector( $selectorNode, &$visitDeeper ){
-		$visitDeeper = false;
-	}
-
-	protected function visitRuleset($rulesetNode){
-
-
-		if( $rulesetNode->root ){
-			return;
-		}
-
-		$allExtends	= end($this->allExtendsStack);
-		$paths_len = count($rulesetNode->paths);
-
-		// look at each selector path in the ruleset, find any extend matches and then copy, find and replace
-		foreach($allExtends as $allExtend){
-			for($pathIndex = 0; $pathIndex < $paths_len; $pathIndex++ ){
-
-				// extending extends happens initially, before the main pass
-				if( isset($rulesetNode->extendOnEveryPath) && $rulesetNode->extendOnEveryPath ){
-					continue;
-				}
-
-				$selectorPath = $rulesetNode->paths[$pathIndex];
-
-				if( end($selectorPath)->extendList ){
-					continue;
-				}
-
-				$this->ExtendMatch( $rulesetNode, $allExtend, $selectorPath);
-
-			}
-		}
-	}
-
-	private function ExtendMatch( $rulesetNode, $extend, $selectorPath ){
-		$matches = $this->findMatch($extend, $selectorPath);
-
-		if( $matches ){
-			foreach($extend->selfSelectors as $selfSelector ){
-				$rulesetNode->paths[] = $this->extendSelector($matches, $selectorPath, $selfSelector);
-			}
-		}
-	}
 
 	protected function visitMedia( $mediaNode ){
 		$newAllExtends = array_merge( $mediaNode->allExtends, end($this->allExtendsStack) );

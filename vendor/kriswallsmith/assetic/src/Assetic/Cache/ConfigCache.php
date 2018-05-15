@@ -43,20 +43,6 @@ class ConfigCache
     }
 
     /**
-     * Returns the path where the file corresponding to the supplied cache key can be included from.
-     *
-     * @param string $resource A cache key
-     *
-     * @return string A file path
-     */
-    private function getSourcePath($resource)
-    {
-        $key = md5($resource);
-
-        return $this->dir.'/'.$key[0].'/'.$key.'.php';
-    }
-
-    /**
      * Writes a value to a file.
      *
      * @param string $resource A cache key
@@ -119,5 +105,19 @@ class ConfigCache
         }
 
         return $mtime;
+    }
+
+    /**
+     * Returns the path where the file corresponding to the supplied cache key can be included from.
+     *
+     * @param string $resource A cache key
+     *
+     * @return string A file path
+     */
+    private function getSourcePath($resource)
+    {
+        $key = md5($resource);
+
+        return $this->dir.'/'.$key[0].'/'.$key.'.php';
     }
 }

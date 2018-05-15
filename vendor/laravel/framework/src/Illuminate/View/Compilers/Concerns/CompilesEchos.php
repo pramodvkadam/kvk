@@ -53,17 +53,6 @@ trait CompilesEchos
     }
 
     /**
-     * Compile the default values for the echo statement.
-     *
-     * @param  string  $value
-     * @return string
-     */
-    public function compileEchoDefaults($value)
-    {
-        return preg_replace('/^(?=\$)(.+?)(?:\s+or\s+)(.+?)$/si', 'isset($1) ? $1 : $2', $value);
-    }
-
-    /**
      * Compile the "regular" echo statements.
      *
      * @param  string  $value
@@ -101,5 +90,16 @@ trait CompilesEchos
         };
 
         return preg_replace_callback($pattern, $callback, $value);
+    }
+
+    /**
+     * Compile the default values for the echo statement.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    public function compileEchoDefaults($value)
+    {
+        return preg_replace('/^(?=\$)(.+?)(?:\s+or\s+)(.+?)$/si', 'isset($1) ? $1 : $2', $value);
     }
 }

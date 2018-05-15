@@ -21,6 +21,21 @@ class MailPartial extends Model
     use \October\Rain\Database\Traits\Validation;
 
     /**
+     * @var string The database table used by the model.
+     */
+    protected $table = 'system_mail_partials';
+
+    /**
+     * @var array Guarded fields
+     */
+    protected $guarded = [];
+
+    /**
+     * @var array Fillable fields
+     */
+    protected $fillable = [];
+
+    /**
      * @var array Validation rules
      */
     public $rules = [
@@ -28,18 +43,13 @@ class MailPartial extends Model
         'name'                  => 'required',
         'content_html'          => 'required',
     ];
-    /**
-     * @var string The database table used by the model.
-     */
-    protected $table = 'system_mail_partials';
-    /**
-     * @var array Guarded fields
-     */
-    protected $guarded = [];
-    /**
-     * @var array Fillable fields
-     */
-    protected $fillable = [];
+
+    public function afterFetch()
+    {
+        if (!$this->is_custom) {
+            $this->fillFromCode();
+        }
+    }
 
     public static function findOrMakePartial($code)
     {
@@ -77,13 +87,6 @@ class MailPartial extends Model
             $partial->is_custom = 0;
             $partial->fillFromView($path);
             $partial->save();
-        }
-    }
-
-    public function afterFetch()
-    {
-        if (!$this->is_custom) {
-            $this->fillFromCode();
         }
     }
 

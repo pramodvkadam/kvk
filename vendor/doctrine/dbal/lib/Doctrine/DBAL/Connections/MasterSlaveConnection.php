@@ -139,16 +139,6 @@ class MasterSlaveConnection extends Connection
     /**
      * {@inheritDoc}
      */
-    public function executeUpdate($query, array $params = array(), array $types = array())
-    {
-        $this->connect('master');
-
-        return parent::executeUpdate($query, $params, $types);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function connect($connectionName = null)
     {
         $requestedConnectionChange = ($connectionName !== null);
@@ -239,6 +229,16 @@ class MasterSlaveConnection extends Connection
         }
 
         return $params['slaves'][array_rand($params['slaves'])];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function executeUpdate($query, array $params = array(), array $types = array())
+    {
+        $this->connect('master');
+
+        return parent::executeUpdate($query, $params, $types);
     }
 
     /**

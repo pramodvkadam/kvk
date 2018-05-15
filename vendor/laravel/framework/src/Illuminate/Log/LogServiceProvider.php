@@ -66,20 +66,6 @@ class LogServiceProvider extends ServiceProvider
     }
 
     /**
-     * Get the default log handler.
-     *
-     * @return string
-     */
-    protected function handler()
-    {
-        if ($this->app->bound('config')) {
-            return $this->app->make('config')->get('app.log', 'single');
-        }
-
-        return 'single';
-    }
-
-    /**
      * Configure the Monolog handlers for the application.
      *
      * @param  \Illuminate\Log\Writer  $log
@@ -94,20 +80,6 @@ class LogServiceProvider extends ServiceProvider
     }
 
     /**
-     * Get the log level for the application.
-     *
-     * @return string
-     */
-    protected function logLevel()
-    {
-        if ($this->app->bound('config')) {
-            return $this->app->make('config')->get('app.log_level', 'debug');
-        }
-
-        return 'debug';
-    }
-
-    /**
      * Configure the Monolog handlers for the application.
      *
      * @param  \Illuminate\Log\Writer  $log
@@ -119,20 +91,6 @@ class LogServiceProvider extends ServiceProvider
             $this->app->storagePath().'/logs/laravel.log', $this->maxFiles(),
             $this->logLevel()
         );
-    }
-
-    /**
-     * Get the maximum number of log files for the application.
-     *
-     * @return int
-     */
-    protected function maxFiles()
-    {
-        if ($this->app->bound('config')) {
-            return $this->app->make('config')->get('app.log_max_files', 5);
-        }
-
-        return 0;
     }
 
     /**
@@ -155,5 +113,47 @@ class LogServiceProvider extends ServiceProvider
     protected function configureErrorlogHandler(Writer $log)
     {
         $log->useErrorLog($this->logLevel());
+    }
+
+    /**
+     * Get the default log handler.
+     *
+     * @return string
+     */
+    protected function handler()
+    {
+        if ($this->app->bound('config')) {
+            return $this->app->make('config')->get('app.log', 'single');
+        }
+
+        return 'single';
+    }
+
+    /**
+     * Get the log level for the application.
+     *
+     * @return string
+     */
+    protected function logLevel()
+    {
+        if ($this->app->bound('config')) {
+            return $this->app->make('config')->get('app.log_level', 'debug');
+        }
+
+        return 'debug';
+    }
+
+    /**
+     * Get the maximum number of log files for the application.
+     *
+     * @return int
+     */
+    protected function maxFiles()
+    {
+        if ($this->app->bound('config')) {
+            return $this->app->make('config')->get('app.log_max_files', 5);
+        }
+
+        return 0;
     }
 }

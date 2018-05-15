@@ -2,7 +2,7 @@
 /**
  * SCSSPHP
  *
- * @copyright 2012-2017 Leaf Corcoran
+ * @copyright 2012-2018 Leaf Corcoran
  *
  * @license http://opensource.org/licenses/MIT MIT
  *
@@ -12,6 +12,7 @@
 namespace Leafo\ScssPhp;
 
 use Leafo\ScssPhp\Formatter\OutputBlock;
+use Leafo\ScssPhp\SourceMap\SourceMapGenerator;
 
 /**
  * Base formatter
@@ -56,9 +57,29 @@ abstract class Formatter
     public $assignSeparator;
 
     /**
-     * @var boolea
+     * @var boolean
      */
     public $keepSemicolons;
+
+    /**
+     * @var \Leafo\ScssPhp\Formatter\OutputBlock
+     */
+    protected $currentBlock;
+
+    /**
+     * @var integer
+     */
+    protected $currentLine;
+
+    /**
+     * @var integer
+     */
+    protected $currentColumn;
+
+    /**
+     * @var \Leafo\ScssPhp\SourceMap\SourceMapGenerator
+     */
+    protected $sourceMapGenerator;
 
     /**
      * Initialize formatter
@@ -66,6 +87,16 @@ abstract class Formatter
      * @api
      */
     abstract public function __construct();
+
+    /**
+     * Return indentation (whitespace)
+     *
+     * @return string
+     */
+    protected function indentStr()
+    {
+        return '';
+    }
 
     /**
      * Return property assignment
@@ -103,23 +134,35 @@ abstract class Formatter
     }
 
     /**
-     * Entry point to formatting a block
+     * Output lines inside a block
      *
-     * @api
-     *
-     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block An abstract syntax tree
-     *
-     * @return string
+     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block
      */
-    public function format(OutputBlock $block)
+    protected function blockLines(OutputBlock $block)
     {
-        ob_start();
+        $inner = $this->indentStr();
 
-        $this->block($block);
+        $glue = $this->break . $inner;
 
-        $out = ob_get_clean();
+        $this->write($inner . implode($glue, $block->lines));
 
-        return $out;
+        if (! empty($block->children)) {
+            $this->write($this->break);
+        }
+    }
+
+    /**
+     * Output block selectors
+     *
+     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block
+     */
+    protected function blockSelectors(OutputBlock $block)
+    {
+        $inner = $this->indentStr();
+
+        $this->write($inner
+            . implode($this->tagSeparator, $block->selectors)
+            . $this->open . $this->break);
     }
 
     /**
@@ -145,6 +188,8 @@ abstract class Formatter
             return;
         }
 
+        $this->currentBlock = $block;
+
         $pre = $this->indentStr();
 
         if (! empty($block->selectors)) {
@@ -165,52 +210,65 @@ abstract class Formatter
             $this->indentLevel--;
 
             if (empty($block->children)) {
-                echo $this->break;
+                $this->write($this->break);
             }
 
-            echo $pre . $this->close . $this->break;
+            $this->write($pre . $this->close . $this->break);
         }
     }
 
     /**
-     * Output block selectors
+     * Entry point to formatting a block
      *
-     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block
-     */
-    protected function blockSelectors(OutputBlock $block)
-    {
-        $inner = $this->indentStr();
-
-        echo $inner
-            . implode($this->tagSeparator, $block->selectors)
-            . $this->open . $this->break;
-    }
-
-    /**
-     * Output lines inside a block
+     * @api
      *
-     * @param \Leafo\ScssPhp\Formatter\OutputBlock $block
-     */
-    protected function blockLines(OutputBlock $block)
-    {
-        $inner = $this->indentStr();
-
-        $glue = $this->break . $inner;
-
-        echo $inner . implode($glue, $block->lines);
-
-        if (! empty($block->children)) {
-            echo $this->break;
-        }
-    }
-
-    /**
-     * Return indentation (whitespace)
+     * @param \Leafo\ScssPhp\Formatter\OutputBlock             $block              An abstract syntax tree
+     * @param \Leafo\ScssPhp\SourceMap\SourceMapGenerator|null $sourceMapGenerator Optional source map generator
      *
      * @return string
      */
-    protected function indentStr()
+    public function format(OutputBlock $block, SourceMapGenerator $sourceMapGenerator = null)
     {
-        return '';
+        $this->sourceMapGenerator = null;
+
+        if ($sourceMapGenerator) {
+            $this->currentLine = 1;
+            $this->currentColumn = 0;
+            $this->sourceMapGenerator = $sourceMapGenerator;
+        }
+
+        ob_start();
+
+        $this->block($block);
+
+        $out = ob_get_clean();
+
+        return $out;
+    }
+
+    /**
+     * @param string $str
+     */
+    protected function write($str)
+    {
+        if ($this->sourceMapGenerator) {
+            $this->sourceMapGenerator->addMapping(
+                $this->currentLine,
+                $this->currentColumn,
+                $this->currentBlock->sourceLine,
+                $this->currentBlock->sourceColumn - 1, //columns from parser are off by one
+                $this->currentBlock->sourceName
+            );
+
+            $lines = explode("\n", $str);
+            $lineCount = count($lines);
+            $this->currentLine += $lineCount-1;
+
+            $lastLine = array_pop($lines);
+
+            $this->currentColumn = ($lineCount === 1 ? $this->currentColumn : 0) + strlen($lastLine);
+        }
+
+        echo $str;
     }
 }

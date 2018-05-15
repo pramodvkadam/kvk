@@ -20,43 +20,51 @@ class MediaLibraryItem
     const FILE_TYPE_VIDEO = 'video';
     const FILE_TYPE_AUDIO = 'audio';
     const FILE_TYPE_DOCUMENT = 'document';
-    /**
-     * @var array Contains a default list of image files and directories to ignore.
-     * Override with config: cms.storage.media.imageExtensions
-     */
-    protected static $imageExtensions;
-    /**
-     * @var array Contains a default list of video files and directories to ignore.
-     * Override with config: cms.storage.media.videoExtensions
-     */
-    protected static $videoExtensions;
-    /**
-     * @var array Contains a default list of audio files and directories to ignore.
-     * Override with config: cms.storage.media.audioExtensions
-     */
-    protected static $audioExtensions;
+
     /**
      * @var string Specifies the item path relative to the Library root.
      */
     public $path;
+
     /**
      * @var integer Specifies the item size.
      * For files the item size is measured in bytes. For folders it
      * contains the number of files in the folder.
      */
     public $size;
+
     /**
      * @var integer Contains the last modification time (Unix timestamp).
      */
     public $lastModified;
+
     /**
      * @var string Specifies the item type.
      */
     public $type;
+
     /**
      * @var string Specifies the public URL of the item.
      */
     public $publicUrl;
+
+    /**
+     * @var array Contains a default list of image files and directories to ignore.
+     * Override with config: cms.storage.media.imageExtensions
+     */
+    protected static $imageExtensions;
+
+    /**
+     * @var array Contains a default list of video files and directories to ignore.
+     * Override with config: cms.storage.media.videoExtensions
+     */
+    protected static $videoExtensions;
+
+    /**
+     * @var array Contains a default list of audio files and directories to ignore.
+     * Override with config: cms.storage.media.audioExtensions
+     */
+    protected static $audioExtensions;
 
     /**
      * @param string $path
@@ -72,6 +80,14 @@ class MediaLibraryItem
         $this->lastModified = $lastModified;
         $this->type = $type;
         $this->publicUrl = $publicUrl;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isFile()
+    {
+        return $this->type == self::TYPE_FILE;
     }
 
     /**
@@ -109,14 +125,6 @@ class MediaLibraryItem
         }
 
         return self::FILE_TYPE_DOCUMENT;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isFile()
-    {
-        return $this->type == self::TYPE_FILE;
     }
 
     /**

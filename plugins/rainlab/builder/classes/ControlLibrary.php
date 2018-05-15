@@ -22,28 +22,6 @@ class ControlLibrary
     protected $groupedControls = null;
 
     /**
-     * Returns information about a control by its code.
-     * @param string $code Specifies the control code.
-     * @return array Returns an associative array or null if the control is not registered.
-     */
-    public function getControlInfo($code)
-    {
-        $controls = $this->listControls(false);
-
-        if (array_key_exists($code, $controls)) {
-            return $controls[$code];
-        }
-
-        return [
-            'properties' => [],
-            'designTimeProvider' => self::DEFAULT_DESIGN_TIME_PROVIDER,
-            'name' => $code,
-            'description' => null,
-            'unknownControl' => true
-        ];
-    }
-
-    /**
      * Returns a list of all known form controls grouped by control groups.
      * @param boolean $returnGrouped Indicates whether controls should be grouped in the result.
      * @return array
@@ -74,17 +52,26 @@ class ControlLibrary
         return $returnGrouped ? $this->groupedControls : $this->controls;
     }
 
-    protected function resolveControlGroupName($group)
+    /**
+     * Returns information about a control by its code.
+     * @param string $code Specifies the control code.
+     * @return array Returns an associative array or null if the control is not registered.
+     */
+    public function getControlInfo($code)
     {
-        if ($group == self::GROUP_STANDARD) {
-            return Lang::get('rainlab.builder::lang.form.control_group_standard');
+        $controls = $this->listControls(false);
+
+        if (array_key_exists($code, $controls)) {
+            return $controls[$code];
         }
 
-        if ($group == self::GROUP_WIDGETS) {
-            return Lang::get('rainlab.builder::lang.form.control_group_widgets');
-        }
-
-        return Lang::get($group);
+        return [
+            'properties' => [],
+            'designTimeProvider' => self::DEFAULT_DESIGN_TIME_PROVIDER,
+            'name' => $code,
+            'description' => null,
+            'unknownControl' => true
+        ];
     }
 
     /**
@@ -143,7 +130,8 @@ class ControlLibrary
                 'options' => [
                     'above' => Lang::get('rainlab.builder::lang.form.property_comment_position_above'),
                     'below' => Lang::get('rainlab.builder::lang.form.property_comment_position_below')
-                ]
+                ],
+                'ignoreIfEmpty' => true,
             ],
             'span' => [
                 'title' => Lang::get('rainlab.builder::lang.form.property_span_title'),
@@ -307,5 +295,18 @@ class ControlLibrary
         }
 
         return $result;
+    }
+
+    protected function resolveControlGroupName($group)
+    {
+        if ($group == self::GROUP_STANDARD) {
+            return Lang::get('rainlab.builder::lang.form.control_group_standard');
+        }
+
+        if ($group == self::GROUP_WIDGETS) {
+            return Lang::get('rainlab.builder::lang.form.control_group_widgets');
+        }
+
+        return Lang::get($group);
     }
 }

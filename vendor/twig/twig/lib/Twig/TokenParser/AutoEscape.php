@@ -36,14 +36,14 @@ final class Twig_TokenParser_AutoEscape extends Twig_TokenParser
         return new Twig_Node_AutoEscape($value, $body, $lineno, $this->getTag());
     }
 
-    public function getTag()
-    {
-        return 'autoescape';
-    }
-
     public function decideBlockEnd(Twig_Token $token)
     {
         return $token->test('endautoescape');
+    }
+
+    public function getTag()
+    {
+        return 'autoescape';
     }
 }
 

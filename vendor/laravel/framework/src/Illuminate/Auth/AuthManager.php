@@ -65,19 +65,7 @@ class AuthManager implements FactoryContract
     {
         $name = $name ?: $this->getDefaultDriver();
 
-        return isset($this->guards[$name])
-                    ? $this->guards[$name]
-                    : $this->guards[$name] = $this->resolve($name);
-    }
-
-    /**
-     * Get the default authentication driver name.
-     *
-     * @return string
-     */
-    public function getDefaultDriver()
-    {
-        return $this->app['config']['auth.defaults.guard'];
+        return $this->guards[$name] ?? $this->guards[$name] = $this->resolve($name);
     }
 
     /**
@@ -107,17 +95,6 @@ class AuthManager implements FactoryContract
         }
 
         throw new InvalidArgumentException("Auth guard driver [{$name}] is not defined.");
-    }
-
-    /**
-     * Get the guard configuration.
-     *
-     * @param  string  $name
-     * @return array
-     */
-    protected function getConfig($name)
-    {
-        return $this->app['config']["auth.guards.{$name}"];
     }
 
     /**
@@ -186,6 +163,27 @@ class AuthManager implements FactoryContract
     }
 
     /**
+     * Get the guard configuration.
+     *
+     * @param  string  $name
+     * @return array
+     */
+    protected function getConfig($name)
+    {
+        return $this->app['config']["auth.guards.{$name}"];
+    }
+
+    /**
+     * Get the default authentication driver name.
+     *
+     * @return string
+     */
+    public function getDefaultDriver()
+    {
+        return $this->app['config']['auth.defaults.guard'];
+    }
+
+    /**
      * Set the default guard driver the factory should serve.
      *
      * @param  string  $name
@@ -232,20 +230,6 @@ class AuthManager implements FactoryContract
     }
 
     /**
-     * Register a custom driver creator Closure.
-     *
-     * @param  string  $driver
-     * @param  \Closure  $callback
-     * @return $this
-     */
-    public function extend($driver, Closure $callback)
-    {
-        $this->customCreators[$driver] = $callback;
-
-        return $this;
-    }
-
-    /**
      * Get the user resolver callback.
      *
      * @return \Closure
@@ -264,6 +248,20 @@ class AuthManager implements FactoryContract
     public function resolveUsersUsing(Closure $userResolver)
     {
         $this->userResolver = $userResolver;
+
+        return $this;
+    }
+
+    /**
+     * Register a custom driver creator Closure.
+     *
+     * @param  string  $driver
+     * @param  \Closure  $callback
+     * @return $this
+     */
+    public function extend($driver, Closure $callback)
+    {
+        $this->customCreators[$driver] = $callback;
 
         return $this;
     }

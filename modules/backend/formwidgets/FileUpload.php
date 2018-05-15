@@ -103,166 +103,6 @@ class FileUpload extends FormWidgetBase
     }
 
     /**
-     * Checks the current request to see if it is a postback containing a file upload
-     * for this particular widget.
-     */
-    protected function checkUploadPostback()
-    {
-        if (!($uniqueId = Request::header('X-OCTOBER-FILEUPLOAD')) || $uniqueId != $this->getId()) {
-            return;
-        }
-
-        try {
-            if (!Input::hasFile('file_data')) {
-                throw new ApplicationException('File missing from request');
-            }
-
-            $fileModel = $this->getRelationModel();
-            $uploadedFile = Input::file('file_data');
-
-            $validationRules = ['max:'.$fileModel::getMaxFilesize()];
-            if ($fileTypes = $this->getAcceptedFileTypes()) {
-                $validationRules[] = 'extensions:'.$fileTypes;
-            }
-
-            if ($this->mimeTypes) {
-                $validationRules[] = 'mimes:'.$this->mimeTypes;
-            }
-
-            $validation = Validator::make(
-                ['file_data' => $uploadedFile],
-                ['file_data' => $validationRules]
-            );
-
-            if ($validation->fails()) {
-                throw new ValidationException($validation);
-            }
-
-            if (!$uploadedFile->isValid()) {
-                throw new ApplicationException('File is not valid');
-            }
-
-            $fileRelation = $this->getRelationObject();
-
-            $file = $fileModel;
-            $file->data = $uploadedFile;
-            $file->is_public = $fileRelation->isPublic();
-            $file->save();
-
-            $fileRelation->add($file, $this->sessionKey);
-
-            $file = $this->decorateFileAttributes($file);
-
-            $result = [
-                'id' => $file->id,
-                'thumb' => $file->thumbUrl,
-                'path' => $file->pathUrl
-            ];
-
-            Response::json($result, 200)->send();
-
-        }
-        catch (Exception $ex) {
-            Response::json($ex->getMessage(), 400)->send();
-        }
-
-        exit;
-    }
-
-    /**
-     * Returns the specified accepted file types, or the default
-     * based on the mode. Image mode will return:
-     * - jpg,jpeg,bmp,png,gif,svg
-     * @return string
-     */
-    public function getAcceptedFileTypes($includeDot = false)
-    {
-        $types = $this->fileTypes;
-
-        if ($types === false) {
-            $isImage = starts_with($this->getDisplayMode(), 'image');
-            $types = implode(',', FileDefinitions::get($isImage ? 'imageExtensions' : 'defaultExtensions'));
-        }
-
-        if (!$types || $types == '*') {
-            return null;
-        }
-
-        if (!is_array($types)) {
-            $types = explode(',', $types);
-        }
-
-        $types = array_map(function ($value) use ($includeDot) {
-            $value = trim($value);
-
-            if (substr($value, 0, 1) == '.') {
-                $value = substr($value, 1);
-            }
-
-            if ($includeDot) {
-                $value = '.'.$value;
-            }
-
-            return $value;
-        }, $types);
-
-        return implode(',', $types);
-    }
-
-    /**
-     * Returns the display mode for the file upload. Eg: file-multi, image-single, etc.
-     * @return string
-     */
-    protected function getDisplayMode()
-    {
-        $mode = $this->getConfig('mode', 'image');
-
-        if (str_contains($mode, '-')) {
-            return $mode;
-        }
-
-        $relationType = $this->getRelationType();
-        $mode .= ($relationType == 'attachMany' || $relationType == 'morphMany') ? '-multi' : '-single';
-
-        return $mode;
-    }
-
-    /**
-     * Adds the bespoke attributes used internally by this widget.
-     * - thumbUrl
-     * - pathUrl
-     * @return System\Models\File
-     */
-    protected function decorateFileAttributes($file)
-    {
-        /*
-         * File is protected, create a secure public path
-         */
-        if (!$file->isPublic()) {
-            $path = $thumb = FilesController::getDownloadUrl($file);
-
-            if ($this->imageWidth || $this->imageHeight) {
-                $thumb = FilesController::getThumbUrl($file, $this->imageWidth, $this->imageHeight, $this->thumbOptions);
-            }
-        }
-        /*
-         * Otherwise use public paths
-         */
-        else {
-            $path = $thumb = $file->getPath();
-
-            if ($this->imageWidth || $this->imageHeight) {
-                $thumb = $file->getThumb($this->imageWidth, $this->imageHeight, $this->thumbOptions);
-            }
-        }
-
-        $file->pathUrl = $path;
-        $file->thumbUrl = $thumb;
-
-        return $file;
-    }
-
-    /**
      * @inheritDoc
      */
     public function render()
@@ -313,6 +153,40 @@ class FileUpload extends FormWidgetBase
     }
 
     /**
+     * Returns the display mode for the file upload. Eg: file-multi, image-single, etc.
+     * @return string
+     */
+    protected function getDisplayMode()
+    {
+        $mode = $this->getConfig('mode', 'image');
+
+        if (str_contains($mode, '-')) {
+            return $mode;
+        }
+
+        $relationType = $this->getRelationType();
+        $mode .= ($relationType == 'attachMany' || $relationType == 'morphMany') ? '-multi' : '-single';
+
+        return $mode;
+    }
+
+    /**
+     * Returns the escaped and translated prompt text to display according to the type.
+     * @return string
+     */
+    protected function getPromptText()
+    {
+        if ($this->prompt === null) {
+            $isMulti = ends_with($this->getDisplayMode(), 'multi');
+            $this->prompt = $isMulti
+                ? 'backend::lang.fileupload.upload_file'
+                : 'backend::lang.fileupload.default_prompt';
+        }
+
+        return str_replace('%s', '<i class="icon-upload"></i>', e(trans($this->prompt)));
+    }
+
+    /**
      * Returns the CSS dimensions for the uploaded image,
      * uses auto where no dimension is provided.
      * @param string $mode
@@ -349,19 +223,43 @@ class FileUpload extends FormWidgetBase
     }
 
     /**
-     * Returns the escaped and translated prompt text to display according to the type.
+     * Returns the specified accepted file types, or the default
+     * based on the mode. Image mode will return:
+     * - jpg,jpeg,bmp,png,gif,svg
      * @return string
      */
-    protected function getPromptText()
+    public function getAcceptedFileTypes($includeDot = false)
     {
-        if ($this->prompt === null) {
-            $isMulti = ends_with($this->getDisplayMode(), 'multi');
-            $this->prompt = $isMulti
-                ? 'backend::lang.fileupload.upload_file'
-                : 'backend::lang.fileupload.default_prompt';
+        $types = $this->fileTypes;
+
+        if ($types === false) {
+            $isImage = starts_with($this->getDisplayMode(), 'image');
+            $types = implode(',', FileDefinitions::get($isImage ? 'imageExtensions' : 'defaultExtensions'));
         }
 
-        return str_replace('%s', '<i class="icon-upload"></i>', e(trans($this->prompt)));
+        if (!$types || $types == '*') {
+            return null;
+        }
+
+        if (!is_array($types)) {
+            $types = explode(',', $types);
+        }
+
+        $types = array_map(function ($value) use ($includeDot) {
+            $value = trim($value);
+
+            if (substr($value, 0, 1) == '.') {
+                $value = substr($value, 1);
+            }
+
+            if ($includeDot) {
+                $value = '.'.$value;
+            }
+
+            return $value;
+        }, $types);
+
+        return implode(',', $types);
     }
 
     /**
@@ -435,17 +333,119 @@ class FileUpload extends FormWidgetBase
     /**
      * @inheritDoc
      */
+    protected function loadAssets()
+    {
+        $this->addCss('css/fileupload.css', 'core');
+        $this->addJs('js/fileupload.js', 'core');
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getSaveValue($value)
     {
         return FormField::NO_SAVE_DATA;
     }
 
     /**
-     * @inheritDoc
+     * Checks the current request to see if it is a postback containing a file upload
+     * for this particular widget.
      */
-    protected function loadAssets()
+    protected function checkUploadPostback()
     {
-        $this->addCss('css/fileupload.css', 'core');
-        $this->addJs('js/fileupload.js', 'core');
+        if (!($uniqueId = Request::header('X-OCTOBER-FILEUPLOAD')) || $uniqueId != $this->getId()) {
+            return;
+        }
+
+        try {
+            if (!Input::hasFile('file_data')) {
+                throw new ApplicationException('File missing from request');
+            }
+
+            $fileModel = $this->getRelationModel();
+            $uploadedFile = Input::file('file_data');
+
+            $validationRules = ['max:'.$fileModel::getMaxFilesize()];
+            if ($fileTypes = $this->getAcceptedFileTypes()) {
+                $validationRules[] = 'extensions:'.$fileTypes;
+            }
+
+            if ($this->mimeTypes) {
+                $validationRules[] = 'mimes:'.$this->mimeTypes;
+            }
+
+            $validation = Validator::make(
+                ['file_data' => $uploadedFile],
+                ['file_data' => $validationRules]
+            );
+
+            if ($validation->fails()) {
+                throw new ValidationException($validation);
+            }
+
+            if (!$uploadedFile->isValid()) {
+                throw new ApplicationException('File is not valid');
+            }
+
+            $fileRelation = $this->getRelationObject();
+
+            $file = $fileModel;
+            $file->data = $uploadedFile;
+            $file->is_public = $fileRelation->isPublic();
+            $file->save();
+
+            $fileRelation->add($file, $this->sessionKey);
+
+            $file = $this->decorateFileAttributes($file);
+
+            $result = [
+                'id' => $file->id,
+                'thumb' => $file->thumbUrl,
+                'path' => $file->pathUrl
+            ];
+
+            Response::json($result, 200)->send();
+
+        }
+        catch (Exception $ex) {
+            Response::json($ex->getMessage(), 400)->send();
+        }
+
+        exit;
+    }
+
+    /**
+     * Adds the bespoke attributes used internally by this widget.
+     * - thumbUrl
+     * - pathUrl
+     * @return System\Models\File
+     */
+    protected function decorateFileAttributes($file)
+    {
+        /*
+         * File is protected, create a secure public path
+         */
+        if (!$file->isPublic()) {
+            $path = $thumb = FilesController::getDownloadUrl($file);
+
+            if ($this->imageWidth || $this->imageHeight) {
+                $thumb = FilesController::getThumbUrl($file, $this->imageWidth, $this->imageHeight, $this->thumbOptions);
+            }
+        }
+        /*
+         * Otherwise use public paths
+         */
+        else {
+            $path = $thumb = $file->getPath();
+
+            if ($this->imageWidth || $this->imageHeight) {
+                $thumb = $file->getThumb($this->imageWidth, $this->imageHeight, $this->thumbOptions);
+            }
+        }
+
+        $file->pathUrl = $path;
+        $file->thumbUrl = $thumb;
+
+        return $file;
     }
 }

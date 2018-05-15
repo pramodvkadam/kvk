@@ -25,21 +25,6 @@ abstract class FunctionLike extends Declaration
     }
 
     /**
-     * Adds multiple parameters.
-     *
-     * @param array $params The parameters to add
-     *
-     * @return $this The builder instance (for fluid interface)
-     */
-    public function addParams(array $params) {
-        foreach ($params as $param) {
-            $this->addParam($param);
-        }
-
-        return $this;
-    }
-
-    /**
      * Adds a parameter.
      *
      * @param Node\Param|Param $param The parameter to add
@@ -54,6 +39,21 @@ abstract class FunctionLike extends Declaration
         }
 
         $this->params[] = $param;
+
+        return $this;
+    }
+
+    /**
+     * Adds multiple parameters.
+     *
+     * @param array $params The parameters to add
+     *
+     * @return $this The builder instance (for fluid interface)
+     */
+    public function addParams(array $params) {
+        foreach ($params as $param) {
+            $this->addParam($param);
+        }
 
         return $this;
     }

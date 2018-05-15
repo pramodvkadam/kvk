@@ -15,21 +15,10 @@ use October\Rain\Filesystem\Definitions as FileDefinitions;
 class Page extends CmsCompoundObject
 {
     /**
-     * @var array The API bag allows the API handler code to bind arbitrary
-     * data to the page object.
-     */
-    public $apiBag = [];
-    /**
-     * @var array The rules to be applied to the data.
-     */
-    public $rules = [
-        'title' => 'required',
-        'url'   => ['required', 'regex:/^\/[a-z0-9\/\:_\-\*\[\]\+\?\|\.\^\\\$]*$/i']
-    ];
-    /**
      * @var string The container name associated with the model, eg: pages.
      */
     protected $dirName = 'pages';
+
     /**
      * @var array The attributes that are mass assignable.
      */
@@ -47,6 +36,20 @@ class Page extends CmsCompoundObject
     ];
 
     /**
+     * @var array The API bag allows the API handler code to bind arbitrary
+     * data to the page object.
+     */
+    public $apiBag = [];
+
+    /**
+     * @var array The rules to be applied to the data.
+     */
+    public $rules = [
+        'title' => 'required',
+        'url'   => ['required', 'regex:/^\/[a-z0-9\/\:_\-\*\[\]\+\?\|\.\^\\\$]*$/i']
+    ];
+
+    /**
      * Creates an instance of the object and associates it with a CMS theme.
      * @param array $attributes
      */
@@ -59,19 +62,78 @@ class Page extends CmsCompoundObject
         ];
     }
 
+    protected function parseSettings()
+    {
+    }
+
+    /**
+     * Returns name of a PHP class to us a parent for the PHP class created for the object's PHP section.
+     * @return mixed Returns the class name or null.
+     */
+    public function getCodeClassParent() : string
+    {
+        return '\Cms\Classes\PageCode';
+    }
+
+    /**
+     * Returns a list of layouts available in the theme.
+     * This method is used by the form widget.
+     * @return array Returns an array of strings.
+     */
+    public function getLayoutOptions() : array
+    {
+        if (!($theme = Theme::getEditTheme())) {
+            throw new ApplicationException(Lang::get('cms::lang.theme.edit.not_found'));
+        }
+
+        $layouts = Layout::listInTheme($theme, true);
+        $result = [];
+        $result[null] = Lang::get('cms::lang.page.no_layout');
+
+        foreach ($layouts as $layout) {
+            $baseName = $layout->getBaseFileName();
+
+            if (FileDefinitions::isPathIgnored($baseName)) {
+                continue;
+            }
+
+            $result[$baseName] = strlen($layout->name) ? $layout->name : $baseName;
+        }
+
+        return $result;
+    }
+
     /**
      * Helper that returns a nicer list of pages for use in dropdowns.
      * @return array
      */
-    public static function getNameList()
+    public static function getNameList() : array
     {
         $result = [];
         $pages = self::sortBy('baseFileName')->all();
         foreach ($pages as $page) {
-            $result[$page->baseFileName] = $page->title.' ('.$page->baseFileName.')';
+            $result[$page->baseFileName] = $page->title . ' (' . $page->baseFileName . ')';
         }
 
         return $result;
+    }
+
+    /**
+     * Helper that makes a URL for a page in the active theme.
+     * @param mixed $page Specifies the Cms Page file name.
+     * @param array $params Route parameters to consider in the URL.
+     * @return string
+     */
+    public static function url($page, array $params = []) : string
+    {
+        /*
+         * Reuse existing controller or create a new one,
+         * assuming that the method is called not during the front-end
+         * request processing.
+         */
+        $controller = Controller::getController() ?: new Controller;
+
+        return $controller->pageUrl($page, $params, true);
     }
 
     /**
@@ -91,16 +153,17 @@ class Page extends CmsCompoundObject
      * @param string $type Specifies the menu item type
      * @return array Returns an array
      */
-    public static function getMenuTypeInfo($type)
+    public static function getMenuTypeInfo(string $type) : array
     {
         $result = [];
 
-        if ($type == 'cms-page') {
+        if ($type === 'cms-page') {
             $theme = Theme::getActiveTheme();
             $pages = self::listInTheme($theme, true);
+            $references = [];
 
             foreach ($pages as $page) {
-                $references[$page->getBaseFileName()] = $page->title . ' ['.$page->getBaseFileName().']';
+                $references[$page->getBaseFileName()] = $page->title . ' [' . $page->getBaseFileName() . ']';
             }
 
             $result = [
@@ -130,11 +193,11 @@ class Page extends CmsCompoundObject
      * The URL is specified relative to the website root, it includes the subdirectory name, if any.
      * @return mixed Returns an array. Returns null if the item cannot be resolved.
      */
-    public static function resolveMenuItem($item, $url, $theme)
+    public static function resolveMenuItem($item, string $url, Theme $theme)
     {
         $result = null;
 
-        if ($item->type == 'cms-page') {
+        if ($item->type === 'cms-page') {
             if (!$item->reference) {
                 return;
             }
@@ -158,11 +221,11 @@ class Page extends CmsCompoundObject
      * @param string $type Specifies the page link type
      * @return array
      */
-    public static function getRichEditorTypeInfo($type)
+    public static function getRichEditorTypeInfo(string $type) : array
     {
         $result = [];
 
-        if ($type == 'cms-page') {
+        if ($type === 'cms-page') {
             $theme = Theme::getActiveTheme();
             $pages = self::listInTheme($theme, true);
 
@@ -173,64 +236,5 @@ class Page extends CmsCompoundObject
         }
 
         return $result;
-    }
-
-    /**
-     * Helper that makes a URL for a page in the active theme.
-     * @param mixed $page Specifies the Cms Page file name.
-     * @param array $params Route parameters to consider in the URL.
-     * @return string
-     */
-    public static function url($page, $params = [])
-    {
-        /*
-         * Reuse existing controller or create a new one,
-         * assuming that the method is called not during the front-end
-         * request processing.
-         */
-        $controller = Controller::getController() ?: new Controller;
-
-        return $controller->pageUrl($page, $params, true);
-    }
-
-    /**
-     * Returns name of a PHP class to us a parent for the PHP class created for the object's PHP section.
-     * @return mixed Returns the class name or null.
-     */
-    public function getCodeClassParent()
-    {
-        return '\Cms\Classes\PageCode';
-    }
-
-    /**
-     * Returns a list of layouts available in the theme.
-     * This method is used by the form widget.
-     * @return array Returns an array of strings.
-     */
-    public function getLayoutOptions()
-    {
-        if (!($theme = Theme::getEditTheme())) {
-            throw new ApplicationException(Lang::get('cms::lang.theme.edit.not_found'));
-        }
-
-        $layouts = Layout::listInTheme($theme, true);
-        $result = [];
-        $result[null] = Lang::get('cms::lang.page.no_layout');
-
-        foreach ($layouts as $layout) {
-            $baseName = $layout->getBaseFileName();
-
-            if (FileDefinitions::isPathIgnored($baseName)) {
-                continue;
-            }
-
-            $result[$baseName] = strlen($layout->name) ? $layout->name : $baseName;
-        }
-
-        return $result;
-    }
-
-    protected function parseSettings()
-    {
     }
 }

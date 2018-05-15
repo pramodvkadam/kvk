@@ -119,38 +119,6 @@ class ClassLoader
     }
 
     /**
-     * Get the normal file name for a class.
-     *
-     * @param  string  $class
-     * @return string
-     */
-    protected function normalizeClass($class)
-    {
-        /*
-         * Strip first slash
-         */
-        if ($class[0] == '\\') {
-            $class = substr($class, 1);
-        }
-
-        /*
-         * Lowercase folders
-         */
-        $parts = explode('\\', $class);
-        $file = array_pop($parts);
-        $namespace = implode('\\', $parts);
-        $directory = str_replace(['\\', '_'], DIRECTORY_SEPARATOR, $namespace);
-
-        /*
-         * Provide both alternatives
-         */
-        $lowerClass = strtolower($directory) . DIRECTORY_SEPARATOR . $file . '.php';
-        $upperClass = $directory . DIRECTORY_SEPARATOR . $file . '.php';
-
-        return [$lowerClass, $upperClass];
-    }
-
-    /**
      * Includes a class and adds to the manifest
      *
      * @param  string  $class
@@ -183,37 +151,6 @@ class ClassLoader
     }
 
     /**
-     * Ensure the manifest has been loaded into memory.
-     *
-     * @return void
-     */
-    protected function ensureManifestIsLoaded()
-    {
-        if (!is_null($this->manifest)) {
-            return;
-        }
-
-        if (file_exists($this->manifestPath)) {
-            try {
-                $this->manifest = $this->files->getRequire($this->manifestPath);
-
-                if (!is_array($this->manifest)) {
-                    $this->manifest = [];
-                }
-            }
-            catch (Exception $ex) {
-                $this->manifest = [];
-            }
-            catch (Throwable $ex) {
-                $this->manifest = [];
-            }
-        }
-        else {
-            $this->manifest = [];
-        }
-    }
-
-    /**
      * Build the manifest and write it to disk.
      *
      * @return void
@@ -225,24 +162,6 @@ class ClassLoader
         }
 
         $this->write($this->manifest);
-    }
-
-    /**
-     * Write the given manifest array to disk.
-     *
-     * @param  array  $manifest
-     * @return void
-     * @throws \Exception
-     */
-    protected function write(array $manifest)
-    {
-        if (!is_writable(dirname($this->manifestPath))) {
-            throw new Exception('The storage/framework/cache directory must be present and writable.');
-        }
-
-        $this->files->put(
-            $this->manifestPath, '<?php return '.var_export($manifest, true).';'
-        );
     }
 
     /**
@@ -286,5 +205,86 @@ class ClassLoader
     public function getDirectories()
     {
         return $this->directories;
+    }
+
+    /**
+     * Get the normal file name for a class.
+     *
+     * @param  string  $class
+     * @return string
+     */
+    protected function normalizeClass($class)
+    {
+        /*
+         * Strip first slash
+         */
+        if ($class[0] == '\\') {
+            $class = substr($class, 1);
+        }
+
+        /*
+         * Lowercase folders
+         */
+        $parts = explode('\\', $class);
+        $file = array_pop($parts);
+        $namespace = implode('\\', $parts);
+        $directory = str_replace(['\\', '_'], DIRECTORY_SEPARATOR, $namespace);
+
+        /*
+         * Provide both alternatives
+         */
+        $lowerClass = strtolower($directory) . DIRECTORY_SEPARATOR . $file . '.php';
+        $upperClass = $directory . DIRECTORY_SEPARATOR . $file . '.php';
+
+        return [$lowerClass, $upperClass];
+    }
+
+    /**
+     * Ensure the manifest has been loaded into memory.
+     *
+     * @return void
+     */
+    protected function ensureManifestIsLoaded()
+    {
+        if (!is_null($this->manifest)) {
+            return;
+        }
+
+        if (file_exists($this->manifestPath)) {
+            try {
+                $this->manifest = $this->files->getRequire($this->manifestPath);
+
+                if (!is_array($this->manifest)) {
+                    $this->manifest = [];
+                }
+            }
+            catch (Exception $ex) {
+                $this->manifest = [];
+            }
+            catch (Throwable $ex) {
+                $this->manifest = [];
+            }
+        }
+        else {
+            $this->manifest = [];
+        }
+    }
+
+    /**
+     * Write the given manifest array to disk.
+     *
+     * @param  array  $manifest
+     * @return void
+     * @throws \Exception
+     */
+    protected function write(array $manifest)
+    {
+        if (!is_writable(dirname($this->manifestPath))) {
+            throw new Exception('The storage/framework/cache directory must be present and writable.');
+        }
+
+        $this->files->put(
+            $this->manifestPath, '<?php return '.var_export($manifest, true).';'
+        );
     }
 }

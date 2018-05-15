@@ -33,15 +33,37 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
         $this->data = $data;
     }
 
-    public function count()
+    /**
+     * @return string The type of the value
+     */
+    public function getType()
     {
-        return count($this->getValue());
+        $item = $this->data[$this->position][$this->key];
+
+        if ($item instanceof Stub && Stub::TYPE_REF === $item->type && !$item->position) {
+            $item = $item->value;
+        }
+        if (!$item instanceof Stub) {
+            return gettype($item);
+        }
+        if (Stub::TYPE_STRING === $item->type) {
+            return 'string';
+        }
+        if (Stub::TYPE_ARRAY === $item->type) {
+            return 'array';
+        }
+        if (Stub::TYPE_OBJECT === $item->type) {
+            return $item->class;
+        }
+        if (Stub::TYPE_RESOURCE === $item->type) {
+            return $item->class.' resource';
+        }
     }
 
     /**
      * @param bool $recursive Whether values should be resolved recursively or not
      *
-     * @return scalar|array|null|Data[] A native representation of the original value
+     * @return string|int|float|bool|array|null|Data[] A native representation of the original value
      */
     public function getValue($recursive = false)
     {
@@ -82,22 +104,9 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
         return $children;
     }
 
-    private function getStub($item)
+    public function count()
     {
-        if (!$item || !\is_array($item)) {
-            return $item;
-        }
-
-        $stub = new Stub();
-        $stub->type = Stub::TYPE_ARRAY;
-        foreach ($item as $stub->class => $stub->position) {
-        }
-        if (isset($item[0])) {
-            $stub->cut = $item[0];
-        }
-        $stub->value = $stub->cut + ($stub->position ? \count($this->data[$stub->position]) : 0);
-
-        return $stub;
+        return count($this->getValue());
     }
 
     public function getIterator()
@@ -111,14 +120,106 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
         }
     }
 
-    public function offsetExists($key)
+    public function __get($key)
     {
-        return $this->__isset($key);
+        if (null !== $data = $this->seek($key)) {
+            $item = $this->getStub($data->data[$data->position][$data->key]);
+
+            return $item instanceof Stub || array() === $item ? $data : $item;
+        }
     }
 
     public function __isset($key)
     {
         return null !== $this->seek($key);
+    }
+
+    public function offsetExists($key)
+    {
+        return $this->__isset($key);
+    }
+
+    public function offsetGet($key)
+    {
+        return $this->__get($key);
+    }
+
+    public function offsetSet($key, $value)
+    {
+        throw new \BadMethodCallException(self::class.' objects are immutable.');
+    }
+
+    public function offsetUnset($key)
+    {
+        throw new \BadMethodCallException(self::class.' objects are immutable.');
+    }
+
+    public function __toString()
+    {
+        $value = $this->getValue();
+
+        if (!is_array($value)) {
+            return (string) $value;
+        }
+
+        return sprintf('%s (count=%d)', $this->getType(), count($value));
+    }
+
+    /**
+     * @return array The raw data structure
+     *
+     * @deprecated since version 3.3. Use array or object access instead.
+     */
+    public function getRawData()
+    {
+        @trigger_error(sprintf('The %s() method is deprecated since Symfony 3.3 and will be removed in 4.0. Use the array or object access instead.', __METHOD__));
+
+        return $this->data;
+    }
+
+    /**
+     * Returns a depth limited clone of $this.
+     *
+     * @param int $maxDepth The max dumped depth level
+     *
+     * @return self A clone of $this
+     */
+    public function withMaxDepth($maxDepth)
+    {
+        $data = clone $this;
+        $data->maxDepth = (int) $maxDepth;
+
+        return $data;
+    }
+
+    /**
+     * Limits the number of elements per depth level.
+     *
+     * @param int $maxItemsPerDepth The max number of items dumped per depth level
+     *
+     * @return self A clone of $this
+     */
+    public function withMaxItemsPerDepth($maxItemsPerDepth)
+    {
+        $data = clone $this;
+        $data->maxItemsPerDepth = (int) $maxItemsPerDepth;
+
+        return $data;
+    }
+
+    /**
+     * Enables/disables objects' identifiers tracking.
+     *
+     * @param bool $useRefHandles False to hide global ref. handles
+     *
+     * @return self A clone of $this
+     */
+    public function withRefHandles($useRefHandles)
+    {
+        $data = clone $this;
+        $data->useRefHandles = $useRefHandles ? -1 : 0;
+
+        return $data;
     }
 
     /**
@@ -165,125 +266,6 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
                 break;
             }
         }
-
-        return $data;
-    }
-
-    public function offsetGet($key)
-    {
-        return $this->__get($key);
-    }
-
-    public function __get($key)
-    {
-        if (null !== $data = $this->seek($key)) {
-            $item = $this->getStub($data->data[$data->position][$data->key]);
-
-            return $item instanceof Stub || array() === $item ? $data : $item;
-        }
-    }
-
-    public function offsetSet($key, $value)
-    {
-        throw new \BadMethodCallException(self::class.' objects are immutable.');
-    }
-
-    public function offsetUnset($key)
-    {
-        throw new \BadMethodCallException(self::class.' objects are immutable.');
-    }
-
-    public function __toString()
-    {
-        $value = $this->getValue();
-
-        if (!is_array($value)) {
-            return (string) $value;
-        }
-
-        return sprintf('%s (count=%d)', $this->getType(), count($value));
-    }
-
-    /**
-     * @return string The type of the value
-     */
-    public function getType()
-    {
-        $item = $this->data[$this->position][$this->key];
-
-        if ($item instanceof Stub && Stub::TYPE_REF === $item->type && !$item->position) {
-            $item = $item->value;
-        }
-        if (!$item instanceof Stub) {
-            return gettype($item);
-        }
-        if (Stub::TYPE_STRING === $item->type) {
-            return 'string';
-        }
-        if (Stub::TYPE_ARRAY === $item->type) {
-            return 'array';
-        }
-        if (Stub::TYPE_OBJECT === $item->type) {
-            return $item->class;
-        }
-        if (Stub::TYPE_RESOURCE === $item->type) {
-            return $item->class.' resource';
-        }
-    }
-
-    /**
-     * @return array The raw data structure
-     *
-     * @deprecated since version 3.3. Use array or object access instead.
-     */
-    public function getRawData()
-    {
-        @trigger_error(sprintf('The %s() method is deprecated since version 3.3 and will be removed in 4.0. Use the array or object access instead.', __METHOD__));
-
-        return $this->data;
-    }
-
-    /**
-     * Returns a depth limited clone of $this.
-     *
-     * @param int $maxDepth The max dumped depth level
-     *
-     * @return self A clone of $this
-     */
-    public function withMaxDepth($maxDepth)
-    {
-        $data = clone $this;
-        $data->maxDepth = (int) $maxDepth;
-
-        return $data;
-    }
-
-    /**
-     * Limits the number of elements per depth level.
-     *
-     * @param int $maxItemsPerDepth The max number of items dumped per depth level
-     *
-     * @return self A clone of $this
-     */
-    public function withMaxItemsPerDepth($maxItemsPerDepth)
-    {
-        $data = clone $this;
-        $data->maxItemsPerDepth = (int) $maxItemsPerDepth;
-
-        return $data;
-    }
-
-    /**
-     * Enables/disables objects' identifiers tracking.
-     *
-     * @param bool $useRefHandles False to hide global ref. handles
-     *
-     * @return self A clone of $this
-     */
-    public function withRefHandles($useRefHandles)
-    {
-        $data = clone $this;
-        $data->useRefHandles = $useRefHandles ? -1 : 0;
 
         return $data;
     }
@@ -433,5 +415,23 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
         }
 
         return $hashCut;
+    }
+
+    private function getStub($item)
+    {
+        if (!$item || !\is_array($item)) {
+            return $item;
+        }
+
+        $stub = new Stub();
+        $stub->type = Stub::TYPE_ARRAY;
+        foreach ($item as $stub->class => $stub->position) {
+        }
+        if (isset($item[0])) {
+            $stub->cut = $item[0];
+        }
+        $stub->value = $stub->cut + ($stub->position ? \count($this->data[$stub->position]) : 0);
+
+        return $stub;
     }
 }

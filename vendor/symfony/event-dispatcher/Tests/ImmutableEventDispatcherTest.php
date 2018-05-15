@@ -30,6 +30,12 @@ class ImmutableEventDispatcherTest extends TestCase
      */
     private $dispatcher;
 
+    protected function setUp()
+    {
+        $this->innerDispatcher = $this->getMockBuilder('Symfony\Component\EventDispatcher\EventDispatcherInterface')->getMock();
+        $this->dispatcher = new ImmutableEventDispatcher($this->innerDispatcher);
+    }
+
     public function testDispatchDelegates()
     {
         $event = new Event();
@@ -96,11 +102,5 @@ class ImmutableEventDispatcherTest extends TestCase
         $subscriber = $this->getMockBuilder('Symfony\Component\EventDispatcher\EventSubscriberInterface')->getMock();
 
         $this->dispatcher->removeSubscriber($subscriber);
-    }
-
-    protected function setUp()
-    {
-        $this->innerDispatcher = $this->getMockBuilder('Symfony\Component\EventDispatcher\EventDispatcherInterface')->getMock();
-        $this->dispatcher = new ImmutableEventDispatcher($this->innerDispatcher);
     }
 }

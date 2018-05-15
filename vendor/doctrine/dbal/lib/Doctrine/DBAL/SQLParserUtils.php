@@ -38,6 +38,42 @@ class SQLParserUtils
     const ESCAPED_BRACKET_QUOTED_TEXT = '(?<!\bARRAY)\[(?:[^\]])*\]';
 
     /**
+     * Gets an array of the placeholders in an sql statements as keys and their positions in the query string.
+     *
+     * Returns an integer => integer pair (indexed from zero) for a positional statement
+     * and a string => int[] pair for a named statement.
+     *
+     * @param string  $statement
+     * @param boolean $isPositional
+     *
+     * @return array
+     */
+    static public function getPlaceholderPositions($statement, $isPositional = true)
+    {
+        $match = ($isPositional) ? '?' : ':';
+        if (strpos($statement, $match) === false) {
+            return array();
+        }
+
+        $token = ($isPositional) ? self::POSITIONAL_TOKEN : self::NAMED_TOKEN;
+        $paramMap = array();
+
+        foreach (self::getUnquotedStatementFragments($statement) as $fragment) {
+            preg_match_all("/$token/", $fragment[0], $matches, PREG_OFFSET_CAPTURE);
+            foreach ($matches[0] as $placeholder) {
+                if ($isPositional) {
+                    $paramMap[] = $placeholder[1] + $fragment[1];
+                } else {
+                    $pos = $placeholder[1] + $fragment[1];
+                    $paramMap[$pos] = substr($placeholder[0], 1, strlen($placeholder[0]));
+                }
+            }
+        }
+
+        return $paramMap;
+    }
+
+    /**
      * For a positional query this method can rewrite the sql statement with regard to array parameters.
      *
      * @param string $query  The SQL query to execute.
@@ -150,42 +186,6 @@ class SQLParserUtils
         }
 
         return array($query, $paramsOrd, $typesOrd);
-    }
-
-    /**
-     * Gets an array of the placeholders in an sql statements as keys and their positions in the query string.
-     *
-     * Returns an integer => integer pair (indexed from zero) for a positional statement
-     * and a string => int[] pair for a named statement.
-     *
-     * @param string  $statement
-     * @param boolean $isPositional
-     *
-     * @return array
-     */
-    static public function getPlaceholderPositions($statement, $isPositional = true)
-    {
-        $match = ($isPositional) ? '?' : ':';
-        if (strpos($statement, $match) === false) {
-            return array();
-        }
-
-        $token = ($isPositional) ? self::POSITIONAL_TOKEN : self::NAMED_TOKEN;
-        $paramMap = array();
-
-        foreach (self::getUnquotedStatementFragments($statement) as $fragment) {
-            preg_match_all("/$token/", $fragment[0], $matches, PREG_OFFSET_CAPTURE);
-            foreach ($matches[0] as $placeholder) {
-                if ($isPositional) {
-                    $paramMap[] = $placeholder[1] + $fragment[1];
-                } else {
-                    $pos = $placeholder[1] + $fragment[1];
-                    $paramMap[$pos] = substr($placeholder[0], 1, strlen($placeholder[0]));
-                }
-            }
-        }
-
-        return $paramMap;
     }
 
     /**

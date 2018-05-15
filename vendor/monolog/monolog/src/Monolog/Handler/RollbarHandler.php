@@ -50,13 +50,15 @@ class RollbarHandler extends AbstractProcessingHandler
         Logger::ALERT     => 'critical',
         Logger::EMERGENCY => 'critical',
     );
-    protected $initialized = false;
+
     /**
      * Records whether any log records have been added since the last flush of the rollbar notifier
      *
      * @var bool
      */
     private $hasRecords = false;
+
+    protected $initialized = false;
 
     /**
      * @param RollbarNotifier $rollbarNotifier RollbarNotifier object constructed with valid token
@@ -68,22 +70,6 @@ class RollbarHandler extends AbstractProcessingHandler
         $this->rollbarNotifier = $rollbarNotifier;
 
         parent::__construct($level, $bubble);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function close()
-    {
-        $this->flush();
-    }
-
-    public function flush()
-    {
-        if ($this->hasRecords) {
-            $this->rollbarNotifier->flush();
-            $this->hasRecords = false;
-        }
     }
 
     /**
@@ -126,5 +112,21 @@ class RollbarHandler extends AbstractProcessingHandler
         }
 
         $this->hasRecords = true;
+    }
+
+    public function flush()
+    {
+        if ($this->hasRecords) {
+            $this->rollbarNotifier->flush();
+            $this->hasRecords = false;
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function close()
+    {
+        $this->flush();
     }
 }

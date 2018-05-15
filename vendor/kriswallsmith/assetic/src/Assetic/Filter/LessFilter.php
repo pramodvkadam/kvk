@@ -25,6 +25,18 @@ use Assetic\Util\LessUtils;
  */
 class LessFilter extends BaseNodeFilter implements DependencyExtractorInterface
 {
+    private $nodeBin;
+
+    /**
+     * @var array
+     */
+    private $treeOptions;
+
+    /**
+     * @var array
+     */
+    private $parserOptions;
+
     /**
      * Load Paths
      *
@@ -33,15 +45,6 @@ class LessFilter extends BaseNodeFilter implements DependencyExtractorInterface
      * @var array
      */
     protected $loadPaths = array();
-    private $nodeBin;
-    /**
-     * @var array
-     */
-    private $treeOptions;
-    /**
-     * @var array
-     */
-    private $parserOptions;
 
     /**
      * Constructor.
@@ -65,15 +68,6 @@ class LessFilter extends BaseNodeFilter implements DependencyExtractorInterface
         $this->addTreeOption('compress', $compress);
     }
 
-    /**
-     * @param string $code
-     * @param string $value
-     */
-    public function addTreeOption($code, $value)
-    {
-        $this->treeOptions[$code] = $value;
-    }
-
     public function setLoadPaths(array $loadPaths)
     {
         $this->loadPaths = $loadPaths;
@@ -87,6 +81,15 @@ class LessFilter extends BaseNodeFilter implements DependencyExtractorInterface
     public function addLoadPath($path)
     {
         $this->loadPaths[] = $path;
+    }
+
+    /**
+     * @param string $code
+     * @param string $value
+     */
+    public function addTreeOption($code, $value)
+    {
+        $this->treeOptions[$code] = $value;
     }
 
     /**

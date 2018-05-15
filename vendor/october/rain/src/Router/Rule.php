@@ -12,41 +12,49 @@ class Rule
 {
 
     /**
-     * @var string URL with static segments only, dynamic segments are stripped
-     */
-    public $staticUrl;
-    /**
-     * @var array Pattern segments
-     */
-    public $segments;
-    /**
-     * @var int The number of static segments found in the pattern
-     */
-    public $staticSegmentCount = 0;
-    /**
-     * @var int The number of dynamic segments found in the pattern
-     */
-    public $dynamicSegmentCount = 0;
-    /**
-     * @var int The number of wildcard segments found in the pattern
-     */
-    public $wildSegmentCount = 0;
-    /**
      * @var string A named reference for this rule.
      */
     protected $ruleName;
+
     /**
      * @var string The pattern used to match this rule.
      */
     protected $rulePattern;
+
     /**
      * @var function Custom condition used when matching this rule.
      */
     protected $conditionCallback;
+
     /**
      * @var function Called when this rule is matched.
      */
     protected $afterMatchCallback;
+
+    /**
+     * @var string URL with static segments only, dynamic segments are stripped
+     */
+    public $staticUrl;
+
+    /**
+     * @var array Pattern segments
+     */
+    public $segments;
+
+    /**
+     * @var int The number of static segments found in the pattern
+     */
+    public $staticSegmentCount = 0;
+
+    /**
+     * @var int The number of dynamic segments found in the pattern
+     */
+    public $dynamicSegmentCount = 0;
+
+    /**
+     * @var int The number of wildcard segments found in the pattern
+     */
+    public $wildSegmentCount = 0;
 
     /**
      * Creates a new router rule instance.

@@ -93,6 +93,57 @@ class NodeTraverser implements NodeTraverserInterface
         return $nodes;
     }
 
+    protected function traverseNode(Node $node) {
+        foreach ($node->getSubNodeNames() as $name) {
+            $subNode =& $node->$name;
+
+            if (is_array($subNode)) {
+                $subNode = $this->traverseArray($subNode);
+                if ($this->stopTraversal) {
+                    break;
+                }
+            } elseif ($subNode instanceof Node) {
+                $traverseChildren = true;
+                foreach ($this->visitors as $visitor) {
+                    $return = $visitor->enterNode($subNode);
+                    if (self::DONT_TRAVERSE_CHILDREN === $return) {
+                        $traverseChildren = false;
+                    } else if (self::STOP_TRAVERSAL === $return) {
+                        $this->stopTraversal = true;
+                        break 2;
+                    } else if (null !== $return) {
+                        $subNode = $return;
+                    }
+                }
+
+                if ($traverseChildren) {
+                    $subNode = $this->traverseNode($subNode);
+                    if ($this->stopTraversal) {
+                        break;
+                    }
+                }
+
+                foreach ($this->visitors as $visitor) {
+                    $return = $visitor->leaveNode($subNode);
+                    if (self::STOP_TRAVERSAL === $return) {
+                        $this->stopTraversal = true;
+                        break 2;
+                    } else if (null !== $return) {
+                        if (is_array($return)) {
+                            throw new \LogicException(
+                                'leaveNode() may only return an array ' .
+                                'if the parent structure is an array'
+                            );
+                        }
+                        $subNode = $return;
+                    }
+                }
+            }
+        }
+
+        return $node;
+    }
+
     protected function traverseArray(array $nodes) {
         $doNodes = array();
 
@@ -149,56 +200,5 @@ class NodeTraverser implements NodeTraverserInterface
         }
 
         return $nodes;
-    }
-
-    protected function traverseNode(Node $node) {
-        foreach ($node->getSubNodeNames() as $name) {
-            $subNode =& $node->$name;
-
-            if (is_array($subNode)) {
-                $subNode = $this->traverseArray($subNode);
-                if ($this->stopTraversal) {
-                    break;
-                }
-            } elseif ($subNode instanceof Node) {
-                $traverseChildren = true;
-                foreach ($this->visitors as $visitor) {
-                    $return = $visitor->enterNode($subNode);
-                    if (self::DONT_TRAVERSE_CHILDREN === $return) {
-                        $traverseChildren = false;
-                    } else if (self::STOP_TRAVERSAL === $return) {
-                        $this->stopTraversal = true;
-                        break 2;
-                    } else if (null !== $return) {
-                        $subNode = $return;
-                    }
-                }
-
-                if ($traverseChildren) {
-                    $subNode = $this->traverseNode($subNode);
-                    if ($this->stopTraversal) {
-                        break;
-                    }
-                }
-
-                foreach ($this->visitors as $visitor) {
-                    $return = $visitor->leaveNode($subNode);
-                    if (self::STOP_TRAVERSAL === $return) {
-                        $this->stopTraversal = true;
-                        break 2;
-                    } else if (null !== $return) {
-                        if (is_array($return)) {
-                            throw new \LogicException(
-                                'leaveNode() may only return an array ' .
-                                'if the parent structure is an array'
-                            );
-                        }
-                        $subNode = $return;
-                    }
-                }
-            }
-        }
-
-        return $node;
     }
 }

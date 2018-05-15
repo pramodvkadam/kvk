@@ -1,4 +1,4 @@
-1518454985a:1:{s:26:"current-events-sidebar.htm";a:7:{s:8:"fileName";s:26:"current-events-sidebar.htm";s:7:"content";s:371:"description = "Current events"
+1526350440a:1:{s:26:"current-events-sidebar.htm";a:7:{s:8:"fileName";s:26:"current-events-sidebar.htm";s:7:"content";s:363:"description = "Current events"
 
 [viewBag]
 ==
@@ -10,7 +10,7 @@
               Weekly Agro Advisory for 
               Pune District
             </p>
-            <div class="bg-image"><img src="{{'bg.png'|media}}"></div>";s:5:"mtime";i:1518368538;s:6:"markup";s:326:"<h4 class="heading">Current Events</h4>
+            <div class="bg-image"><img src="{{'bg.png'|media}}"></div>";s:5:"mtime";i:1526201530;s:6:"markup";s:318:"<h4 class="heading">Current Events</h4>
             <p>
               Success story- <br>
               Spices products 

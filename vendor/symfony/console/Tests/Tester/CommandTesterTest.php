@@ -26,6 +26,23 @@ class CommandTesterTest extends TestCase
     protected $command;
     protected $tester;
 
+    protected function setUp()
+    {
+        $this->command = new Command('foo');
+        $this->command->addArgument('command');
+        $this->command->addArgument('foo');
+        $this->command->setCode(function ($input, $output) { $output->writeln('foo'); });
+
+        $this->tester = new CommandTester($this->command);
+        $this->tester->execute(array('foo' => 'bar'), array('interactive' => false, 'decorated' => false, 'verbosity' => Output::VERBOSITY_VERBOSE));
+    }
+
+    protected function tearDown()
+    {
+        $this->command = null;
+        $this->tester = null;
+    }
+
     public function testExecute()
     {
         $this->assertFalse($this->tester->getInput()->isInteractive(), '->execute() takes an interactive option');
@@ -142,22 +159,5 @@ class CommandTesterTest extends TestCase
         $tester->execute(array());
 
         $this->assertEquals(0, $tester->getStatusCode());
-    }
-
-    protected function setUp()
-    {
-        $this->command = new Command('foo');
-        $this->command->addArgument('command');
-        $this->command->addArgument('foo');
-        $this->command->setCode(function ($input, $output) { $output->writeln('foo'); });
-
-        $this->tester = new CommandTester($this->command);
-        $this->tester->execute(array('foo' => 'bar'), array('interactive' => false, 'decorated' => false, 'verbosity' => Output::VERBOSITY_VERBOSE));
-    }
-
-    protected function tearDown()
-    {
-        $this->command = null;
-        $this->tester = null;
     }
 }

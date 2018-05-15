@@ -13,21 +13,6 @@ class __TwigTemplate_618df5de350f3c55157e6908f770221a7dd3059a562ab96cfcab6570d74
         );
     }
 
-    public function getTemplateName()
-    {
-        return "/var/www/html/atma/themes/atma-new/partials/meta.htm";
-    }
-
-    public function isTraitable()
-    {
-        return false;
-    }
-
-    public function getDebugInfo()
-    {
-        return array (  56 => 21,  51 => 17,  48 => 13,  45 => 11,  42 => 10,  37 => 8,  31 => 5,  26 => 3,  22 => 2,  19 => 1,);
-    }
-
     protected function doDisplay(array $context, array $blocks = array())
     {
         // line 1
@@ -71,6 +56,21 @@ class __TwigTemplate_618df5de350f3c55157e6908f770221a7dd3059a562ab96cfcab6570d74
         echo "<link href=\"";
         echo $this->env->getExtension('Cms\Twig\Extension')->themeFilter(array(0 => "assets/css/style.css"));
         echo "\" rel=\"stylesheet\" />";
+    }
+
+    public function getTemplateName()
+    {
+        return "/var/www/html/atma/themes/atma-new/partials/meta.htm";
+    }
+
+    public function isTraitable()
+    {
+        return false;
+    }
+
+    public function getDebugInfo()
+    {
+        return array (  56 => 21,  51 => 17,  48 => 13,  45 => 11,  42 => 10,  37 => 8,  31 => 5,  26 => 3,  22 => 2,  19 => 1,);
     }
 
     public function getSourceContext()

@@ -16,9 +16,10 @@ class User extends Model
     use \October\Rain\Database\Traits\Validation;
 
     /**
-     * @var string The login attribute.
+     * @var string The table associated with the model.
      */
-    public static $loginAttribute = 'email';
+    protected $table = 'users';
+
     /**
      * @var array Validation rules
      */
@@ -38,44 +39,49 @@ class User extends Model
     public $belongsTo = [
         'role' => Role::class
     ];
-    /**
-     * @var array The array of custom attribute names.
-     */
-    public $attributeNames = [];
-    /**
-     * @var array The array of custom error messages.
-     */
-    public $customMessages = [];
-    /**
-     * @var string The table associated with the model.
-     */
-    protected $table = 'users';
+
     /**
      * The attributes that should be mutated to dates.
      *
      * @var array
      */
     protected $dates = ['activated_at', 'last_login'];
+
     /**
      * @var array The attributes that should be hidden for arrays.
      */
     protected $hidden = ['password', 'reset_password_code', 'activation_code', 'persist_code'];
+
     /**
      * @var array The attributes that aren't mass assignable.
      */
     protected $guarded = ['is_superuser', 'reset_password_code', 'activation_code', 'persist_code', 'role_id'];
+
     /**
      * @var array List of attribute names which should be hashed using the Bcrypt hashing algorithm.
      */
     protected $hashable = ['password', 'persist_code'];
+
     /**
      * @var array List of attribute names which should not be saved to the database.
      */
     protected $purgeable = ['password_confirmation'];
+
+    /**
+     * @var array The array of custom attribute names.
+     */
+    public $attributeNames = [];
+
+    /**
+     * @var array The array of custom error messages.
+     */
+    public $customMessages = [];
+
     /**
      * @var array List of attribute names which are json encoded and decoded from the database.
      */
     protected $jsonable = ['permissions'];
+
     /**
      * Allowed permissions values.
      *
@@ -87,10 +93,24 @@ class User extends Model
      * @var array
      */
     protected $allowedPermissionsValues = [-1, 0, 1];
+
+    /**
+     * @var string The login attribute.
+     */
+    public static $loginAttribute = 'email';
+
     /**
      * @var array The user merged permissions.
      */
     protected $mergedPermissions;
+
+    /**
+     * @return string Returns the name for the user's login.
+     */
+    public function getLoginName()
+    {
+        return static::$loginAttribute;
+    }
 
     /**
      * @return mixed Returns the user's login.
@@ -101,21 +121,22 @@ class User extends Model
     }
 
     /**
-     * @return string Returns the name for the user's login.
+     * Checks if the user is a super user - has access to everything regardless of permissions.
+     * @return bool
      */
-    public function getLoginName()
+    public function isSuperUser()
     {
-        return static::$loginAttribute;
-    }
-
-    public function beforeLogin()
-    {
-
+        return (bool) $this->is_superuser;
     }
 
     //
     // Events
     //
+
+    public function beforeLogin()
+    {
+
+    }
 
     public function afterLogin()
     {
@@ -134,6 +155,26 @@ class User extends Model
         }
     }
 
+    //
+    // Persistence (used by Cookies and Sessions)
+    //
+
+    /**
+     * Gets a code for when the user is persisted to a cookie or session which identifies the user.
+     * @return string
+     */
+    public function getPersistCode()
+    {
+        $this->persist_code = $this->getRandomString();
+
+        // Our code got hashed
+        $persistCode = $this->persist_code;
+
+        $this->forceSave();
+
+        return $persistCode;
+    }
+
     /**
      * Checks the given persist code.
      * @param string $persistCode
@@ -149,7 +190,7 @@ class User extends Model
     }
 
     //
-    // Persistence (used by Cookies and Sessions)
+    // Activation
     //
 
     /**
@@ -175,34 +216,6 @@ class User extends Model
         return $activationCode;
     }
 
-    //
-    // Activation
-    //
-
-    /**
-     * Generate a random string
-     * @return string
-     */
-    public function getRandomString($length = 42)
-    {
-        /*
-         * Use OpenSSL (if available)
-         */
-        if (function_exists('openssl_random_pseudo_bytes')) {
-            $bytes = openssl_random_pseudo_bytes($length * 2);
-
-            if ($bytes === false) {
-                throw new RuntimeException('Unable to generate a random string');
-            }
-
-            return substr(str_replace(['/', '+', '='], '', base64_encode($bytes)), 0, $length);
-        }
-
-        $pool = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-        return substr(str_shuffle(str_repeat($pool, 5)), 0, $length);
-    }
-
     /**
      * Attempts to activate the given user by checking the activate code. If the user is activated already, an Exception is thrown.
      * @param string $activationCode
@@ -225,6 +238,10 @@ class User extends Model
         return false;
     }
 
+    //
+    // Password
+    //
+
     /**
      * Checks the password passed matches the user's password.
      * @param string $password
@@ -235,10 +252,6 @@ class User extends Model
         return Hash::check($password, $this->password);
     }
 
-    //
-    // Password
-    //
-
     /**
      * Get a reset password code for the given user.
      * @return string
@@ -248,6 +261,20 @@ class User extends Model
         $this->reset_password_code = $resetCode = $this->getRandomString();
         $this->forceSave();
         return $resetCode;
+    }
+
+    /**
+     * Checks if the provided user reset password code is valid without actually resetting the password.
+     * @param string $resetCode
+     * @return bool
+     */
+    public function checkResetPasswordCode($resetCode)
+    {
+        if (!$resetCode || !$this->reset_password_code) {
+            return false;
+        }
+
+        return ($this->reset_password_code == $resetCode);
     }
 
     /**
@@ -265,20 +292,6 @@ class User extends Model
         }
 
         return false;
-    }
-
-    /**
-     * Checks if the provided user reset password code is valid without actually resetting the password.
-     * @param string $resetCode
-     * @return bool
-     */
-    public function checkResetPasswordCode($resetCode)
-    {
-        if (!$resetCode || !$this->reset_password_code) {
-            return false;
-        }
-
-        return ($this->reset_password_code == $resetCode);
     }
 
     /**
@@ -309,6 +322,28 @@ class User extends Model
         }
     }
 
+    //
+    // Permissions, Groups & Role
+    //
+
+    /**
+     * Returns an array of groups which the given user belongs to.
+     * @return array
+     */
+    public function getGroups()
+    {
+        return $this->groups;
+    }
+
+    /**
+     * Returns the role assigned to this user.
+     * @return October\Rain\Auth\Models\Role
+     */
+    public function getRole()
+    {
+        return $this->role;
+    }
+
     /**
      * Adds the user to the given group.
      * @param Group $group
@@ -322,35 +357,6 @@ class User extends Model
         }
 
         return true;
-    }
-
-    //
-    // Permissions, Groups & Role
-    //
-
-    /**
-     * See if the user is in the given group.
-     * @param Group $group
-     * @return bool
-     */
-    public function inGroup($group)
-    {
-        foreach ($this->getGroups() as $_group) {
-            if ($_group->getKey() == $group->getKey()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Returns an array of groups which the given user belongs to.
-     * @return array
-     */
-    public function getGroups()
-    {
-        return $this->groups;
     }
 
     /**
@@ -369,13 +375,44 @@ class User extends Model
     }
 
     /**
-     * Returns if the user has access to any of the given permissions.
-     * @param  array  $permissions
+     * See if the user is in the given group.
+     * @param Group $group
      * @return bool
      */
-    public function hasAnyAccess(array $permissions)
+    public function inGroup($group)
     {
-        return $this->hasAccess($permissions, false);
+        foreach ($this->getGroups() as $_group) {
+            if ($_group->getKey() == $group->getKey()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns an array of merged permissions for each group the user is in.
+     * @return array
+     */
+    public function getMergedPermissions()
+    {
+        if (!$this->mergedPermissions) {
+            $permissions = [];
+
+            if ($role = $this->getRole()) {
+                if (is_array($role->permissions)) {
+                    $permissions = array_merge($permissions, $role->permissions);
+                }
+            }
+
+            if (is_array($this->permissions)) {
+                $permissions = array_merge($permissions, $this->permissions);
+            }
+
+            $this->mergedPermissions = $permissions;
+        }
+
+        return $this->mergedPermissions;
     }
 
     /**
@@ -400,15 +437,6 @@ class User extends Model
         }
 
         return $this->hasPermission($permissions, $all);
-    }
-
-    /**
-     * Checks if the user is a super user - has access to everything regardless of permissions.
-     * @return bool
-     */
-    public function isSuperUser()
-    {
-        return (bool) $this->is_superuser;
     }
 
     /**
@@ -519,37 +547,13 @@ class User extends Model
     }
 
     /**
-     * Returns an array of merged permissions for each group the user is in.
-     * @return array
+     * Returns if the user has access to any of the given permissions.
+     * @param  array  $permissions
+     * @return bool
      */
-    public function getMergedPermissions()
+    public function hasAnyAccess(array $permissions)
     {
-        if (!$this->mergedPermissions) {
-            $permissions = [];
-
-            if ($role = $this->getRole()) {
-                if (is_array($role->permissions)) {
-                    $permissions = array_merge($permissions, $role->permissions);
-                }
-            }
-
-            if (is_array($this->permissions)) {
-                $permissions = array_merge($permissions, $this->permissions);
-            }
-
-            $this->mergedPermissions = $permissions;
-        }
-
-        return $this->mergedPermissions;
-    }
-
-    /**
-     * Returns the role assigned to this user.
-     * @return October\Rain\Auth\Models\Role
-     */
-    public function getRole()
-    {
-        return $this->role;
+        return $this->hasAccess($permissions, false);
     }
 
     /**
@@ -616,22 +620,6 @@ class User extends Model
     }
 
     /**
-     * Gets a code for when the user is persisted to a cookie or session which identifies the user.
-     * @return string
-     */
-    public function getPersistCode()
-    {
-        $this->persist_code = $this->getRandomString();
-
-        // Our code got hashed
-        $persistCode = $this->persist_code;
-
-        $this->forceSave();
-
-        return $persistCode;
-    }
-
-    /**
      * Set the token value for the "remember me" session.
      * @param  string $value
      * @return void
@@ -641,10 +629,6 @@ class User extends Model
         $this->persist_code = $value;
     }
 
-    //
-    // Helpers
-    //
-
     /**
      * Get the column name for the "remember me" token.
      * @return string
@@ -652,5 +636,33 @@ class User extends Model
     public function getRememberTokenName()
     {
         return 'persist_code';
+    }
+
+    //
+    // Helpers
+    //
+
+    /**
+     * Generate a random string
+     * @return string
+     */
+    public function getRandomString($length = 42)
+    {
+        /*
+         * Use OpenSSL (if available)
+         */
+        if (function_exists('openssl_random_pseudo_bytes')) {
+            $bytes = openssl_random_pseudo_bytes($length * 2);
+
+            if ($bytes === false) {
+                throw new RuntimeException('Unable to generate a random string');
+            }
+
+            return substr(str_replace(['/', '+', '='], '', base64_encode($bytes)), 0, $length);
+        }
+
+        $pool = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+        return substr(str_shuffle(str_repeat($pool, 5)), 0, $length);
     }
 }

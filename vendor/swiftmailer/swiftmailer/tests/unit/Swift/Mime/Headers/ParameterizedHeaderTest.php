@@ -13,29 +13,6 @@ class Swift_Mime_Headers_ParameterizedHeaderTest extends \SwiftMailerTestCase
         $this->assertEquals(Swift_Mime_Header::TYPE_PARAMETERIZED, $header->getFieldType());
     }
 
-    private function getHeader($name, $encoder, $paramEncoder)
-    {
-        $header = new Swift_Mime_Headers_ParameterizedHeader($name, $encoder, $paramEncoder);
-        $header->setCharset($this->charset);
-
-        return $header;
-    }
-
-    private function getHeaderEncoder($type, $stub = false)
-    {
-        $encoder = $this->getMockery('Swift_Mime_HeaderEncoder')->shouldIgnoreMissing();
-        $encoder->shouldReceive('getName')
-                ->zeroOrMoreTimes()
-                ->andReturn($type);
-
-        return $encoder;
-    }
-
-    private function getParameterEncoder($stub = false)
-    {
-        return $this->getMockery('Swift_Encoder')->shouldIgnoreMissing();
-    }
-
     public function testValueIsReturnedVerbatim()
     {
         $header = $this->getHeader('Content-Type',
@@ -392,5 +369,28 @@ class Swift_Mime_Headers_ParameterizedHeaderTest extends \SwiftMailerTestCase
             );
         $header->setParameters(array('charset' => 'utf-8', 'delsp' => 'yes'));
         $this->assertEquals('utf-8', $header->getParameter('charset'));
+    }
+
+    private function getHeader($name, $encoder, $paramEncoder)
+    {
+        $header = new Swift_Mime_Headers_ParameterizedHeader($name, $encoder, $paramEncoder);
+        $header->setCharset($this->charset);
+
+        return $header;
+    }
+
+    private function getHeaderEncoder($type, $stub = false)
+    {
+        $encoder = $this->getMockery('Swift_Mime_HeaderEncoder')->shouldIgnoreMissing();
+        $encoder->shouldReceive('getName')
+                ->zeroOrMoreTimes()
+                ->andReturn($type);
+
+        return $encoder;
+    }
+
+    private function getParameterEncoder($stub = false)
+    {
+        return $this->getMockery('Swift_Encoder')->shouldIgnoreMissing();
     }
 }

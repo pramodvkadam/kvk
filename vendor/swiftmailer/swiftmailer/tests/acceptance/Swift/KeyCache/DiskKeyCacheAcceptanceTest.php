@@ -6,6 +6,13 @@ class Swift_KeyCache_DiskKeyCacheAcceptanceTest extends \PHPUnit\Framework\TestC
     private $key1;
     private $key2;
 
+    protected function setUp()
+    {
+        $this->key1 = uniqid(microtime(true), true);
+        $this->key2 = uniqid(microtime(true), true);
+        $this->cache = new Swift_KeyCache_DiskKeyCache(new Swift_KeyCache_SimpleKeyCacheInputStream(), sys_get_temp_dir());
+    }
+
     public function testStringDataCanBeSetAndFetched()
     {
         $this->cache->setString(
@@ -162,12 +169,5 @@ class Swift_KeyCache_DiskKeyCacheAcceptanceTest extends \PHPUnit\Framework\TestC
         $is->write('abc');
         $is->write('xyz');
         $this->assertEquals('abcxyz', $this->cache->getString($this->key1, 'foo'));
-    }
-
-    protected function setUp()
-    {
-        $this->key1 = uniqid(microtime(true), true);
-        $this->key2 = uniqid(microtime(true), true);
-        $this->cache = new Swift_KeyCache_DiskKeyCache(new Swift_KeyCache_SimpleKeyCacheInputStream(), sys_get_temp_dir());
     }
 }

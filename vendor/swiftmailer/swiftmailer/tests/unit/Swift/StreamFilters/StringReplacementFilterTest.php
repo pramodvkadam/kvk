@@ -8,11 +8,6 @@ class Swift_StreamFilters_StringReplacementFilterTest extends \PHPUnit\Framework
         $this->assertEquals('XbarYbarZ', $filter->filter('XfooYfooZ'));
     }
 
-    private function createFilter($search, $replace)
-    {
-        return new Swift_StreamFilters_StringReplacementFilter($search, $replace);
-    }
-
     public function testShouldBufferReturnsTrueIfPartialMatchAtEndOfBuffer()
     {
         $filter = $this->createFilter('foo', 'bar');
@@ -55,5 +50,10 @@ class Swift_StreamFilters_StringReplacementFilterTest extends \PHPUnit\Framework
     {
         $filter = $this->createFilter("\r\n", "\n");
         $this->assertFalse($filter->shouldBuffer(''));
+    }
+
+    private function createFilter($search, $replace)
+    {
+        return new Swift_StreamFilters_StringReplacementFilter($search, $replace);
     }
 }

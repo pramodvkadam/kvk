@@ -1,4 +1,4 @@
-title: Staff
+title: 'Staff Reorder'
 modelClass: Pramod\StaffViewer\Models\Staff
 nameFrom: fullname
 toolbar:

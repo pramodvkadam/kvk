@@ -17,7 +17,21 @@ class MailLayout extends Model
 {
     use \October\Rain\Database\Traits\Validation;
 
-    public static $codeCache;
+    /**
+     * @var string The database table used by the model.
+     */
+    protected $table = 'system_mail_layouts';
+
+    /**
+     * @var array Guarded fields
+     */
+    protected $guarded = [];
+
+    /**
+     * @var array Fillable fields
+     */
+    protected $fillable = [];
+
     /**
      * @var array Validation rules
      */
@@ -26,22 +40,14 @@ class MailLayout extends Model
         'name'                  => 'required',
         'content_html'          => 'required',
     ];
-    /**
-     * @var string The database table used by the model.
-     */
-    protected $table = 'system_mail_layouts';
-    /**
-     * @var array Guarded fields
-     */
-    protected $guarded = [];
-    /**
-     * @var array Fillable fields
-     */
-    protected $fillable = [];
 
-    public static function getIdFromCode($code)
+    public static $codeCache;
+
+    public function beforeDelete()
     {
-        return array_get(self::listCodes(), $code);
+        if ($this->is_locked) {
+            throw new ApplicationException('Cannot delete this template because it is locked');
+        }
     }
 
     public static function listCodes()
@@ -51,6 +57,11 @@ class MailLayout extends Model
         }
 
         return self::$codeCache = self::lists('id', 'code');
+    }
+
+    public static function getIdFromCode($code)
+    {
+        return array_get(self::listCodes(), $code);
     }
 
     /**
@@ -74,6 +85,21 @@ class MailLayout extends Model
             $layout->fillFromView($path);
             $layout->save();
         }
+    }
+
+    public function fillFromCode($code = null)
+    {
+        $definitions = MailManager::instance()->listRegisteredLayouts();
+
+        if ($code === null) {
+            $code = $this->code;
+        }
+
+        if (!$definition = array_get($definitions, $code)) {
+            throw new ApplicationException('Unable to find a registered layout with code: '.$code);
+        }
+
+        $this->fillFromView($definition);
     }
 
     public function fillFromView($path)
@@ -107,27 +133,5 @@ class MailLayout extends Model
     protected static function getTemplateSections($code)
     {
         return MailParser::parse(FileHelper::get(View::make($code)->getPath()));
-    }
-
-    public function beforeDelete()
-    {
-        if ($this->is_locked) {
-            throw new ApplicationException('Cannot delete this template because it is locked');
-        }
-    }
-
-    public function fillFromCode($code = null)
-    {
-        $definitions = MailManager::instance()->listRegisteredLayouts();
-
-        if ($code === null) {
-            $code = $this->code;
-        }
-
-        if (!$definition = array_get($definitions, $code)) {
-            throw new ApplicationException('Unable to find a registered layout with code: '.$code);
-        }
-
-        $this->fillFromView($definition);
     }
 }

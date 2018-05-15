@@ -63,6 +63,19 @@ class Repository implements ArrayAccess, RepositoryContract
     }
 
     /**
+     * Determine if the given configuration value exists.
+     *
+     * @param  string  $key
+     * @return bool
+     */
+    public function has($key)
+    {
+        $default = microtime(true);
+
+        return $this->get($key, $default) !== $default;
+    }
+
+    /**
      * Determine if a configuration group exists.
      *
      * @param  string  $key
@@ -73,6 +86,148 @@ class Repository implements ArrayAccess, RepositoryContract
         list($namespace, $group, $item) = $this->parseConfigKey($key);
 
         return $this->loader->exists($group, $namespace);
+    }
+
+    /**
+     * Get the specified configuration value.
+     *
+     * @param  string  $key
+     * @param  mixed   $default
+     * @return mixed
+     */
+    public function get($key, $default = null)
+    {
+        list($namespace, $group, $item) = $this->parseConfigKey($key);
+
+        // Configuration items are actually keyed by "collection", which is simply a
+        // combination of each namespace and groups, which allows a unique way to
+        // identify the arrays of configuration items for the particular files.
+        $collection = $this->getCollection($group, $namespace);
+
+        $this->load($group, $namespace, $collection);
+
+        return array_get($this->items[$collection], $item, $default);
+    }
+
+    /**
+     * Set a given configuration value.
+     *
+     * @param  array|string  $key
+     * @param  mixed   $value
+     * @return void
+     */
+    public function set($key, $value = null)
+    {
+        if (is_array($key)) {
+            foreach ($key as $innerKey => $innerValue) {
+                $this->set($innerKey, $innerValue);
+            }
+        }
+        else {
+            list($namespace, $group, $item) = $this->parseConfigKey($key);
+
+            $collection = $this->getCollection($group, $namespace);
+
+            // We'll need to go ahead and lazy load each configuration groups even when
+            // we're just setting a configuration item so that the set item does not
+            // get overwritten if a different item in the group is requested later.
+            $this->load($group, $namespace, $collection);
+
+            if (is_null($item)) {
+                $this->items[$collection] = $value;
+            }
+            else {
+                array_set($this->items[$collection], $item, $value);
+            }
+        }
+    }
+
+    /**
+     * Prepend a value onto an array configuration value.
+     *
+     * @param  string  $key
+     * @param  mixed  $value
+     * @return void
+     */
+    public function prepend($key, $value)
+    {
+        $array = $this->get($key);
+
+        array_unshift($array, $value);
+
+        $this->set($key, $array);
+    }
+
+    /**
+     * Push a value onto an array configuration value.
+     *
+     * @param  string  $key
+     * @param  mixed  $value
+     * @return void
+     */
+    public function push($key, $value)
+    {
+        $array = $this->get($key);
+
+        $array[] = $value;
+
+        $this->set($key, $array);
+    }
+
+    /**
+     * Get all of the configuration items for the application.
+     *
+     * @return array
+     */
+    public function all()
+    {
+        return $this->items;
+    }
+
+    /**
+     * Load the configuration group for the key.
+     *
+     * @param  string  $group
+     * @param  string  $namespace
+     * @param  string  $collection
+     * @return void
+     */
+    protected function load($group, $namespace, $collection)
+    {
+        $env = $this->environment;
+
+        // If we've already loaded this collection, we will just bail out since we do
+        // not want to load it again. Once items are loaded a first time they will
+        // stay kept in memory within this class and not loaded from disk again.
+        if (isset($this->items[$collection])) {
+            return;
+        }
+
+        $items = $this->loader->load($env, $group, $namespace);
+
+        // If we've already loaded this collection, we will just bail out since we do
+        // not want to load it again. Once items are loaded a first time they will
+        // stay kept in memory within this class and not loaded from disk again.
+        if (isset($this->afterLoad[$namespace])) {
+            $items = $this->callAfterLoad($namespace, $group, $items);
+        }
+
+        $this->items[$collection] = $items;
+    }
+
+    /**
+     * Call the after load callback for a namespace.
+     *
+     * @param  string  $namespace
+     * @param  string  $group
+     * @param  array   $items
+     * @return array
+     */
+    protected function callAfterLoad($namespace, $group, $items)
+    {
+        $callback = $this->afterLoad[$namespace];
+
+        return call_user_func($callback, $this, $group, $items);
     }
 
     /**
@@ -139,162 +294,6 @@ class Repository implements ArrayAccess, RepositoryContract
     }
 
     /**
-     * Prepend a value onto an array configuration value.
-     *
-     * @param  string  $key
-     * @param  mixed  $value
-     * @return void
-     */
-    public function prepend($key, $value)
-    {
-        $array = $this->get($key);
-
-        array_unshift($array, $value);
-
-        $this->set($key, $array);
-    }
-
-    /**
-     * Get the specified configuration value.
-     *
-     * @param  string  $key
-     * @param  mixed   $default
-     * @return mixed
-     */
-    public function get($key, $default = null)
-    {
-        list($namespace, $group, $item) = $this->parseConfigKey($key);
-
-        // Configuration items are actually keyed by "collection", which is simply a
-        // combination of each namespace and groups, which allows a unique way to
-        // identify the arrays of configuration items for the particular files.
-        $collection = $this->getCollection($group, $namespace);
-
-        $this->load($group, $namespace, $collection);
-
-        return array_get($this->items[$collection], $item, $default);
-    }
-
-    /**
-     * Get the collection identifier.
-     *
-     * @param  string  $group
-     * @param  string  $namespace
-     * @return string
-     */
-    protected function getCollection($group, $namespace = null)
-    {
-        $namespace = $namespace ?: '*';
-
-        return $namespace.'::'.$group;
-    }
-
-    /**
-     * Load the configuration group for the key.
-     *
-     * @param  string  $group
-     * @param  string  $namespace
-     * @param  string  $collection
-     * @return void
-     */
-    protected function load($group, $namespace, $collection)
-    {
-        $env = $this->environment;
-
-        // If we've already loaded this collection, we will just bail out since we do
-        // not want to load it again. Once items are loaded a first time they will
-        // stay kept in memory within this class and not loaded from disk again.
-        if (isset($this->items[$collection])) {
-            return;
-        }
-
-        $items = $this->loader->load($env, $group, $namespace);
-
-        // If we've already loaded this collection, we will just bail out since we do
-        // not want to load it again. Once items are loaded a first time they will
-        // stay kept in memory within this class and not loaded from disk again.
-        if (isset($this->afterLoad[$namespace])) {
-            $items = $this->callAfterLoad($namespace, $group, $items);
-        }
-
-        $this->items[$collection] = $items;
-    }
-
-    /**
-     * Call the after load callback for a namespace.
-     *
-     * @param  string  $namespace
-     * @param  string  $group
-     * @param  array   $items
-     * @return array
-     */
-    protected function callAfterLoad($namespace, $group, $items)
-    {
-        $callback = $this->afterLoad[$namespace];
-
-        return call_user_func($callback, $this, $group, $items);
-    }
-
-    /**
-     * Set a given configuration value.
-     *
-     * @param  array|string  $key
-     * @param  mixed   $value
-     * @return void
-     */
-    public function set($key, $value = null)
-    {
-        if (is_array($key)) {
-            foreach ($key as $innerKey => $innerValue) {
-                $this->set($innerKey, $innerValue);
-            }
-        }
-        else {
-            list($namespace, $group, $item) = $this->parseConfigKey($key);
-
-            $collection = $this->getCollection($group, $namespace);
-
-            // We'll need to go ahead and lazy load each configuration groups even when
-            // we're just setting a configuration item so that the set item does not
-            // get overwritten if a different item in the group is requested later.
-            $this->load($group, $namespace, $collection);
-
-            if (is_null($item)) {
-                $this->items[$collection] = $value;
-            }
-            else {
-                array_set($this->items[$collection], $item, $value);
-            }
-        }
-    }
-
-    /**
-     * Push a value onto an array configuration value.
-     *
-     * @param  string  $key
-     * @param  mixed  $value
-     * @return void
-     */
-    public function push($key, $value)
-    {
-        $array = $this->get($key);
-
-        $array[] = $value;
-
-        $this->set($key, $array);
-    }
-
-    /**
-     * Get all of the configuration items for the application.
-     *
-     * @return array
-     */
-    public function all()
-    {
-        return $this->items;
-    }
-
-    /**
      * Register a package for cascading configuration.
      *
      * @param  string  $namespace
@@ -321,18 +320,6 @@ class Repository implements ArrayAccess, RepositoryContract
     }
 
     /**
-     * Add a new namespace to the loader.
-     *
-     * @param  string  $namespace
-     * @param  string  $hint
-     * @return void
-     */
-    public function addNamespace($namespace, $hint)
-    {
-        $this->loader->addNamespace($namespace, $hint);
-    }
-
-    /**
      * Register an after load callback for a given namespace.
      *
      * @param  string   $namespace
@@ -342,6 +329,32 @@ class Repository implements ArrayAccess, RepositoryContract
     public function afterLoading($namespace, Closure $callback)
     {
         $this->afterLoad[$namespace] = $callback;
+    }
+
+    /**
+     * Get the collection identifier.
+     *
+     * @param  string  $group
+     * @param  string  $namespace
+     * @return string
+     */
+    protected function getCollection($group, $namespace = null)
+    {
+        $namespace = $namespace ?: '*';
+
+        return $namespace.'::'.$group;
+    }
+
+    /**
+     * Add a new namespace to the loader.
+     *
+     * @param  string  $namespace
+     * @param  string  $hint
+     * @return void
+     */
+    public function addNamespace($namespace, $hint)
+    {
+        $this->loader->addNamespace($namespace, $hint);
     }
 
     /**
@@ -415,19 +428,6 @@ class Repository implements ArrayAccess, RepositoryContract
     public function offsetExists($key)
     {
         return $this->has($key);
-    }
-
-    /**
-     * Determine if the given configuration value exists.
-     *
-     * @param  string  $key
-     * @return bool
-     */
-    public function has($key)
-    {
-        $default = microtime(true);
-
-        return $this->get($key, $default) !== $default;
     }
 
     /**

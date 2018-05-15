@@ -108,35 +108,6 @@ class NodeDumper
         return $r . "\n)";
     }
 
-    protected function dumpPosition(Node $node) {
-        if (!$node->hasAttribute('startLine') || !$node->hasAttribute('endLine')) {
-            return null;
-        }
-
-        $start = $node->getAttribute('startLine');
-        $end = $node->getAttribute('endLine');
-        if ($node->hasAttribute('startFilePos') && $node->hasAttribute('endFilePos')
-            && null !== $this->code
-        ) {
-            $start .= ':' . $this->toColumn($this->code, $node->getAttribute('startFilePos'));
-            $end .= ':' . $this->toColumn($this->code, $node->getAttribute('endFilePos'));
-        }
-        return "[$start - $end]";
-    }
-
-    private function toColumn($code, $pos) {
-        if ($pos > strlen($code)) {
-            throw new \RuntimeException('Invalid position information');
-        }
-
-        $lineStartPos = strrpos($code, "\n", $pos - strlen($code));
-        if (false === $lineStartPos) {
-            $lineStartPos = -1;
-        }
-
-        return $pos - $lineStartPos;
-    }
-
     protected function dumpFlags($flags) {
         $strs = [];
         if ($flags & Class_::MODIFIER_PUBLIC) {
@@ -179,8 +150,6 @@ class NodeDumper
         return $map[$type] . ' (' . $type . ')';
     }
 
-    // Copied from Error class
-
     protected function dumpUseType($type) {
         $map = [
             Use_::TYPE_UNKNOWN  => 'TYPE_UNKNOWN',
@@ -193,5 +162,35 @@ class NodeDumper
             return $type;
         }
         return $map[$type] . ' (' . $type . ')';
+    }
+
+    protected function dumpPosition(Node $node) {
+        if (!$node->hasAttribute('startLine') || !$node->hasAttribute('endLine')) {
+            return null;
+        }
+
+        $start = $node->getAttribute('startLine');
+        $end = $node->getAttribute('endLine');
+        if ($node->hasAttribute('startFilePos') && $node->hasAttribute('endFilePos')
+            && null !== $this->code
+        ) {
+            $start .= ':' . $this->toColumn($this->code, $node->getAttribute('startFilePos'));
+            $end .= ':' . $this->toColumn($this->code, $node->getAttribute('endFilePos'));
+        }
+        return "[$start - $end]";
+    }
+
+    // Copied from Error class
+    private function toColumn($code, $pos) {
+        if ($pos > strlen($code)) {
+            throw new \RuntimeException('Invalid position information');
+        }
+
+        $lineStartPos = strrpos($code, "\n", $pos - strlen($code));
+        if (false === $lineStartPos) {
+            $lineStartPos = -1;
+        }
+
+        return $pos - $lineStartPos;
     }
 }

@@ -65,11 +65,6 @@ class FilesystemUtils
         return $directory;
     }
 
-    public static function getTemporaryDirectory()
-    {
-        return realpath(sys_get_temp_dir());
-    }
-
     /**
      * Creates a temporary file.
      *
@@ -80,5 +75,10 @@ class FilesystemUtils
     public static function createTemporaryFile($prefix)
     {
         return tempnam(self::getTemporaryDirectory(), 'assetic_'.$prefix);
+    }
+
+    public static function getTemporaryDirectory()
+    {
+        return realpath(sys_get_temp_dir());
     }
 }

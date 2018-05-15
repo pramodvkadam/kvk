@@ -17,17 +17,6 @@
  */
 class Twig_Lexer
 {
-    const STATE_DATA = 0;
-    const STATE_BLOCK = 1;
-    const STATE_VAR = 2;
-    const STATE_STRING = 3;
-    const STATE_INTERPOLATION = 4;
-    const REGEX_NAME = '/[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*/A';
-    const REGEX_NUMBER = '/[0-9]+(?:\.[0-9]+)?/A';
-    const REGEX_STRING = '/"([^#"\\\\]*(?:\\\\.[^#"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'/As';
-    const REGEX_DQ_STRING_DELIM = '/"/A';
-    const REGEX_DQ_STRING_PART = '/[^#"\\\\]*(?:(?:\\\\.|#(?!\{))[^#"\\\\]*)*/As';
-    const PUNCTUATION = '()[]{}?:.,|';
     private $tokens;
     private $code;
     private $cursor;
@@ -43,6 +32,19 @@ class Twig_Lexer
     private $position;
     private $positions;
     private $currentVarBlockLine;
+
+    const STATE_DATA = 0;
+    const STATE_BLOCK = 1;
+    const STATE_VAR = 2;
+    const STATE_STRING = 3;
+    const STATE_INTERPOLATION = 4;
+
+    const REGEX_NAME = '/[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*/A';
+    const REGEX_NUMBER = '/[0-9]+(?:\.[0-9]+)?/A';
+    const REGEX_STRING = '/"([^#"\\\\]*(?:\\\\.[^#"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'/As';
+    const REGEX_DQ_STRING_DELIM = '/"/A';
+    const REGEX_DQ_STRING_PART = '/[^#"\\\\]*(?:(?:\\\\.|#(?!\{))[^#"\\\\]*)*/As';
+    const PUNCTUATION = '()[]{}?:.,|';
 
     public function __construct(Twig_Environment $env, array $options = array())
     {
@@ -68,36 +70,6 @@ class Twig_Lexer
             'interpolation_start' => '/'.preg_quote($this->options['interpolation'][0], '/').'\s*/A',
             'interpolation_end' => '/\s*'.preg_quote($this->options['interpolation'][1], '/').'/A',
         );
-    }
-
-    private function getOperatorRegex()
-    {
-        $operators = array_merge(
-            array('='),
-            array_keys($this->env->getUnaryOperators()),
-            array_keys($this->env->getBinaryOperators())
-        );
-
-        $operators = array_combine($operators, array_map('strlen', $operators));
-        arsort($operators);
-
-        $regex = array();
-        foreach ($operators as $operator => $length) {
-            // an operator that ends with a character must be followed by
-            // a whitespace or a parenthesis
-            if (ctype_alpha($operator[$length - 1])) {
-                $r = preg_quote($operator, '/').'(?=[\s()])';
-            } else {
-                $r = preg_quote($operator, '/');
-            }
-
-            // an operator with a space can be any amount of whitespaces
-            $r = preg_replace('/\s+/', '\s+', $r);
-
-            $regex[] = $r;
-        }
-
-        return '/'.implode('|', $regex).'/A';
     }
 
     public function tokenize(Twig_Source $source)
@@ -209,53 +181,6 @@ class Twig_Lexer
         }
     }
 
-    private function pushToken($type, $value = '')
-    {
-        // do not push empty text tokens
-        if (Twig_Token::TEXT_TYPE === $type && '' === $value) {
-            return;
-        }
-
-        $this->tokens[] = new Twig_Token($type, $value, $this->lineno);
-    }
-
-    private function moveCursor($text)
-    {
-        $this->cursor += strlen($text);
-        $this->lineno += substr_count($text, "\n");
-    }
-
-    private function lexComment()
-    {
-        if (!preg_match($this->regexes['lex_comment'], $this->code, $match, PREG_OFFSET_CAPTURE, $this->cursor)) {
-            throw new Twig_Error_Syntax('Unclosed comment.', $this->lineno, $this->source);
-        }
-
-        $this->moveCursor(substr($this->code, $this->cursor, $match[0][1] - $this->cursor).$match[0][0]);
-    }
-
-    private function lexRawData()
-    {
-        if (!preg_match($this->regexes['lex_raw_data'], $this->code, $match, PREG_OFFSET_CAPTURE, $this->cursor)) {
-            throw new Twig_Error_Syntax('Unexpected end of file: Unclosed "verbatim" block.', $this->lineno, $this->source);
-        }
-
-        $text = substr($this->code, $this->cursor, $match[0][1] - $this->cursor);
-        $this->moveCursor($text.$match[0][0]);
-
-        if (false !== strpos($match[1][0], $this->options['whitespace_trim'])) {
-            $text = rtrim($text);
-        }
-
-        $this->pushToken(Twig_Token::TEXT_TYPE, $text);
-    }
-
-    private function pushState($state)
-    {
-        $this->states[] = $this->state;
-        $this->state = $state;
-    }
-
     private function lexBlock()
     {
         if (empty($this->brackets) && preg_match($this->regexes['lex_block'], $this->code, $match, null, $this->cursor)) {
@@ -267,13 +192,15 @@ class Twig_Lexer
         }
     }
 
-    private function popState()
+    private function lexVar()
     {
-        if (0 === count($this->states)) {
-            throw new LogicException('Cannot pop state without a previous state.');
+        if (empty($this->brackets) && preg_match($this->regexes['lex_var'], $this->code, $match, null, $this->cursor)) {
+            $this->pushToken(Twig_Token::VAR_END_TYPE);
+            $this->moveCursor($match[0]);
+            $this->popState();
+        } else {
+            $this->lexExpression();
         }
-
-        $this->state = array_pop($this->states);
     }
 
     private function lexExpression()
@@ -344,15 +271,29 @@ class Twig_Lexer
         }
     }
 
-    private function lexVar()
+    private function lexRawData()
     {
-        if (empty($this->brackets) && preg_match($this->regexes['lex_var'], $this->code, $match, null, $this->cursor)) {
-            $this->pushToken(Twig_Token::VAR_END_TYPE);
-            $this->moveCursor($match[0]);
-            $this->popState();
-        } else {
-            $this->lexExpression();
+        if (!preg_match($this->regexes['lex_raw_data'], $this->code, $match, PREG_OFFSET_CAPTURE, $this->cursor)) {
+            throw new Twig_Error_Syntax('Unexpected end of file: Unclosed "verbatim" block.', $this->lineno, $this->source);
         }
+
+        $text = substr($this->code, $this->cursor, $match[0][1] - $this->cursor);
+        $this->moveCursor($text.$match[0][0]);
+
+        if (false !== strpos($match[1][0], $this->options['whitespace_trim'])) {
+            $text = rtrim($text);
+        }
+
+        $this->pushToken(Twig_Token::TEXT_TYPE, $text);
+    }
+
+    private function lexComment()
+    {
+        if (!preg_match($this->regexes['lex_comment'], $this->code, $match, PREG_OFFSET_CAPTURE, $this->cursor)) {
+            throw new Twig_Error_Syntax('Unclosed comment.', $this->lineno, $this->source);
+        }
+
+        $this->moveCursor(substr($this->code, $this->cursor, $match[0][1] - $this->cursor).$match[0][0]);
     }
 
     private function lexString()
@@ -387,6 +328,67 @@ class Twig_Lexer
         } else {
             $this->lexExpression();
         }
+    }
+
+    private function pushToken($type, $value = '')
+    {
+        // do not push empty text tokens
+        if (Twig_Token::TEXT_TYPE === $type && '' === $value) {
+            return;
+        }
+
+        $this->tokens[] = new Twig_Token($type, $value, $this->lineno);
+    }
+
+    private function moveCursor($text)
+    {
+        $this->cursor += strlen($text);
+        $this->lineno += substr_count($text, "\n");
+    }
+
+    private function getOperatorRegex()
+    {
+        $operators = array_merge(
+            array('='),
+            array_keys($this->env->getUnaryOperators()),
+            array_keys($this->env->getBinaryOperators())
+        );
+
+        $operators = array_combine($operators, array_map('strlen', $operators));
+        arsort($operators);
+
+        $regex = array();
+        foreach ($operators as $operator => $length) {
+            // an operator that ends with a character must be followed by
+            // a whitespace or a parenthesis
+            if (ctype_alpha($operator[$length - 1])) {
+                $r = preg_quote($operator, '/').'(?=[\s()])';
+            } else {
+                $r = preg_quote($operator, '/');
+            }
+
+            // an operator with a space can be any amount of whitespaces
+            $r = preg_replace('/\s+/', '\s+', $r);
+
+            $regex[] = $r;
+        }
+
+        return '/'.implode('|', $regex).'/A';
+    }
+
+    private function pushState($state)
+    {
+        $this->states[] = $this->state;
+        $this->state = $state;
+    }
+
+    private function popState()
+    {
+        if (0 === count($this->states)) {
+            throw new LogicException('Cannot pop state without a previous state.');
+        }
+
+        $this->state = array_pop($this->states);
     }
 }
 

@@ -75,6 +75,28 @@ abstract class BaseAsset implements AssetInterface
         $this->filters->clear();
     }
 
+    /**
+     * Encapsulates asset loading logic.
+     *
+     * @param string          $content          The asset content
+     * @param FilterInterface $additionalFilter An additional filter
+     */
+    protected function doLoad($content, FilterInterface $additionalFilter = null)
+    {
+        $filter = clone $this->filters;
+        if ($additionalFilter) {
+            $filter->ensure($additionalFilter);
+        }
+
+        $asset = clone $this;
+        $asset->setContent($content);
+
+        $filter->filterLoad($asset);
+        $this->content = $asset->getContent();
+
+        $this->loaded = true;
+    }
+
     public function dump(FilterInterface $additionalFilter = null)
     {
         if (!$this->loaded) {
@@ -90,6 +112,16 @@ abstract class BaseAsset implements AssetInterface
         $filter->filterDump($asset);
 
         return $asset->getContent();
+    }
+
+    public function getContent()
+    {
+        return $this->content;
+    }
+
+    public function setContent($content)
+    {
+        $this->content = $content;
     }
 
     public function getSourceRoot()
@@ -130,11 +162,6 @@ abstract class BaseAsset implements AssetInterface
         return $this->vars;
     }
 
-    public function getValues()
-    {
-        return $this->values;
-    }
-
     public function setValues(array $values)
     {
         foreach ($values as $var => $v) {
@@ -147,35 +174,8 @@ abstract class BaseAsset implements AssetInterface
         $this->loaded = false;
     }
 
-    /**
-     * Encapsulates asset loading logic.
-     *
-     * @param string          $content          The asset content
-     * @param FilterInterface $additionalFilter An additional filter
-     */
-    protected function doLoad($content, FilterInterface $additionalFilter = null)
+    public function getValues()
     {
-        $filter = clone $this->filters;
-        if ($additionalFilter) {
-            $filter->ensure($additionalFilter);
-        }
-
-        $asset = clone $this;
-        $asset->setContent($content);
-
-        $filter->filterLoad($asset);
-        $this->content = $asset->getContent();
-
-        $this->loaded = true;
-    }
-
-    public function getContent()
-    {
-        return $this->content;
-    }
-
-    public function setContent($content)
-    {
-        $this->content = $content;
+        return $this->values;
     }
 }

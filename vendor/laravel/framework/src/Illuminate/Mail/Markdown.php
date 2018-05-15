@@ -45,30 +45,6 @@ class Markdown
     }
 
     /**
-     * Register new mail component paths.
-     *
-     * @param  array  $paths
-     * @return void
-     */
-    public function loadComponentsFrom(array $paths = [])
-    {
-        $this->componentPaths = $paths;
-    }
-
-    /**
-     * Parse the given Markdown text into HTML.
-     *
-     * @param  string  $text
-     * @return \Illuminate\Support\HtmlString
-     */
-    public static function parse($text)
-    {
-        $parsedown = new Parsedown;
-
-        return new HtmlString($parsedown->text($text));
-    }
-
-    /**
      * Render the Markdown template into HTML.
      *
      * @param  string  $view
@@ -87,30 +63,6 @@ class Markdown
         return new HtmlString(($inliner ?: new CssToInlineStyles)->convert(
             $contents, $this->view->make('mail::themes.'.$this->theme)->render()
         ));
-    }
-
-    /**
-     * Get the HTML component paths.
-     *
-     * @return array
-     */
-    public function htmlComponentPaths()
-    {
-        return array_map(function ($path) {
-            return $path.'/html';
-        }, $this->componentPaths());
-    }
-
-    /**
-     * Get the component paths.
-     *
-     * @return array
-     */
-    protected function componentPaths()
-    {
-        return array_unique(array_merge($this->componentPaths, [
-            __DIR__.'/resources/views',
-        ]));
     }
 
     /**
@@ -134,6 +86,31 @@ class Markdown
     }
 
     /**
+     * Parse the given Markdown text into HTML.
+     *
+     * @param  string  $text
+     * @return \Illuminate\Support\HtmlString
+     */
+    public static function parse($text)
+    {
+        $parsedown = new Parsedown;
+
+        return new HtmlString($parsedown->text($text));
+    }
+
+    /**
+     * Get the HTML component paths.
+     *
+     * @return array
+     */
+    public function htmlComponentPaths()
+    {
+        return array_map(function ($path) {
+            return $path.'/html';
+        }, $this->componentPaths());
+    }
+
+    /**
      * Get the Markdown component paths.
      *
      * @return array
@@ -143,6 +120,29 @@ class Markdown
         return array_map(function ($path) {
             return $path.'/markdown';
         }, $this->componentPaths());
+    }
+
+    /**
+     * Get the component paths.
+     *
+     * @return array
+     */
+    protected function componentPaths()
+    {
+        return array_unique(array_merge($this->componentPaths, [
+            __DIR__.'/resources/views',
+        ]));
+    }
+
+    /**
+     * Register new mail component paths.
+     *
+     * @param  array  $paths
+     * @return void
+     */
+    public function loadComponentsFrom(array $paths = [])
+    {
+        $this->componentPaths = $paths;
     }
 
     /**

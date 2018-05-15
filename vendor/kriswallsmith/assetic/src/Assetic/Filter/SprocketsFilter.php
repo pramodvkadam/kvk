@@ -120,6 +120,16 @@ EOF;
         $asset->setContent($proc->getOutput());
     }
 
+    public function filterDump(AssetInterface $asset)
+    {
+    }
+
+    public function getChildren(AssetFactory $factory, $content, $loadPath = null)
+    {
+        // todo
+        return array();
+    }
+
     private function getHack(AssetInterface $asset)
     {
         static $format = <<<'EOF'
@@ -138,15 +148,5 @@ EOF;
         if ($dir = $asset->getSourceDirectory()) {
             return sprintf($format, var_export($dir, true));
         }
-    }
-
-    public function filterDump(AssetInterface $asset)
-    {
-    }
-
-    public function getChildren(AssetFactory $factory, $content, $loadPath = null)
-    {
-        // todo
-        return array();
     }
 }

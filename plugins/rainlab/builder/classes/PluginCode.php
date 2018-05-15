@@ -31,12 +31,6 @@ class PluginCode
         $this->pluginCode = trim($pluginCode);
     }
 
-    private function validateCodeWord($str)
-    {
-        $str = trim($str);
-        return strlen($str) && preg_match('/^[a-z]+[a-z0-9]+$/i', $str);
-    }
-
     public static function createFromNamespace($namespace)
     {
         $namespaceParts = explode('\\', $namespace);
@@ -50,6 +44,11 @@ class PluginCode
         return new self($authorCode.'.'.$pluginCode);
     }
 
+    public function toPluginNamespace()
+    {
+        return $this->authorCode.'\\'.$this->pluginCode;
+    }
+
     public function toUrl()
     {
         return strtolower($this->authorCode).'/'.strtolower($this->pluginCode);
@@ -60,9 +59,9 @@ class PluginCode
         return $this->toPluginNamespace().'\\Updates';
     }
 
-    public function toPluginNamespace()
+    public function toFilesystemPath()
     {
-        return $this->authorCode.'\\'.$this->pluginCode;
+        return strtolower($this->authorCode.'/'.$this->pluginCode);
     }
 
     public function toCode()
@@ -73,11 +72,6 @@ class PluginCode
     public function toPluginFilePath()
     {
         return '$/'.$this->toFilesystemPath().'/plugin.yaml';
-    }
-
-    public function toFilesystemPath()
-    {
-        return strtolower($this->authorCode.'/'.$this->pluginCode);
     }
 
     public function toPluginInformationFilePath()
@@ -103,5 +97,11 @@ class PluginCode
     public function getPluginCode()
     {
         return $this->pluginCode;
+    }
+
+    private function validateCodeWord($str)
+    {
+        $str = trim($str);
+        return strlen($str) && preg_match('/^[a-z]+[a-z0-9]+$/i', $str);
     }
 }

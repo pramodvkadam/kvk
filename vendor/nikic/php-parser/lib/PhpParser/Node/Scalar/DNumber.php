@@ -20,6 +20,10 @@ class DNumber extends Scalar
         $this->value = $value;
     }
 
+    public function getSubNodeNames() {
+        return array('value');
+    }
+
     /**
      * @internal
      *
@@ -56,9 +60,5 @@ class DNumber extends Scalar
 
         // dec
         return (float) $str;
-    }
-
-    public function getSubNodeNames() {
-        return array('value');
     }
 }

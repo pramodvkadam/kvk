@@ -109,25 +109,6 @@ class Twig_Environment
         $this->addExtension(new Twig_Extension_Optimizer($options['optimizations']));
     }
 
-    public function addExtension(Twig_ExtensionInterface $extension)
-    {
-        $this->extensionSet->addExtension($extension);
-        $this->updateOptionsHash();
-    }
-
-    private function updateOptionsHash()
-    {
-        $this->optionsHash = implode(':', array(
-            $this->extensionSet->getSignature(),
-            PHP_MAJOR_VERSION,
-            PHP_MINOR_VERSION,
-            self::VERSION,
-            (int) $this->debug,
-            $this->baseTemplateClass,
-            (int) $this->strictVariables,
-        ));
-    }
-
     /**
      * Gets the base template class for compiled templates.
      *
@@ -191,6 +172,16 @@ class Twig_Environment
     public function disableAutoReload()
     {
         $this->autoReload = false;
+    }
+
+    /**
+     * Checks if the auto_reload option is enabled.
+     *
+     * @return bool true if auto_reload is enabled, false otherwise
+     */
+    public function isAutoReload()
+    {
+        return $this->autoReload;
     }
 
     /**
@@ -258,6 +249,30 @@ class Twig_Environment
     }
 
     /**
+     * Gets the template class associated with the given string.
+     *
+     * The generated template class is based on the following parameters:
+     *
+     *  * The cache key for the given template;
+     *  * The currently enabled extensions;
+     *  * Whether the Twig C extension is available or not;
+     *  * PHP version;
+     *  * Twig version;
+     *  * Options with what environment was created.
+     *
+     * @param string   $name  The name for which to calculate the template class name
+     * @param int|null $index The index if it is an embedded template
+     *
+     * @return string The template class name
+     */
+    public function getTemplateClass($name, $index = null)
+    {
+        $key = $this->getLoader()->getCacheKey($name).$this->optionsHash;
+
+        return $this->templateClassPrefix.hash('sha256', $key).(null === $index ? '' : '_'.$index);
+    }
+
+    /**
      * Renders a template.
      *
      * @param string $name    The template name
@@ -272,6 +287,45 @@ class Twig_Environment
     public function render($name, array $context = array())
     {
         return $this->loadTemplate($name)->render($context);
+    }
+
+    /**
+     * Displays a template.
+     *
+     * @param string $name    The template name
+     * @param array  $context An array of parameters to pass to the template
+     *
+     * @throws Twig_Error_Loader  When the template cannot be found
+     * @throws Twig_Error_Syntax  When an error occurred during compilation
+     * @throws Twig_Error_Runtime When an error occurred during rendering
+     */
+    public function display($name, array $context = array())
+    {
+        $this->loadTemplate($name)->display($context);
+    }
+
+    /**
+     * Loads a template.
+     *
+     * @param string|Twig_TemplateWrapper|Twig_Template $name The template name
+     *
+     * @throws Twig_Error_Loader  When the template cannot be found
+     * @throws Twig_Error_Runtime When a previously generated cache is corrupted
+     * @throws Twig_Error_Syntax  When an error occurred during compilation
+     *
+     * @return Twig_TemplateWrapper
+     */
+    public function load($name)
+    {
+        if ($name instanceof Twig_TemplateWrapper) {
+            return $name;
+        }
+
+        if ($name instanceof Twig_Template) {
+            return new Twig_TemplateWrapper($this, $name);
+        }
+
+        return new Twig_TemplateWrapper($this, $this->loadTemplate($name));
     }
 
     /**
@@ -349,176 +403,6 @@ class Twig_Environment
     }
 
     /**
-     * Gets the template class associated with the given string.
-     *
-     * The generated template class is based on the following parameters:
-     *
-     *  * The cache key for the given template;
-     *  * The currently enabled extensions;
-     *  * Whether the Twig C extension is available or not;
-     *  * PHP version;
-     *  * Twig version;
-     *  * Options with what environment was created.
-     *
-     * @param string   $name  The name for which to calculate the template class name
-     * @param int|null $index The index if it is an embedded template
-     *
-     * @return string The template class name
-     */
-    public function getTemplateClass($name, $index = null)
-    {
-        $key = $this->getLoader()->getCacheKey($name).$this->optionsHash;
-
-        return $this->templateClassPrefix.hash('sha256', $key).(null === $index ? '' : '_'.$index);
-    }
-
-    /**
-     * Gets the Loader instance.
-     *
-     * @return Twig_LoaderInterface
-     */
-    public function getLoader()
-    {
-        return $this->loader;
-    }
-
-    /**
-     * Checks if the auto_reload option is enabled.
-     *
-     * @return bool true if auto_reload is enabled, false otherwise
-     */
-    public function isAutoReload()
-    {
-        return $this->autoReload;
-    }
-
-    /**
-     * Returns true if the template is still fresh.
-     *
-     * Besides checking the loader for freshness information,
-     * this method also checks if the enabled extensions have
-     * not changed.
-     *
-     * @param string $name The template name
-     * @param int    $time The last modification time of the cached template
-     *
-     * @return bool true if the template is fresh, false otherwise
-     */
-    public function isTemplateFresh($name, $time)
-    {
-        return $this->extensionSet->getLastModified() <= $time && $this->getLoader()->isFresh($name, $time);
-    }
-
-    /**
-     * Compiles a template source code.
-     *
-     * @return string The compiled PHP source code
-     *
-     * @throws Twig_Error_Syntax When there was an error during tokenizing, parsing or compiling
-     */
-    public function compileSource(Twig_Source $source)
-    {
-        try {
-            return $this->compile($this->parse($this->tokenize($source)));
-        } catch (Twig_Error $e) {
-            $e->setSourceContext($source);
-            throw $e;
-        } catch (Exception $e) {
-            throw new Twig_Error_Syntax(sprintf('An exception has been thrown during the compilation of a template ("%s").', $e->getMessage()), -1, $source, $e);
-        }
-    }
-
-    /**
-     * Compiles a node and returns the PHP code.
-     *
-     * @return string The compiled PHP source code
-     */
-    public function compile(Twig_Node $node)
-    {
-        if (null === $this->compiler) {
-            $this->compiler = new Twig_Compiler($this);
-        }
-
-        return $this->compiler->compile($node)->getSource();
-    }
-
-    /**
-     * Converts a token stream to a node tree.
-     *
-     * @return Twig_Node_Module
-     *
-     * @throws Twig_Error_Syntax When the token stream is syntactically or semantically wrong
-     */
-    public function parse(Twig_TokenStream $stream)
-    {
-        if (null === $this->parser) {
-            $this->parser = new Twig_Parser($this);
-        }
-
-        return $this->parser->parse($stream);
-    }
-
-    /**
-     * Tokenizes a source code.
-     *
-     * @return Twig_TokenStream
-     *
-     * @throws Twig_Error_Syntax When the code is syntactically wrong
-     */
-    public function tokenize(Twig_Source $source)
-    {
-        if (null === $this->lexer) {
-            $this->lexer = new Twig_Lexer($this);
-        }
-
-        return $this->lexer->tokenize($source);
-    }
-
-    public function setLoader(Twig_LoaderInterface $loader)
-    {
-        $this->loader = $loader;
-    }
-
-    /**
-     * Displays a template.
-     *
-     * @param string $name    The template name
-     * @param array  $context An array of parameters to pass to the template
-     *
-     * @throws Twig_Error_Loader  When the template cannot be found
-     * @throws Twig_Error_Syntax  When an error occurred during compilation
-     * @throws Twig_Error_Runtime When an error occurred during rendering
-     */
-    public function display($name, array $context = array())
-    {
-        $this->loadTemplate($name)->display($context);
-    }
-
-    /**
-     * Loads a template.
-     *
-     * @param string|Twig_TemplateWrapper|Twig_Template $name The template name
-     *
-     * @throws Twig_Error_Loader  When the template cannot be found
-     * @throws Twig_Error_Runtime When a previously generated cache is corrupted
-     * @throws Twig_Error_Syntax  When an error occurred during compilation
-     *
-     * @return Twig_TemplateWrapper
-     */
-    public function load($name)
-    {
-        if ($name instanceof Twig_TemplateWrapper) {
-            return $name;
-        }
-
-        if ($name instanceof Twig_Template) {
-            return new Twig_TemplateWrapper($this, $name);
-        }
-
-        return new Twig_TemplateWrapper($this, $this->loadTemplate($name));
-    }
-
-    /**
      * Creates a template from source.
      *
      * This method should not be used as a generic way to load templates.
@@ -547,6 +431,23 @@ class Twig_Environment
         }
 
         return $template;
+    }
+
+    /**
+     * Returns true if the template is still fresh.
+     *
+     * Besides checking the loader for freshness information,
+     * this method also checks if the enabled extensions have
+     * not changed.
+     *
+     * @param string $name The template name
+     * @param int    $time The last modification time of the cached template
+     *
+     * @return bool true if the template is fresh, false otherwise
+     */
+    public function isTemplateFresh($name, $time)
+    {
+        return $this->extensionSet->getLastModified() <= $time && $this->getLoader()->isFresh($name, $time);
     }
 
     /**
@@ -591,9 +492,41 @@ class Twig_Environment
         $this->lexer = $lexer;
     }
 
+    /**
+     * Tokenizes a source code.
+     *
+     * @return Twig_TokenStream
+     *
+     * @throws Twig_Error_Syntax When the code is syntactically wrong
+     */
+    public function tokenize(Twig_Source $source)
+    {
+        if (null === $this->lexer) {
+            $this->lexer = new Twig_Lexer($this);
+        }
+
+        return $this->lexer->tokenize($source);
+    }
+
     public function setParser(Twig_Parser $parser)
     {
         $this->parser = $parser;
+    }
+
+    /**
+     * Converts a token stream to a node tree.
+     *
+     * @return Twig_Node_Module
+     *
+     * @throws Twig_Error_Syntax When the token stream is syntactically or semantically wrong
+     */
+    public function parse(Twig_TokenStream $stream)
+    {
+        if (null === $this->parser) {
+            $this->parser = new Twig_Parser($this);
+        }
+
+        return $this->parser->parse($stream);
     }
 
     public function setCompiler(Twig_Compiler $compiler)
@@ -602,13 +535,51 @@ class Twig_Environment
     }
 
     /**
-     * Gets the default template charset.
+     * Compiles a node and returns the PHP code.
      *
-     * @return string The default charset
+     * @return string The compiled PHP source code
      */
-    public function getCharset()
+    public function compile(Twig_Node $node)
     {
-        return $this->charset;
+        if (null === $this->compiler) {
+            $this->compiler = new Twig_Compiler($this);
+        }
+
+        return $this->compiler->compile($node)->getSource();
+    }
+
+    /**
+     * Compiles a template source code.
+     *
+     * @return string The compiled PHP source code
+     *
+     * @throws Twig_Error_Syntax When there was an error during tokenizing, parsing or compiling
+     */
+    public function compileSource(Twig_Source $source)
+    {
+        try {
+            return $this->compile($this->parse($this->tokenize($source)));
+        } catch (Twig_Error $e) {
+            $e->setSourceContext($source);
+            throw $e;
+        } catch (Exception $e) {
+            throw new Twig_Error_Syntax(sprintf('An exception has been thrown during the compilation of a template ("%s").', $e->getMessage()), -1, $source, $e);
+        }
+    }
+
+    public function setLoader(Twig_LoaderInterface $loader)
+    {
+        $this->loader = $loader;
+    }
+
+    /**
+     * Gets the Loader instance.
+     *
+     * @return Twig_LoaderInterface
+     */
+    public function getLoader()
+    {
+        return $this->loader;
     }
 
     /**
@@ -624,6 +595,16 @@ class Twig_Environment
         }
 
         $this->charset = $charset;
+    }
+
+    /**
+     * Gets the default template charset.
+     *
+     * @return string The default charset
+     */
+    public function getCharset()
+    {
+        return $this->charset;
     }
 
     /**
@@ -682,6 +663,12 @@ class Twig_Environment
         throw new Twig_Error_Runtime(sprintf('Unable to load the "%s" runtime.', $class));
     }
 
+    public function addExtension(Twig_ExtensionInterface $extension)
+    {
+        $this->extensionSet->addExtension($extension);
+        $this->updateOptionsHash();
+    }
+
     /**
      * Registers an array of extensions.
      *
@@ -708,6 +695,18 @@ class Twig_Environment
     }
 
     /**
+     * Gets the registered Token Parsers.
+     *
+     * @return Twig_TokenParserInterface[]
+     *
+     * @internal
+     */
+    public function getTokenParsers()
+    {
+        return $this->extensionSet->getTokenParsers();
+    }
+
+    /**
      * Gets registered tags.
      *
      * @return Twig_TokenParserInterface[]
@@ -722,18 +721,6 @@ class Twig_Environment
         }
 
         return $tags;
-    }
-
-    /**
-     * Gets the registered Token Parsers.
-     *
-     * @return Twig_TokenParserInterface[]
-     *
-     * @internal
-     */
-    public function getTokenParsers()
-    {
-        return $this->extensionSet->getTokenParsers();
     }
 
     public function addNodeVisitor(Twig_NodeVisitorInterface $visitor)
@@ -959,6 +946,19 @@ class Twig_Environment
     public function getBinaryOperators()
     {
         return $this->extensionSet->getBinaryOperators();
+    }
+
+    private function updateOptionsHash()
+    {
+        $this->optionsHash = implode(':', array(
+            $this->extensionSet->getSignature(),
+            PHP_MAJOR_VERSION,
+            PHP_MINOR_VERSION,
+            self::VERSION,
+            (int) $this->debug,
+            $this->baseTemplateClass,
+            (int) $this->strictVariables,
+        ));
     }
 }
 

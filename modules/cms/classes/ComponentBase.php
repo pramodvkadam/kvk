@@ -220,6 +220,18 @@ abstract class ComponentBase extends Extendable
     }
 
     /**
+     * Returns the external property name when the property value is an external property reference.
+     * Otherwise the default value specified is returned.
+     * @param string $name The property name
+     * @param mixed $default
+     * @return string
+     */
+    public function propertyName($name, $default = null)
+    {
+        return array_get($this->externalPropertyNames, $name, $default);
+    }
+
+    /**
      * Returns the external property name when the property value is a routing parameter reference.
      * Otherwise the default value specified is returned.
      * @param string $name The property name
@@ -233,18 +245,6 @@ abstract class ComponentBase extends Extendable
         }
 
         return $default;
-    }
-
-    /**
-     * Returns the external property name when the property value is an external property reference.
-     * Otherwise the default value specified is returned.
-     * @param string $name The property name
-     * @param mixed $default
-     * @return string
-     */
-    public function propertyName($name, $default = null)
-    {
-        return array_get($this->externalPropertyNames, $name, $default);
     }
 
     //

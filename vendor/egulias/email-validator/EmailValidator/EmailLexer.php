@@ -179,6 +179,15 @@ class EmailLexer extends AbstractLexer
         return  self::GENERIC;
     }
 
+    protected function isValid($value)
+    {
+        if (isset($this->charValue[$value])) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * @param $value
      * @return bool
@@ -186,15 +195,6 @@ class EmailLexer extends AbstractLexer
     protected function isNullType($value)
     {
         if ($value === "\0") {
-            return true;
-        }
-
-        return false;
-    }
-
-    protected function isValid($value)
-    {
-        if (isset($this->charValue[$value])) {
             return true;
         }
 

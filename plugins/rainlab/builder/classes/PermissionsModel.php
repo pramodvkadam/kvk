@@ -13,12 +13,60 @@ use Lang;
  */
 class PermissionsModel extends PluginYamlModel
 {
+    public $permissions = [];
+
+    protected $yamlSection = 'permissions';
+
+    protected $pluginCodeObj;
+
     protected static $fillable = [
         'permissions'
     ];
-    public $permissions = [];
-    protected $yamlSection = 'permissions';
-    protected $pluginCodeObj;
+
+    public function setPluginCodeObj($pluginCodeObj)
+    {
+        $this->pluginCodeObj = $pluginCodeObj;
+    }
+
+    /**
+     * Converts the model's data to an array before it's saved to a YAML file.
+     * @return array
+     */
+    protected function modelToYamlArray()
+    {
+        $filePermissions = [];
+
+        foreach ($this->permissions as $permission) {
+            if (array_key_exists('id', $permission)) {
+                unset($permission['id']);
+            }
+
+            $permission = $this->trimPermissionProperties($permission);
+
+            if ($this->isEmptyRow($permission)) {
+                continue;
+            }
+
+            if (!isset($permission['permission'])) {
+                throw new ApplicationException('Cannot save permissions - the permission code should not be empty.');
+            }
+
+            $code = $permission['permission'];
+            unset($permission['permission']);
+
+            $filePermissions[$code]  = $permission;
+        }
+
+        return $filePermissions;
+    }
+
+    public function validate()
+    {
+        parent::validate();
+
+        $this->validateDupicatePermissions();
+        $this->validateRequiredProperties();
+    }
 
     public static function getPluginRegistryData($pluginCode)
     {
@@ -40,19 +88,6 @@ class PermissionsModel extends PluginYamlModel
         return $result;
     }
 
-    public function setPluginCodeObj($pluginCodeObj)
-    {
-        $this->pluginCodeObj = $pluginCodeObj;
-    }
-
-    public function validate()
-    {
-        parent::validate();
-
-        $this->validateDupicatePermissions();
-        $this->validateRequiredProperties();
-    }
-
     protected function validateDupicatePermissions()
     {
         foreach ($this->permissions as $outerIndex=>$outerPermission) {
@@ -70,7 +105,7 @@ class PermissionsModel extends PluginYamlModel
 
                 if ($innerIndex != $outerIndex && $outerCode == $innerCode && strlen($outerCode)) {
                     throw new ValidationException([
-                        'permissions' => Lang::get('rainlab.builder::lang.permission.error_duplicate_code',
+                        'permissions' => Lang::get('rainlab.builder::lang.permission.error_duplicate_code', 
                             ['code' => $outerCode]
                         )
                     ]);
@@ -110,38 +145,6 @@ class PermissionsModel extends PluginYamlModel
                 ]);
             }
         }
-    }
-
-    /**
-     * Converts the model's data to an array before it's saved to a YAML file.
-     * @return array
-     */
-    protected function modelToYamlArray()
-    {
-        $filePermissions = [];
-
-        foreach ($this->permissions as $permission) {
-            if (array_key_exists('id', $permission)) {
-                unset($permission['id']);
-            }
-
-            $permission = $this->trimPermissionProperties($permission);
-
-            if ($this->isEmptyRow($permission)) {
-                continue;
-            }
-
-            if (!isset($permission['permission'])) {
-                throw new ApplicationException('Cannot save permissions - the permission code should not be empty.');
-            }
-
-            $code = $permission['permission'];
-            unset($permission['permission']);
-
-            $filePermissions[$code]  = $permission;
-        }
-
-        return $filePermissions;
     }
 
     protected function trimPermissionProperties($permission)

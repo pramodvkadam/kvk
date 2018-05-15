@@ -21,6 +21,20 @@ class ExecutableFinderTest extends TestCase
 {
     private $path;
 
+    protected function tearDown()
+    {
+        if ($this->path) {
+            // Restore path if it was changed.
+            putenv('PATH='.$this->path);
+        }
+    }
+
+    private function setPath($path)
+    {
+        $this->path = getenv('PATH');
+        putenv('PATH='.$path);
+    }
+
     public function testFind()
     {
         if (ini_get('open_basedir')) {
@@ -33,26 +47,6 @@ class ExecutableFinderTest extends TestCase
         $result = $finder->find($this->getPhpBinaryName());
 
         $this->assertSamePath(PHP_BINARY, $result);
-    }
-
-    private function setPath($path)
-    {
-        $this->path = getenv('PATH');
-        putenv('PATH='.$path);
-    }
-
-    private function getPhpBinaryName()
-    {
-        return basename(PHP_BINARY, '\\' === DIRECTORY_SEPARATOR ? '.exe' : '');
-    }
-
-    private function assertSamePath($expected, $tested)
-    {
-        if ('\\' === DIRECTORY_SEPARATOR) {
-            $this->assertEquals(strtolower($expected), strtolower($tested));
-        } else {
-            $this->assertEquals($expected, $tested);
-        }
     }
 
     public function testFindWithDefault()
@@ -123,11 +117,17 @@ class ExecutableFinderTest extends TestCase
         $this->assertSamePath(PHP_BINARY, $result);
     }
 
-    protected function tearDown()
+    private function assertSamePath($expected, $tested)
     {
-        if ($this->path) {
-            // Restore path if it was changed.
-            putenv('PATH='.$this->path);
+        if ('\\' === DIRECTORY_SEPARATOR) {
+            $this->assertEquals(strtolower($expected), strtolower($tested));
+        } else {
+            $this->assertEquals($expected, $tested);
         }
+    }
+
+    private function getPhpBinaryName()
+    {
+        return basename(PHP_BINARY, '\\' === DIRECTORY_SEPARATOR ? '.exe' : '');
     }
 }

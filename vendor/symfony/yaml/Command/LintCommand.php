@@ -104,18 +104,25 @@ EOF
         return $this->display($io, $filesInfo);
     }
 
-    private function getStdin()
+    private function validate($content, $flags, $file = null)
     {
-        if (0 !== ftell(STDIN)) {
-            return;
+        $prevErrorHandler = set_error_handler(function ($level, $message, $file, $line) use (&$prevErrorHandler) {
+            if (E_USER_DEPRECATED === $level) {
+                throw new ParseException($message, $this->getParser()->getRealCurrentLineNb() + 1);
+            }
+
+            return $prevErrorHandler ? $prevErrorHandler($level, $message, $file, $line) : false;
+        });
+
+        try {
+            $this->getParser()->parse($content, Yaml::PARSE_CONSTANT | $flags);
+        } catch (ParseException $e) {
+            return array('file' => $file, 'line' => $e->getParsedLine(), 'valid' => false, 'message' => $e->getMessage());
+        } finally {
+            restore_error_handler();
         }
 
-        $inputs = '';
-        while (!feof(STDIN)) {
-            $inputs .= fread(STDIN, 1024);
-        }
-
-        return $inputs;
+        return array('file' => $file, 'valid' => true);
     }
 
     private function display(SymfonyStyle $io, array $files)
@@ -170,49 +177,6 @@ EOF
         return min($errors, 1);
     }
 
-    private function validate($content, $flags, $file = null)
-    {
-        $prevErrorHandler = set_error_handler(function ($level, $message, $file, $line) use (&$prevErrorHandler) {
-            if (E_USER_DEPRECATED === $level) {
-                throw new ParseException($message, $this->getParser()->getRealCurrentLineNb() + 1);
-            }
-
-            return $prevErrorHandler ? $prevErrorHandler($level, $message, $file, $line) : false;
-        });
-
-        try {
-            $this->getParser()->parse($content, Yaml::PARSE_CONSTANT | $flags);
-        } catch (ParseException $e) {
-            return array('file' => $file, 'line' => $e->getParsedLine(), 'valid' => false, 'message' => $e->getMessage());
-        } finally {
-            restore_error_handler();
-        }
-
-        return array('file' => $file, 'valid' => true);
-    }
-
-    private function getParser()
-    {
-        if (!$this->parser) {
-            $this->parser = new Parser();
-        }
-
-        return $this->parser;
-    }
-
-    private function isReadable($fileOrDirectory)
-    {
-        $default = function ($fileOrDirectory) {
-            return is_readable($fileOrDirectory);
-        };
-
-        if (null !== $this->isReadableProvider) {
-            return call_user_func($this->isReadableProvider, $fileOrDirectory, $default);
-        }
-
-        return $default($fileOrDirectory);
-    }
-
     private function getFiles($fileOrDirectory)
     {
         if (is_file($fileOrDirectory)) {
@@ -230,6 +194,29 @@ EOF
         }
     }
 
+    private function getStdin()
+    {
+        if (0 !== ftell(STDIN)) {
+            return;
+        }
+
+        $inputs = '';
+        while (!feof(STDIN)) {
+            $inputs .= fread(STDIN, 1024);
+        }
+
+        return $inputs;
+    }
+
+    private function getParser()
+    {
+        if (!$this->parser) {
+            $this->parser = new Parser();
+        }
+
+        return $this->parser;
+    }
+
     private function getDirectoryIterator($directory)
     {
         $default = function ($directory) {
@@ -244,5 +231,18 @@ EOF
         }
 
         return $default($directory);
+    }
+
+    private function isReadable($fileOrDirectory)
+    {
+        $default = function ($fileOrDirectory) {
+            return is_readable($fileOrDirectory);
+        };
+
+        if (null !== $this->isReadableProvider) {
+            return call_user_func($this->isReadableProvider, $fileOrDirectory, $default);
+        }
+
+        return $default($fileOrDirectory);
     }
 }

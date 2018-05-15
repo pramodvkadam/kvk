@@ -12,23 +12,6 @@ class FilesystemGeneratorTest extends TestCase
         $this->cleanUp();
     }
 
-    protected function cleanUp()
-    {
-        $generatedDir = $this->getFixturesDir('temporary/generated');
-        File::deleteDirectory($generatedDir);
-    }
-
-    protected function getFixturesDir($subdir)
-    {
-        $result = __DIR__.'/../../fixtures/filesystemgenerator';
-
-        if (strlen($subdir)) {
-            $result .= '/'.$subdir;
-        }
-
-        return $result;
-    }
-
     public function tearDown()
     {
         $this->cleanUp();
@@ -51,7 +34,7 @@ class FilesystemGeneratorTest extends TestCase
 
         $templatesDir = $this->getFixturesDir('templates');
         $generator = new FilesystemGenerator($generatedDir, $structure, $templatesDir);
-
+        
         $variables = [
             'authorNamespace' => 'Author',
             'pluginNamespace' => 'Plugin'
@@ -141,5 +124,22 @@ class FilesystemGeneratorTest extends TestCase
 
         $generator = new FilesystemGenerator($generatedDir, $structure);
         $generator->generate();
+    }
+
+    protected function getFixturesDir($subdir)
+    {
+        $result = __DIR__.'/../../fixtures/filesystemgenerator';
+
+        if (strlen($subdir)) {
+            $result .= '/'.$subdir;
+        }
+
+        return $result;
+    }
+
+    protected function cleanUp()
+    {
+        $generatedDir = $this->getFixturesDir('temporary/generated');
+        File::deleteDirectory($generatedDir);
     }
 }

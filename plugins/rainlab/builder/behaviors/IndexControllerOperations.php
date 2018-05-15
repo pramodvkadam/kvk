@@ -45,18 +45,6 @@ class IndexControllerOperations extends IndexOperationsBehaviorBase
         return $result;
     }
 
-    protected function getTabName($model)
-    {
-        $pluginName = Lang::get($model->getModelPluginName());
-
-        return $pluginName.'/'.$model->controller;
-    }
-
-    protected function getTabId($pluginCode, $controller)
-    {
-        return 'controller-'.$pluginCode.'-'.$controller;
-    }
-
     public function onControllerCreate()
     {
         $pluginCodeObj = new PluginCode(Request::input('plugin_code'));
@@ -74,7 +62,7 @@ class IndexControllerOperations extends IndexOperationsBehaviorBase
         $result = $this->controller->widget->controllerList->updateList();
 
         if ($model->behaviors) {
-            // Create a new tab only for controllers
+            // Create a new tab only for controllers 
             // with behaviors.
 
             $widget = $this->makeBaseFormWidget($model->controller, $options);
@@ -95,6 +83,62 @@ class IndexControllerOperations extends IndexOperationsBehaviorBase
         $this->mergeRegistryDataIntoResult($result, $pluginCodeObj);
 
         return $result;
+    }
+
+    public function onControllerSave()
+    {
+        $controller = Input::get('controller');
+
+        $model = $this->loadModelFromPost();
+        $model->fill($_POST);
+        $model->save();
+
+        Flash::success(Lang::get('rainlab.builder::lang.controller.saved'));
+
+        $result['builderResponseData'] = [];
+
+        return $result;
+    }
+
+    public function onControllerShowCreatePopup()
+    {
+        $pluginCodeObj = $this->getPluginCode();
+
+        $options = [
+            'pluginCode' => $pluginCodeObj->toCode()
+        ];
+
+        $this->baseFormConfigFile = '~/plugins/rainlab/builder/classes/controllermodel/new-controller-fields.yaml';
+        $widget = $this->makeBaseFormWidget(null, $options);
+
+        return $this->makePartial('create-controller-popup-form', [
+            'form'=>$widget,
+            'pluginCode' =>  $pluginCodeObj->toCode()
+        ]);
+    }
+
+    protected function getTabName($model)
+    {
+        $pluginName = Lang::get($model->getModelPluginName());
+
+        return $pluginName.'/'.$model->controller;
+    }
+
+    protected function getTabId($pluginCode, $controller)
+    {
+        return 'controller-'.$pluginCode.'-'.$controller;
+    }
+
+    protected function loadModelFromPost()
+    {
+        $pluginCodeObj = new PluginCode(Request::input('plugin_code'));
+        $options = [
+            'pluginCode' => $pluginCodeObj->toCode()
+        ];
+
+        $controller = Input::get('controller');
+
+        return $this->loadOrCreateBaseModel($controller, $options);
     }
 
     protected function loadOrCreateBaseModel($controller, $options = [])
@@ -124,49 +168,5 @@ class IndexControllerOperations extends IndexOperationsBehaviorBase
             'urls' => ControllerModel::getPluginRegistryData($pluginCode, null),
             'pluginCode' => $pluginCode
         ];
-    }
-
-    public function onControllerSave()
-    {
-        $controller = Input::get('controller');
-
-        $model = $this->loadModelFromPost();
-        $model->fill($_POST);
-        $model->save();
-
-        Flash::success(Lang::get('rainlab.builder::lang.controller.saved'));
-
-        $result['builderResponseData'] = [];
-
-        return $result;
-    }
-
-    protected function loadModelFromPost()
-    {
-        $pluginCodeObj = new PluginCode(Request::input('plugin_code'));
-        $options = [
-            'pluginCode' => $pluginCodeObj->toCode()
-        ];
-
-        $controller = Input::get('controller');
-
-        return $this->loadOrCreateBaseModel($controller, $options);
-    }
-
-    public function onControllerShowCreatePopup()
-    {
-        $pluginCodeObj = $this->getPluginCode();
-
-        $options = [
-            'pluginCode' => $pluginCodeObj->toCode()
-        ];
-
-        $this->baseFormConfigFile = '~/plugins/rainlab/builder/classes/controllermodel/new-controller-fields.yaml';
-        $widget = $this->makeBaseFormWidget(null, $options);
-
-        return $this->makePartial('create-controller-popup-form', [
-            'form'=>$widget,
-            'pluginCode' =>  $pluginCodeObj->toCode()
-        ]);
     }
 }

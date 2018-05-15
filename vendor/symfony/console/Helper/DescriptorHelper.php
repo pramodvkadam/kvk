@@ -42,21 +42,6 @@ class DescriptorHelper extends Helper
     }
 
     /**
-     * Registers a descriptor.
-     *
-     * @param string              $format
-     * @param DescriptorInterface $descriptor
-     *
-     * @return $this
-     */
-    public function register($format, DescriptorInterface $descriptor)
-    {
-        $this->descriptors[$format] = $descriptor;
-
-        return $this;
-    }
-
-    /**
      * Describes an object if supported.
      *
      * Available options are:
@@ -82,6 +67,21 @@ class DescriptorHelper extends Helper
 
         $descriptor = $this->descriptors[$options['format']];
         $descriptor->describe($output, $object, $options);
+    }
+
+    /**
+     * Registers a descriptor.
+     *
+     * @param string              $format
+     * @param DescriptorInterface $descriptor
+     *
+     * @return $this
+     */
+    public function register($format, DescriptorInterface $descriptor)
+    {
+        $this->descriptors[$format] = $descriptor;
+
+        return $this;
     }
 
     /**

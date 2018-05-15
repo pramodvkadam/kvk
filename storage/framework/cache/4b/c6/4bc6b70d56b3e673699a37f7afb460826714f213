@@ -1,4 +1,4 @@
-1518454986a:1:{s:17:"blog/category.htm";a:13:{s:8:"fileName";s:17:"blog/category.htm";s:7:"content";s:779:"title = "Blog Category"
+1526350441a:1:{s:17:"blog/category.htm";a:13:{s:8:"fileName";s:17:"blog/category.htm";s:7:"content";s:779:"title = "Blog Category"
 url = "/blog/category/:slug"
 layout = "default"
 description = "Viewing blog posts in a specific category."
@@ -33,7 +33,7 @@ function onStart()
     <div class="col-md-4">
         {% partial 'blog/categories' %}
     </div>
-</div>";s:5:"mtime";i:1518327112;s:6:"markup";s:175:"<div class="row">
+</div>";s:5:"mtime";i:1526201544;s:6:"markup";s:175:"<div class="row">
     <div class="col-md-8">
         {% partial 'blog/posts' %}
     </div>

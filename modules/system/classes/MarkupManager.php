@@ -47,6 +47,44 @@ class MarkupManager
     protected $transactionMode = false;
 
     /**
+     * Initialize this singleton.
+     */
+    protected function init()
+    {
+        $this->pluginManager = PluginManager::instance();
+    }
+
+    protected function loadExtensions()
+    {
+        /*
+         * Load module items
+         */
+        foreach ($this->callbacks as $callback) {
+            $callback($this);
+        }
+
+        /*
+         * Load plugin items
+         */
+        $plugins = $this->pluginManager->getPlugins();
+
+        foreach ($plugins as $id => $plugin) {
+            $items = $plugin->registerMarkupTags();
+            if (!is_array($items)) {
+                continue;
+            }
+
+            foreach ($items as $type => $definitions) {
+                if (!is_array($definitions)) {
+                    continue;
+                }
+
+                $this->registerExtensions($type, $definitions);
+            }
+        }
+    }
+
+    /**
      * Registers a callback function that defines simple Twig extensions.
      * The callback function should register menu items by calling the manager's
      * `registerFunctions`, `registerFilters`, `registerTokenParsers` function.
@@ -64,15 +102,6 @@ class MarkupManager
     public function registerCallback(callable $callback)
     {
         $this->callbacks[] = $callback;
-    }
-
-    /**
-     * Registers a CMS Twig Filter
-     * @param array $definitions An array of the extension definitions.
-     */
-    public function registerFilters(array $definitions)
-    {
-        $this->registerExtensions(self::EXTENSION_FILTER, $definitions);
     }
 
     /**
@@ -110,6 +139,15 @@ class MarkupManager
     }
 
     /**
+     * Registers a CMS Twig Filter
+     * @param array $definitions An array of the extension definitions.
+     */
+    public function registerFilters(array $definitions)
+    {
+        $this->registerExtensions(self::EXTENSION_FILTER, $definitions);
+    }
+
+    /**
      * Registers a CMS Twig Function
      * @param array $definitions An array of the extension definitions.
      */
@@ -125,6 +163,57 @@ class MarkupManager
     public function registerTokenParsers(array $definitions)
     {
         $this->registerExtensions(self::EXTENSION_TOKEN_PARSER, $definitions);
+    }
+
+    /**
+     * Returns a list of the registered Twig extensions of a type.
+     * @param $type string The Twig extension type
+     * @return array
+     */
+    public function listExtensions($type)
+    {
+        $results = [];
+
+        if ($this->items === null) {
+            $this->loadExtensions();
+        }
+
+        if (isset($this->items[$type]) && is_array($this->items[$type])) {
+            $results = $this->items[$type];
+        }
+
+        if ($this->transactionItems !== null && isset($this->transactionItems[$type])) {
+            $results = array_merge($results, $this->transactionItems[$type]);
+        }
+
+        return $results;
+    }
+
+    /**
+     * Returns a list of the registered Twig filters.
+     * @return array
+     */
+    public function listFilters()
+    {
+        return $this->listExtensions(self::EXTENSION_FILTER);
+    }
+
+    /**
+     * Returns a list of the registered Twig functions.
+     * @return array
+     */
+    public function listFunctions()
+    {
+        return $this->listExtensions(self::EXTENSION_FUNCTION);
+    }
+
+    /**
+     * Returns a list of the registered Twig token parsers.
+     * @return array
+     */
+    public function listTokenParsers()
+    {
+        return $this->listExtensions(self::EXTENSION_TOKEN_PARSER);
     }
 
     /**
@@ -162,66 +251,60 @@ class MarkupManager
     }
 
     /**
-     * Returns a list of the registered Twig functions.
+     * Makes a set of Twig filters for use in a twig extension.
+     * @param  array $filters Current collection
      * @return array
      */
-    public function listFunctions()
+    public function makeTwigFilters($filters = [])
     {
-        return $this->listExtensions(self::EXTENSION_FUNCTION);
+        if (!is_array($filters)) {
+            $filters = [];
+        }
+
+        foreach ($this->listFilters() as $name => $callable) {
+
+            /*
+             * Handle a wildcard function
+             */
+            if (strpos($name, '*') !== false && $this->isWildCallable($callable)) {
+                $callable = function ($name) use ($callable) {
+                    $arguments = array_slice(func_get_args(), 1);
+                    $method = $this->isWildCallable($callable, Str::camel($name));
+                    return call_user_func_array($method, $arguments);
+                };
+            }
+
+            if (!is_callable($callable)) {
+                throw new ApplicationException(sprintf('The markup filter for %s is not callable.', $name));
+            }
+
+            $filters[] = new Twig_SimpleFilter($name, $callable, ['is_safe' => ['html']]);
+        }
+
+        return $filters;
     }
 
     /**
-     * Returns a list of the registered Twig extensions of a type.
-     * @param $type string The Twig extension type
+     * Makes a set of Twig token parsers for use in a twig extension.
+     * @param  array $parsers Current collection
      * @return array
      */
-    public function listExtensions($type)
+    public function makeTwigTokenParsers($parsers = [])
     {
-        $results = [];
-
-        if ($this->items === null) {
-            $this->loadExtensions();
+        if (!is_array($parsers)) {
+            $parsers = [];
         }
 
-        if (isset($this->items[$type]) && is_array($this->items[$type])) {
-            $results = $this->items[$type];
-        }
-
-        if ($this->transactionItems !== null && isset($this->transactionItems[$type])) {
-            $results = array_merge($results, $this->transactionItems[$type]);
-        }
-
-        return $results;
-    }
-
-    protected function loadExtensions()
-    {
-        /*
-         * Load module items
-         */
-        foreach ($this->callbacks as $callback) {
-            $callback($this);
-        }
-
-        /*
-         * Load plugin items
-         */
-        $plugins = $this->pluginManager->getPlugins();
-
-        foreach ($plugins as $id => $plugin) {
-            $items = $plugin->registerMarkupTags();
-            if (!is_array($items)) {
+        $extraParsers = $this->listTokenParsers();
+        foreach ($extraParsers as $obj) {
+            if (!$obj instanceof Twig_TokenParser) {
                 continue;
             }
 
-            foreach ($items as $type => $definitions) {
-                if (!is_array($definitions)) {
-                    continue;
-                }
-
-                $this->registerExtensions($type, $definitions);
-            }
+            $parsers[] = $obj;
         }
+
+        return $parsers;
     }
 
     /**
@@ -264,80 +347,9 @@ class MarkupManager
         return $isWild;
     }
 
-    /**
-     * Makes a set of Twig filters for use in a twig extension.
-     * @param  array $filters Current collection
-     * @return array
-     */
-    public function makeTwigFilters($filters = [])
-    {
-        if (!is_array($filters)) {
-            $filters = [];
-        }
-
-        foreach ($this->listFilters() as $name => $callable) {
-
-            /*
-             * Handle a wildcard function
-             */
-            if (strpos($name, '*') !== false && $this->isWildCallable($callable)) {
-                $callable = function ($name) use ($callable) {
-                    $arguments = array_slice(func_get_args(), 1);
-                    $method = $this->isWildCallable($callable, Str::camel($name));
-                    return call_user_func_array($method, $arguments);
-                };
-            }
-
-            if (!is_callable($callable)) {
-                throw new ApplicationException(sprintf('The markup filter for %s is not callable.', $name));
-            }
-
-            $filters[] = new Twig_SimpleFilter($name, $callable, ['is_safe' => ['html']]);
-        }
-
-        return $filters;
-    }
-
-    /**
-     * Returns a list of the registered Twig filters.
-     * @return array
-     */
-    public function listFilters()
-    {
-        return $this->listExtensions(self::EXTENSION_FILTER);
-    }
-
-    /**
-     * Makes a set of Twig token parsers for use in a twig extension.
-     * @param  array $parsers Current collection
-     * @return array
-     */
-    public function makeTwigTokenParsers($parsers = [])
-    {
-        if (!is_array($parsers)) {
-            $parsers = [];
-        }
-
-        $extraParsers = $this->listTokenParsers();
-        foreach ($extraParsers as $obj) {
-            if (!$obj instanceof Twig_TokenParser) {
-                continue;
-            }
-
-            $parsers[] = $obj;
-        }
-
-        return $parsers;
-    }
-
-    /**
-     * Returns a list of the registered Twig token parsers.
-     * @return array
-     */
-    public function listTokenParsers()
-    {
-        return $this->listExtensions(self::EXTENSION_TOKEN_PARSER);
-    }
+    //
+    // Transactions
+    //
 
     /**
      * Execute a single serving transaction, containing filters, functions,
@@ -351,10 +363,6 @@ class MarkupManager
         $callback($this);
         $this->endTransaction();
     }
-
-    //
-    // Transactions
-    //
 
     /**
      * Start a new transaction.
@@ -374,13 +382,5 @@ class MarkupManager
         $this->transactionMode = false;
 
         $this->transactionItems = null;
-    }
-
-    /**
-     * Initialize this singleton.
-     */
-    protected function init()
-    {
-        $this->pluginManager = PluginManager::instance();
     }
 }

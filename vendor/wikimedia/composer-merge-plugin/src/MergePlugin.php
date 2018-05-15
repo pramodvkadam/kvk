@@ -129,6 +129,16 @@ class MergePlugin implements PluginInterface, EventSubscriberInterface
     /**
      * {@inheritdoc}
      */
+    public function activate(Composer $composer, IOInterface $io)
+    {
+        $this->composer = $composer;
+        $this->state = new PluginState($this->composer);
+        $this->logger = new Logger('merge-plugin', $io);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public static function getSubscribedEvents()
     {
         return array(
@@ -155,16 +165,6 @@ class MergePlugin implements PluginInterface, EventSubscriberInterface
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function activate(Composer $composer, IOInterface $io)
-    {
-        $this->composer = $composer;
-        $this->state = new PluginState($this->composer);
-        $this->logger = new Logger('merge-plugin', $io);
-    }
-
-    /**
      * Handle an event callback for initialization.
      *
      * @param \Composer\EventDispatcher\Event $event
@@ -178,6 +178,29 @@ class MergePlugin implements PluginInterface, EventSubscriberInterface
         $this->state->setDevMode(false);
         $this->mergeFiles($this->state->getIncludes(), false);
         $this->mergeFiles($this->state->getRequires(), true);
+    }
+
+    /**
+     * Handle an event callback for an install, update or dump command by
+     * checking for "merge-plugin" in the "extra" data and merging package
+     * contents if found.
+     *
+     * @param ScriptEvent $event
+     */
+    public function onInstallUpdateOrDump(ScriptEvent $event)
+    {
+        $this->state->loadSettings();
+        $this->state->setDevMode($event->isDevMode());
+        $this->mergeFiles($this->state->getIncludes(), false);
+        $this->mergeFiles($this->state->getRequires(), true);
+
+        if ($event->getName() === ScriptEvents::PRE_AUTOLOAD_DUMP) {
+            $this->state->setDumpAutoloader(true);
+            $flags = $event->getFlags();
+            if (isset($flags['optimize'])) {
+                $this->state->setOptimizeAutoloader($flags['optimize']);
+            }
+        }
     }
 
     /**
@@ -249,29 +272,6 @@ class MergePlugin implements PluginInterface, EventSubscriberInterface
         if ($this->state->recurseIncludes()) {
             $this->mergeFiles($package->getIncludes(), false);
             $this->mergeFiles($package->getRequires(), true);
-        }
-    }
-
-    /**
-     * Handle an event callback for an install, update or dump command by
-     * checking for "merge-plugin" in the "extra" data and merging package
-     * contents if found.
-     *
-     * @param ScriptEvent $event
-     */
-    public function onInstallUpdateOrDump(ScriptEvent $event)
-    {
-        $this->state->loadSettings();
-        $this->state->setDevMode($event->isDevMode());
-        $this->mergeFiles($this->state->getIncludes(), false);
-        $this->mergeFiles($this->state->getRequires(), true);
-
-        if ($event->getName() === ScriptEvents::PRE_AUTOLOAD_DUMP) {
-            $this->state->setDumpAutoloader(true);
-            $flags = $event->getFlags();
-            if (isset($flags['optimize'])) {
-                $this->state->setOptimizeAutoloader($flags['optimize']);
-            }
         }
     }
 

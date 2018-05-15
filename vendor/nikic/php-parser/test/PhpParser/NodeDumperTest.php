@@ -4,6 +4,10 @@ namespace PhpParser;
 
 class NodeDumperTest extends \PHPUnit_Framework_TestCase
 {
+    private function canonicalize($string) {
+        return str_replace("\r\n", "\n", $string);
+    }
+
     /**
      * @dataProvider provideTestDump
      */
@@ -11,10 +15,6 @@ class NodeDumperTest extends \PHPUnit_Framework_TestCase
         $dumper = new NodeDumper;
 
         $this->assertSame($this->canonicalize($dump), $this->canonicalize($dumper->dump($node)));
-    }
-
-    private function canonicalize($string) {
-        return str_replace("\r\n", "\n", $string);
     }
 
     public function provideTestDump() {

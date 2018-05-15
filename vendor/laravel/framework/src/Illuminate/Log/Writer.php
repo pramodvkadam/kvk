@@ -79,58 +79,6 @@ class Writer implements LogContract, PsrLoggerInterface
     }
 
     /**
-     * Write a message to Monolog.
-     *
-     * @param  string  $level
-     * @param  string  $message
-     * @param  array  $context
-     * @return void
-     */
-    protected function writeLog($level, $message, $context)
-    {
-        $this->fireLogEvent($level, $message = $this->formatMessage($message), $context);
-
-        $this->monolog->{$level}($message, $context);
-    }
-
-    /**
-     * Fires a log event.
-     *
-     * @param  string  $level
-     * @param  string  $message
-     * @param  array   $context
-     * @return void
-     */
-    protected function fireLogEvent($level, $message, array $context = [])
-    {
-        // If the event dispatcher is set, we will pass along the parameters to the
-        // log listeners. These are useful for building profilers or other tools
-        // that aggregate all of the log messages for a given "request" cycle.
-        if (isset($this->dispatcher)) {
-            $this->dispatcher->dispatch(new MessageLogged($level, $message, $context));
-        }
-    }
-
-    /**
-     * Format the parameters for the logger.
-     *
-     * @param  mixed  $message
-     * @return mixed
-     */
-    protected function formatMessage($message)
-    {
-        if (is_array($message)) {
-            return var_export($message, true);
-        } elseif ($message instanceof Jsonable) {
-            return $message->toJson();
-        } elseif ($message instanceof Arrayable) {
-            return var_export($message->toArray(), true);
-        }
-
-        return $message;
-    }
-
-    /**
      * Log an alert message to the logs.
      *
      * @param  string  $message
@@ -241,6 +189,21 @@ class Writer implements LogContract, PsrLoggerInterface
     }
 
     /**
+     * Write a message to Monolog.
+     *
+     * @param  string  $level
+     * @param  string  $message
+     * @param  array  $context
+     * @return void
+     */
+    protected function writeLog($level, $message, $context)
+    {
+        $this->fireLogEvent($level, $message = $this->formatMessage($message), $context);
+
+        $this->monolog->{$level}($message, $context);
+    }
+
+    /**
      * Register a file log handler.
      *
      * @param  string  $path
@@ -252,35 +215,6 @@ class Writer implements LogContract, PsrLoggerInterface
         $this->monolog->pushHandler($handler = new StreamHandler($path, $this->parseLevel($level)));
 
         $handler->setFormatter($this->getDefaultFormatter());
-    }
-
-    /**
-     * Parse the string level into a Monolog constant.
-     *
-     * @param  string  $level
-     * @return int
-     *
-     * @throws \InvalidArgumentException
-     */
-    protected function parseLevel($level)
-    {
-        if (isset($this->levels[$level])) {
-            return $this->levels[$level];
-        }
-
-        throw new InvalidArgumentException('Invalid log level.');
-    }
-
-    /**
-     * Get a default Monolog formatter instance.
-     *
-     * @return \Monolog\Formatter\LineFormatter
-     */
-    protected function getDefaultFormatter()
-    {
-        return tap(new LineFormatter(null, null, true, true), function ($formatter) {
-            $formatter->includeStacktraces();
-        });
     }
 
     /**
@@ -345,6 +279,60 @@ class Writer implements LogContract, PsrLoggerInterface
     }
 
     /**
+     * Fires a log event.
+     *
+     * @param  string  $level
+     * @param  string  $message
+     * @param  array   $context
+     * @return void
+     */
+    protected function fireLogEvent($level, $message, array $context = [])
+    {
+        // If the event dispatcher is set, we will pass along the parameters to the
+        // log listeners. These are useful for building profilers or other tools
+        // that aggregate all of the log messages for a given "request" cycle.
+        if (isset($this->dispatcher)) {
+            $this->dispatcher->dispatch(new MessageLogged($level, $message, $context));
+        }
+    }
+
+    /**
+     * Format the parameters for the logger.
+     *
+     * @param  mixed  $message
+     * @return mixed
+     */
+    protected function formatMessage($message)
+    {
+        if (is_array($message)) {
+            return var_export($message, true);
+        } elseif ($message instanceof Jsonable) {
+            return $message->toJson();
+        } elseif ($message instanceof Arrayable) {
+            return var_export($message->toArray(), true);
+        }
+
+        return $message;
+    }
+
+    /**
+     * Parse the string level into a Monolog constant.
+     *
+     * @param  string  $level
+     * @return int
+     *
+     * @throws \InvalidArgumentException
+     */
+    protected function parseLevel($level)
+    {
+        if (isset($this->levels[$level])) {
+            return $this->levels[$level];
+        }
+
+        throw new InvalidArgumentException('Invalid log level.');
+    }
+
+    /**
      * Get the underlying Monolog instance.
      *
      * @return \Monolog\Logger
@@ -352,6 +340,18 @@ class Writer implements LogContract, PsrLoggerInterface
     public function getMonolog()
     {
         return $this->monolog;
+    }
+
+    /**
+     * Get a default Monolog formatter instance.
+     *
+     * @return \Monolog\Formatter\LineFormatter
+     */
+    protected function getDefaultFormatter()
+    {
+        return tap(new LineFormatter(null, null, true, true), function ($formatter) {
+            $formatter->includeStacktraces();
+        });
     }
 
     /**

@@ -23,14 +23,6 @@ abstract class TestCase extends BaseTestCase
 {
     private static $parser;
 
-    protected function getVersionConstraint($operator, $version)
-    {
-        return new VersionConstraint(
-            $operator,
-            self::getVersionParser()->normalize($version)
-        );
-    }
-
     protected static function getVersionParser()
     {
         if (!self::$parser) {
@@ -38,6 +30,14 @@ abstract class TestCase extends BaseTestCase
         }
 
         return self::$parser;
+    }
+
+    protected function getVersionConstraint($operator, $version)
+    {
+        return new VersionConstraint(
+            $operator,
+            self::getVersionParser()->normalize($version)
+        );
     }
 
     protected function getPackage($name, $version)

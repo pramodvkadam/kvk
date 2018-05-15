@@ -1,4 +1,4 @@
-1518454986a:1:{s:17:"snippets/news.htm";a:8:{s:8:"fileName";s:17:"snippets/news.htm";s:7:"content";s:940:"description = "Displays a small feed of latest news"
+1526350441a:1:{s:17:"snippets/news.htm";a:8:{s:8:"fileName";s:17:"snippets/news.htm";s:7:"content";s:940:"description = "Displays a small feed of latest news"
 
 [viewBag]
 snippetCode = "news"
@@ -27,7 +27,7 @@ postPage = "blog/post"
     {% else %}
         <p>There are no posts to display. You know what they say, no news is good news!</p>
     {% endfor %}
-</div>";s:5:"mtime";i:1518327113;s:6:"markup";s:644:"<div class="news-container">
+</div>";s:5:"mtime";i:1526201534;s:6:"markup";s:644:"<div class="news-container">
     {% for post in blogPosts.posts.take(5) %}
         <div class="module-news">
             <div class="calendar">

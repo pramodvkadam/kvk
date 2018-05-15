@@ -46,14 +46,16 @@ class Relation extends FormWidgetBase
     //
     // Object properties
     //
-    /**
-     * @var FormField Object used for rendering a simple field type
-     */
-    public $renderFormField;
+
     /**
      * @inheritDoc
      */
     protected $defaultAlias = 'relation';
+
+    /**
+     * @var FormField Object used for rendering a simple field type
+     */
+    public $renderFormField;
 
     /**
      * @inheritDoc

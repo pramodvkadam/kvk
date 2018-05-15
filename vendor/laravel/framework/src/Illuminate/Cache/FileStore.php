@@ -50,112 +50,6 @@ class FileStore implements Store
     }
 
     /**
-     * Retrieve an item and expiry time from the cache by key.
-     *
-     * @param  string  $key
-     * @return array
-     */
-    protected function getPayload($key)
-    {
-        $path = $this->path($key);
-
-        // If the file doesn't exists, we obviously can't return the cache so we will
-        // just return null. Otherwise, we'll get the contents of the file and get
-        // the expiration UNIX timestamps from the start of the file's contents.
-        try {
-            $expire = substr(
-                $contents = $this->files->get($path, true), 0, 10
-            );
-        } catch (Exception $e) {
-            return $this->emptyPayload();
-        }
-
-        // If the current time is greater than expiration timestamps we will delete
-        // the file and return null. This helps clean up the old files and keeps
-        // this directory much cleaner for us as old files aren't hanging out.
-        if ($this->currentTime() >= $expire) {
-            $this->forget($key);
-
-            return $this->emptyPayload();
-        }
-
-        $data = unserialize(substr($contents, 10));
-
-        // Next, we'll extract the number of minutes that are remaining for a cache
-        // so that we can properly retain the time for things like the increment
-        // operation that may be performed on this cache on a later operation.
-        $time = ($expire - $this->currentTime()) / 60;
-
-        return compact('data', 'time');
-    }
-
-    /**
-     * Get the full path for the given cache key.
-     *
-     * @param  string  $key
-     * @return string
-     */
-    protected function path($key)
-    {
-        $parts = array_slice(str_split($hash = sha1($key), 2), 0, 2);
-
-        return $this->directory.'/'.implode('/', $parts).'/'.$hash;
-    }
-
-    /**
-     * Get a default empty payload for the cache.
-     *
-     * @return array
-     */
-    protected function emptyPayload()
-    {
-        return ['data' => null, 'time' => null];
-    }
-
-    /**
-     * Remove an item from the cache.
-     *
-     * @param  string  $key
-     * @return bool
-     */
-    public function forget($key)
-    {
-        if ($this->files->exists($file = $this->path($key))) {
-            return $this->files->delete($file);
-        }
-
-        return false;
-    }
-
-    /**
-     * Decrement the value of an item in the cache.
-     *
-     * @param  string  $key
-     * @param  mixed   $value
-     * @return int
-     */
-    public function decrement($key, $value = 1)
-    {
-        return $this->increment($key, $value * -1);
-    }
-
-    /**
-     * Increment the value of an item in the cache.
-     *
-     * @param  string  $key
-     * @param  mixed   $value
-     * @return int
-     */
-    public function increment($key, $value = 1)
-    {
-        $raw = $this->getPayload($key);
-
-        return tap(((int) $raw['data']) + $value, function ($newValue) use ($key, $raw) {
-            $this->put($key, $newValue, $raw['time']);
-        });
-    }
-
-    /**
      * Store an item in the cache for a given number of minutes.
      *
      * @param  string  $key
@@ -186,16 +80,31 @@ class FileStore implements Store
     }
 
     /**
-     * Get the expiration time based on the given minutes.
+     * Increment the value of an item in the cache.
      *
-     * @param  float|int  $minutes
+     * @param  string  $key
+     * @param  mixed   $value
      * @return int
      */
-    protected function expiration($minutes)
+    public function increment($key, $value = 1)
     {
-        $time = $this->availableAt((int) ($minutes * 60));
+        $raw = $this->getPayload($key);
 
-        return $minutes === 0 || $time > 9999999999 ? 9999999999 : (int) $time;
+        return tap(((int) $raw['data']) + $value, function ($newValue) use ($key, $raw) {
+            $this->put($key, $newValue, $raw['time']);
+        });
+    }
+
+    /**
+     * Decrement the value of an item in the cache.
+     *
+     * @param  string  $key
+     * @param  mixed   $value
+     * @return int
+     */
+    public function decrement($key, $value = 1)
+    {
+        return $this->increment($key, $value * -1);
     }
 
     /**
@@ -208,6 +117,21 @@ class FileStore implements Store
     public function forever($key, $value)
     {
         $this->put($key, $value, 0);
+    }
+
+    /**
+     * Remove an item from the cache.
+     *
+     * @param  string  $key
+     * @return bool
+     */
+    public function forget($key)
+    {
+        if ($this->files->exists($file = $this->path($key))) {
+            return $this->files->delete($file);
+        }
+
+        return false;
     }
 
     /**
@@ -228,6 +152,82 @@ class FileStore implements Store
         }
 
         return true;
+    }
+
+    /**
+     * Retrieve an item and expiry time from the cache by key.
+     *
+     * @param  string  $key
+     * @return array
+     */
+    protected function getPayload($key)
+    {
+        $path = $this->path($key);
+
+        // If the file doesn't exist, we obviously cannot return the cache so we will
+        // just return null. Otherwise, we'll get the contents of the file and get
+        // the expiration UNIX timestamps from the start of the file's contents.
+        try {
+            $expire = substr(
+                $contents = $this->files->get($path, true), 0, 10
+            );
+        } catch (Exception $e) {
+            return $this->emptyPayload();
+        }
+
+        // If the current time is greater than expiration timestamps we will delete
+        // the file and return null. This helps clean up the old files and keeps
+        // this directory much cleaner for us as old files aren't hanging out.
+        if ($this->currentTime() >= $expire) {
+            $this->forget($key);
+
+            return $this->emptyPayload();
+        }
+
+        $data = unserialize(substr($contents, 10));
+
+        // Next, we'll extract the number of minutes that are remaining for a cache
+        // so that we can properly retain the time for things like the increment
+        // operation that may be performed on this cache on a later operation.
+        $time = ($expire - $this->currentTime()) / 60;
+
+        return compact('data', 'time');
+    }
+
+    /**
+     * Get a default empty payload for the cache.
+     *
+     * @return array
+     */
+    protected function emptyPayload()
+    {
+        return ['data' => null, 'time' => null];
+    }
+
+    /**
+     * Get the full path for the given cache key.
+     *
+     * @param  string  $key
+     * @return string
+     */
+    protected function path($key)
+    {
+        $parts = array_slice(str_split($hash = sha1($key), 2), 0, 2);
+
+        return $this->directory.'/'.implode('/', $parts).'/'.$hash;
+    }
+
+    /**
+     * Get the expiration time based on the given minutes.
+     *
+     * @param  float|int  $minutes
+     * @return int
+     */
+    protected function expiration($minutes)
+    {
+        $time = $this->availableAt((int) ($minutes * 60));
+
+        return $minutes === 0 || $time > 9999999999 ? 9999999999 : (int) $time;
     }
 
     /**

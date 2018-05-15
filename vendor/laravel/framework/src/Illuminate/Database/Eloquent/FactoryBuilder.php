@@ -157,6 +157,23 @@ class FactoryBuilder
     }
 
     /**
+     * Set the connection name on the results and store them.
+     *
+     * @param  \Illuminate\Support\Collection  $results
+     * @return void
+     */
+    protected function store($results)
+    {
+        $results->each(function ($model) {
+            if (! isset($this->connection)) {
+                $model->setConnection($model->newQueryWithoutScopes()->getConnection()->getName());
+            }
+
+            $model->save();
+        });
+    }
+
+    /**
      * Create a collection of models.
      *
      * @param  array  $attributes
@@ -175,6 +192,45 @@ class FactoryBuilder
         return (new $this->class)->newCollection(array_map(function () use ($attributes) {
             return $this->makeInstance($attributes);
         }, range(1, $this->amount)));
+    }
+
+    /**
+     * Create an array of raw attribute arrays.
+     *
+     * @param  array  $attributes
+     * @return mixed
+     */
+    public function raw(array $attributes = [])
+    {
+        if ($this->amount === null) {
+            return $this->getRawAttributes($attributes);
+        }
+
+        if ($this->amount < 1) {
+            return [];
+        }
+
+        return array_map(function () use ($attributes) {
+            return $this->getRawAttributes($attributes);
+        }, range(1, $this->amount));
+    }
+
+    /**
+     * Get a raw attributes array for the model.
+     *
+     * @param  array  $attributes
+     * @return mixed
+     */
+    protected function getRawAttributes(array $attributes = [])
+    {
+        $definition = call_user_func(
+            $this->definitions[$this->class][$this->name],
+            $this->faker, $attributes
+        );
+
+        return $this->expandAttributes(
+            array_merge($this->applyStates($definition, $attributes), $attributes)
+        );
     }
 
     /**
@@ -202,49 +258,6 @@ class FactoryBuilder
 
             return $instance;
         });
-    }
-
-    /**
-     * Get a raw attributes array for the model.
-     *
-     * @param  array  $attributes
-     * @return mixed
-     */
-    protected function getRawAttributes(array $attributes = [])
-    {
-        $definition = call_user_func(
-            $this->definitions[$this->class][$this->name],
-            $this->faker, $attributes
-        );
-
-        return $this->expandAttributes(
-            array_merge($this->applyStates($definition, $attributes), $attributes)
-        );
-    }
-
-    /**
-     * Expand all attributes to their underlying values.
-     *
-     * @param  array  $attributes
-     * @return array
-     */
-    protected function expandAttributes(array $attributes)
-    {
-        foreach ($attributes as &$attribute) {
-            if (is_callable($attribute) && ! is_string($attribute)) {
-                $attribute = $attribute($attributes);
-            }
-
-            if ($attribute instanceof static) {
-                $attribute = $attribute->create()->getKey();
-            }
-
-            if ($attribute instanceof Model) {
-                $attribute = $attribute->getKey();
-            }
-        }
-
-        return $attributes;
     }
 
     /**
@@ -292,40 +305,27 @@ class FactoryBuilder
     }
 
     /**
-     * Set the connection name on the results and store them.
-     *
-     * @param  \Illuminate\Support\Collection  $results
-     * @return void
-     */
-    protected function store($results)
-    {
-        $results->each(function ($model) {
-            if (! isset($this->connection)) {
-                $model->setConnection($model->newQueryWithoutScopes()->getConnection()->getName());
-            }
-
-            $model->save();
-        });
-    }
-
-    /**
-     * Create an array of raw attribute arrays.
+     * Expand all attributes to their underlying values.
      *
      * @param  array  $attributes
-     * @return mixed
+     * @return array
      */
-    public function raw(array $attributes = [])
+    protected function expandAttributes(array $attributes)
     {
-        if ($this->amount === null) {
-            return $this->getRawAttributes($attributes);
+        foreach ($attributes as &$attribute) {
+            if (is_callable($attribute) && ! is_string($attribute)) {
+                $attribute = $attribute($attributes);
+            }
+
+            if ($attribute instanceof static) {
+                $attribute = $attribute->create()->getKey();
+            }
+
+            if ($attribute instanceof Model) {
+                $attribute = $attribute->getKey();
+            }
         }
 
-        if ($this->amount < 1) {
-            return [];
-        }
-
-        return array_map(function () use ($attributes) {
-            return $this->getRawAttributes($attributes);
-        }, range(1, $this->amount));
+        return $attributes;
     }
 }

@@ -14,25 +14,28 @@ use Exception;
 class MailBlocker extends Model
 {
     /**
-     * @var array Templates names that cannot be blocked.
-     */
-    protected static $safeTemplates = [
-        'rainlab.user::mail.restore'
-    ];
-    /**
      * @var string The database table used by the model.
      */
     public $table = 'rainlab_user_mail_blockers';
+
+    /**
+     * @var array Guarded fields
+     */
+    protected $guarded = [];
+
     /**
      * @var array Relations
      */
     public $belongsTo = [
         'user' => User::class
     ];
+
     /**
-     * @var array Guarded fields
+     * @var array Templates names that cannot be blocked.
      */
-    protected $guarded = [];
+    protected static $safeTemplates = [
+        'rainlab.user::mail.restore'
+    ];
 
     /**
      * Sets mail blocking preferences for a user. Eg:
@@ -97,13 +100,32 @@ class MailBlocker extends Model
     }
 
     /**
-     * Returns a list of mail templates blocked by the user.
-     * @param  Model $user
-     * @return array
+     * Adds a block for a user and a mail view/template code.
+     * @param string                   $template
+     * @param RainLab\User\Models\User $user
+     * @return bool
      */
-    public static function checkAllForUser($user)
+    public static function addBlock($template, $user)
     {
-        return static::where('user_id', $user->id)->lists('template');
+        $blocker = static::where([
+            'template' => $template,
+            'user_id'  => $user->id
+        ])->first();
+
+        if ($blocker && $blocker->email == $user->email) {
+            return false;
+        }
+
+        if (!$blocker) {
+            $blocker = new static;
+            $blocker->template = $template;
+            $blocker->user_id = $user->id;
+        }
+
+        $blocker->email = $user->email;
+        $blocker->save();
+
+        return true;
     }
 
     /**
@@ -129,35 +151,6 @@ class MailBlocker extends Model
         $blocker->each(function($block) {
             $block->delete();
         });
-
-        return true;
-    }
-
-    /**
-     * Adds a block for a user and a mail view/template code.
-     * @param string                   $template
-     * @param RainLab\User\Models\User $user
-     * @return bool
-     */
-    public static function addBlock($template, $user)
-    {
-        $blocker = static::where([
-            'template' => $template,
-            'user_id'  => $user->id
-        ])->first();
-
-        if ($blocker && $blocker->email == $user->email) {
-            return false;
-        }
-
-        if (!$blocker) {
-            $blocker = new static;
-            $blocker->template = $template;
-            $blocker->user_id = $user->id;
-        }
-
-        $blocker->email = $user->email;
-        $blocker->save();
 
         return true;
     }
@@ -193,6 +186,26 @@ class MailBlocker extends Model
     }
 
     /**
+     * Updates mail blockers for a user if they change their email address
+     * @param  Model $user
+     * @return mixed
+     */
+    public static function syncUser($user)
+    {
+        return static::where('user_id', $user->id)->update(['email' => $user->email]);
+    }
+
+    /**
+     * Returns a list of mail templates blocked by the user.
+     * @param  Model $user
+     * @return array
+     */
+    public static function checkAllForUser($user)
+    {
+        return static::where('user_id', $user->id)->lists('template');
+    }
+
+    /**
      * Checks if an email address has blocked a given template,
      * returns an array of blocked emails.
      * @param  string $template
@@ -220,16 +233,6 @@ class MailBlocker extends Model
             })
             ->whereIn('email', $emails)
             ->lists('email');
-    }
-
-    /**
-     * Updates mail blockers for a user if they change their email address
-     * @param  Model $user
-     * @return mixed
-     */
-    public static function syncUser($user)
-    {
-        return static::where('user_id', $user->id)->update(['email' => $user->email]);
     }
 
     /**

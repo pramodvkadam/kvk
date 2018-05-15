@@ -10,24 +10,6 @@ class Swift_Mime_Headers_UnstructuredHeaderTest extends \SwiftMailerTestCase
         $this->assertEquals(Swift_Mime_Header::TYPE_TEXT, $header->getFieldType());
     }
 
-    private function getHeader($name, $encoder)
-    {
-        $header = new Swift_Mime_Headers_UnstructuredHeader($name, $encoder);
-        $header->setCharset($this->charset);
-
-        return $header;
-    }
-
-    private function getEncoder($type, $stub = false)
-    {
-        $encoder = $this->getMockery('Swift_Mime_HeaderEncoder')->shouldIgnoreMissing();
-        $encoder->shouldReceive('getName')
-                ->zeroOrMoreTimes()
-                ->andReturn($type);
-
-        return $encoder;
-    }
-
     public function testGetNameReturnsNameVerbatim()
     {
         $header = $this->getHeader('Subject', $this->getEncoder('Q', true));
@@ -349,5 +331,23 @@ class Swift_Mime_Headers_UnstructuredHeaderTest extends \SwiftMailerTestCase
         $header = $this->getHeader('Subject', $this->getEncoder('Q', true));
         $header->setValue('test');
         $this->assertEquals('test', $header->getFieldBodyModel());
+    }
+
+    private function getHeader($name, $encoder)
+    {
+        $header = new Swift_Mime_Headers_UnstructuredHeader($name, $encoder);
+        $header->setCharset($this->charset);
+
+        return $header;
+    }
+
+    private function getEncoder($type, $stub = false)
+    {
+        $encoder = $this->getMockery('Swift_Mime_HeaderEncoder')->shouldIgnoreMissing();
+        $encoder->shouldReceive('getName')
+                ->zeroOrMoreTimes()
+                ->andReturn($type);
+
+        return $encoder;
     }
 }

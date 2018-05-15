@@ -9,6 +9,10 @@ use PhpParser\Node\Stmt;
 
 class ClassTest extends \PHPUnit_Framework_TestCase
 {
+    protected function createClassBuilder($class) {
+        return new Class_($class);
+    }
+
     public function testExtendsImplements() {
         $node = $this->createClassBuilder('SomeLogger')
             ->extend('BaseLogger')
@@ -29,10 +33,6 @@ class ClassTest extends \PHPUnit_Framework_TestCase
             )),
             $node
         );
-    }
-
-    protected function createClassBuilder($class) {
-        return new Class_($class);
     }
 
     public function testAbstract() {

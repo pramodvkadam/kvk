@@ -4,7 +4,7 @@
 *
 * @license http://opensource.org/licenses/MIT
 * @link https://github.com/thephpleague/csv/
-* @version 8.2.2
+* @version 8.2.3
 * @package League.csv
 *
 * For the full copyright and license information, please view the LICENSE
@@ -38,16 +38,6 @@ class ColumnConsistencyValidator
     private $detect_columns_count = false;
 
     /**
-     * Column count getter
-     *
-     * @return int
-     */
-    public function getColumnsCount()
-    {
-        return $this->columns_count;
-    }
-
-    /**
      * Set Inserted row column count
      *
      * @param int $value
@@ -62,6 +52,16 @@ class ColumnConsistencyValidator
         }
         $this->detect_columns_count = false;
         $this->columns_count = $value;
+    }
+
+    /**
+     * Column count getter
+     *
+     * @return int
+     */
+    public function getColumnsCount()
+    {
+        return $this->columns_count;
     }
 
     /**

@@ -12,15 +12,16 @@ use Request;
 class AccessLog extends Model
 {
     /**
+     * @var string The database table used by the model.
+     */
+    protected $table = 'backend_access_log';
+
+    /**
      * @var array Relations
      */
     public $belongsTo = [
         'user' => User::class
     ];
-    /**
-     * @var string The database table used by the model.
-     */
-    protected $table = 'backend_access_log';
 
     /**
      * Creates a log record

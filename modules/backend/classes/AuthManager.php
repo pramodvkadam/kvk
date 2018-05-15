@@ -12,6 +12,21 @@ use October\Rain\Auth\Manager as RainAuthManager;
 class AuthManager extends RainAuthManager
 {
     protected static $instance;
+
+    protected $sessionKey = 'admin_auth';
+
+    protected $userModel = 'Backend\Models\User';
+
+    protected $groupModel = 'Backend\Models\UserGroup';
+
+    protected $throttleModel = 'Backend\Models\UserThrottle';
+
+    protected $requireActivation = false;
+
+    //
+    // Permission management
+    //
+
     protected static $permissionDefaults = [
         'code'    => null,
         'label'   => null,
@@ -19,15 +34,7 @@ class AuthManager extends RainAuthManager
         'roles'   => null,
         'order'   => 500
     ];
-    protected $sessionKey = 'admin_auth';
-    protected $userModel = 'Backend\Models\User';
-    protected $groupModel = 'Backend\Models\UserGroup';
-    protected $throttleModel = 'Backend\Models\UserThrottle';
 
-    //
-    // Permission management
-    //
-    protected $requireActivation = false;
     /**
      * @var array Cache of registration callbacks.
      */
@@ -66,26 +73,27 @@ class AuthManager extends RainAuthManager
     }
 
     /**
-     * Returns an array of registered permissions, grouped by tabs.
-     * @return array
+     * Registers the back-end permission items.
+     * The argument is an array of the permissions. The array keys represent the
+     * permission codes, specific for the plugin/module. Each element in the
+     * array should be an associative array with the following keys:
+     * - label - specifies the menu label localization string key, required.
+     * - order - a position of the item in the menu, optional.
+     * - comment - a brief comment that describes the permission, optional.
+     * - tab - assign this permission to a tabbed group, optional.
+     * @param string $owner Specifies the menu items owner plugin or module in the format Vendor/Module.
+     * @param array $definitions An array of the menu item definitions.
      */
-    public function listTabbedPermissions()
+    public function registerPermissions($owner, array $definitions)
     {
-        $tabs = [];
+        foreach ($definitions as $code => $definition) {
+            $permission = (object)array_merge(self::$permissionDefaults, array_merge($definition, [
+                'code' => $code,
+                'owner' => $owner
+            ]));
 
-        foreach ($this->listPermissions() as $permission) {
-            $tab = isset($permission->tab)
-                ? $permission->tab
-                : 'backend::lang.form.undefined_tab';
-
-            if (!array_key_exists($tab, $tabs)) {
-                $tabs[$tab] = [];
-            }
-
-            $tabs[$tab][] = $permission;
+            $this->permissions[] = $permission;
         }
-
-        return $tabs;
     }
 
     /**
@@ -134,32 +142,26 @@ class AuthManager extends RainAuthManager
     }
 
     /**
-     * Registers the back-end permission items.
-     * The argument is an array of the permissions. The array keys represent the
-     * permission codes, specific for the plugin/module. Each element in the
-     * array should be an associative array with the following keys:
-     * - label - specifies the menu label localization string key, required.
-     * - order - a position of the item in the menu, optional.
-     * - comment - a brief comment that describes the permission, optional.
-     * - tab - assign this permission to a tabbed group, optional.
-     * @param string $owner Specifies the menu items owner plugin or module in the format Vendor/Module.
-     * @param array $definitions An array of the menu item definitions.
+     * Returns an array of registered permissions, grouped by tabs.
+     * @return array
      */
-    public function registerPermissions($owner, array $definitions)
+    public function listTabbedPermissions()
     {
-        foreach ($definitions as $code => $definition) {
-            $permission = (object)array_merge(self::$permissionDefaults, array_merge($definition, [
-                'code' => $code,
-                'owner' => $owner
-            ]));
+        $tabs = [];
 
-            $this->permissions[] = $permission;
+        foreach ($this->listPermissions() as $permission) {
+            $tab = isset($permission->tab)
+                ? $permission->tab
+                : 'backend::lang.form.undefined_tab';
+
+            if (!array_key_exists($tab, $tabs)) {
+                $tabs[$tab] = [];
+            }
+
+            $tabs[$tab][] = $permission;
         }
-    }
 
-    public function hasPermissionsForRole($role)
-    {
-        return !!$this->listPermissionsForRole($role, false);
+        return $tabs;
     }
 
     /**
@@ -191,5 +193,10 @@ class AuthManager extends RainAuthManager
         }
 
         return $result;
+    }
+
+    public function hasPermissionsForRole($role)
+    {
+        return !!$this->listPermissionsForRole($role, false);
     }
 }

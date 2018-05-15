@@ -2,7 +2,7 @@
 
 namespace League\Flysystem\Util;
 
-use Finfo;
+use finfo;
 use ErrorException;
 
 /**
@@ -19,29 +19,18 @@ class MimeType
      */
     public static function detectByContent($content)
     {
-        if ( ! class_exists('Finfo') || ! is_string($content)) {
-            return;
+        if ( ! class_exists('finfo') || ! is_string($content)) {
+            return null;
         }
         try {
-            $finfo = new Finfo(FILEINFO_MIME_TYPE);
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
 
             return $finfo->buffer($content) ?: null;
+        // @codeCoverageIgnoreStart
         } catch( ErrorException $e ) {
             // This is caused by an array to string conversion error.
         }
-    }
-
-    /**
-     * @param string $filename
-     *
-     * @return string
-     */
-    public static function detectByFilename($filename)
-    {
-        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-
-        return empty($extension) ? 'text/plain' : static::detectByFileExtension($extension);
-    }
+    } // @codeCoverageIgnoreEnd
 
     /**
      * Detects MIME Type based on file extension.
@@ -63,6 +52,18 @@ class MimeType
         }
 
         return 'text/plain';
+    }
+
+    /**
+     * @param string $filename
+     *
+     * @return string|null MIME Type or NULL if no extension detected
+     */
+    public static function detectByFilename($filename)
+    {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        return empty($extension) ? 'text/plain' : static::detectByFileExtension($extension);
     }
 
     /**

@@ -33,18 +33,18 @@ class LastInsertId
     private $id;
 
     /**
-     * @return integer
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
      * @param integer $id
      */
     public function setId($id)
     {
         $this->id = $id;
+    }
+
+    /**
+     * @return integer
+     */
+    public function getId()
+    {
+        return $this->id;
     }
 }

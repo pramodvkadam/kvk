@@ -22,59 +22,6 @@ class Name extends NodeAbstract
         $this->parts = self::prepareName($name);
     }
 
-    /**
-     * Prepares a (string, array or Name node) name for use in name changing methods by converting
-     * it to an array.
-     *
-     * @param string|array|self $name Name to prepare
-     *
-     * @return array Prepared name
-     */
-    private static function prepareName($name) {
-        if (\is_string($name)) {
-            return explode('\\', $name);
-        } elseif (\is_array($name)) {
-            return $name;
-        } elseif ($name instanceof self) {
-            return $name->parts;
-        }
-
-        throw new \InvalidArgumentException(
-            'Expected string, array of parts or Name instance'
-        );
-    }
-
-    /**
-     * Concatenate two names, yielding a new Name instance.
-     *
-     * The type of the generated instance depends on which class this method is called on, for
-     * example Name\FullyQualified::concat() will yield a Name\FullyQualified instance.
-     *
-     * If one of the arguments is null, a new instance of the other name will be returned. If both
-     * arguments are null, null will be returned. As such, writing
-     *     Name::concat($namespace, $shortName)
-     * where $namespace is a Name node or null will work as expected.
-     *
-     * @param string|array|self|null $name1      The first name
-     * @param string|array|self|null $name2      The second name
-     * @param array                  $attributes Attributes to assign to concatenated name
-     *
-     * @return static|null Concatenated name
-     */
-    public static function concat($name1, $name2, array $attributes = []) {
-        if (null === $name1 && null === $name2) {
-            return null;
-        } elseif (null === $name1) {
-            return new static(self::prepareName($name2), $attributes);
-        } else if (null === $name2) {
-            return new static(self::prepareName($name1), $attributes);
-        } else {
-            return new static(
-                array_merge(self::prepareName($name1), self::prepareName($name2)), $attributes
-            );
-        }
-    }
-
     public function getSubNodeNames() {
         return array('parts');
     }
@@ -192,5 +139,58 @@ class Name extends NodeAbstract
         }
 
         return new static(array_slice($this->parts, $realOffset, $realLength), $this->attributes);
+    }
+
+    /**
+     * Concatenate two names, yielding a new Name instance.
+     *
+     * The type of the generated instance depends on which class this method is called on, for
+     * example Name\FullyQualified::concat() will yield a Name\FullyQualified instance.
+     *
+     * If one of the arguments is null, a new instance of the other name will be returned. If both
+     * arguments are null, null will be returned. As such, writing
+     *     Name::concat($namespace, $shortName)
+     * where $namespace is a Name node or null will work as expected.
+     *
+     * @param string|array|self|null $name1      The first name
+     * @param string|array|self|null $name2      The second name
+     * @param array                  $attributes Attributes to assign to concatenated name
+     *
+     * @return static|null Concatenated name
+     */
+    public static function concat($name1, $name2, array $attributes = []) {
+        if (null === $name1 && null === $name2) {
+            return null;
+        } elseif (null === $name1) {
+            return new static(self::prepareName($name2), $attributes);
+        } else if (null === $name2) {
+            return new static(self::prepareName($name1), $attributes);
+        } else {
+            return new static(
+                array_merge(self::prepareName($name1), self::prepareName($name2)), $attributes
+            );
+        }
+    }
+
+    /**
+     * Prepares a (string, array or Name node) name for use in name changing methods by converting
+     * it to an array.
+     *
+     * @param string|array|self $name Name to prepare
+     *
+     * @return array Prepared name
+     */
+    private static function prepareName($name) {
+        if (\is_string($name)) {
+            return explode('\\', $name);
+        } elseif (\is_array($name)) {
+            return $name;
+        } elseif ($name instanceof self) {
+            return $name->parts;
+        }
+
+        throw new \InvalidArgumentException(
+            'Expected string, array of parts or Name instance'
+        );
     }
 }

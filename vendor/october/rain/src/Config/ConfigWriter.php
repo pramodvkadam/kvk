@@ -160,26 +160,6 @@ class ConfigWriter
         return '/' . implode('', $expression) . '/';
     }
 
-    protected function buildArrayOpeningExpression($arrayItems)
-    {
-        if (count($arrayItems)) {
-            $itemOpen = array();
-            foreach ($arrayItems as $item) {
-                // The left hand array assignment
-                $itemOpen[] = '[\'|"]'.$item.'[\'|"]\s*=>\s*(?:[aA][rR]{2}[aA][yY]\(|[\[])';
-            }
-
-            // Capture all opening array (non greedy)
-            $result = '(' . implode('[\s\S]*', $itemOpen) . '[\s\S]*?)';
-        }
-        else {
-            // Gotta capture something for $1
-            $result = '()';
-        }
-
-        return $result;
-    }
-
     /**
      * Common constants only (true, false, null, integers)
      */
@@ -216,5 +196,25 @@ class ConfigWriter
         $expression[] = '(?:[aA][rR]{2}[aA][yY]\(|[\[])([^\]|)]*)[\]|)]';
 
         return '/' . implode('', $expression) . '/';
+    }
+
+    protected function buildArrayOpeningExpression($arrayItems)
+    {
+        if (count($arrayItems)) {
+            $itemOpen = array();
+            foreach ($arrayItems as $item) {
+                // The left hand array assignment
+                $itemOpen[] = '[\'|"]'.$item.'[\'|"]\s*=>\s*(?:[aA][rR]{2}[aA][yY]\(|[\[])';
+            }
+
+            // Capture all opening array (non greedy)
+            $result = '(' . implode('[\s\S]*', $itemOpen) . '[\s\S]*?)';
+        }
+        else {
+            // Gotta capture something for $1
+            $result = '()';
+        }
+
+        return $result;
     }
 }

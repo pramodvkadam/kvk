@@ -7,6 +7,11 @@ use Doctrine\Common\Cache\Cache;
 
 class ArrayCacheTest extends CacheTest
 {
+    protected function _getCacheDriver()
+    {
+        return new ArrayCache();
+    }
+
     public function testGetStats()
     {
         $cache = $this->_getCacheDriver();
@@ -38,11 +43,6 @@ class ArrayCacheTest extends CacheTest
         $stats = $cache->getStats();
         $this->assertEquals(2, $stats[Cache::STATS_HITS]);
         $this->assertEquals(8, $stats[Cache::STATS_MISSES]); // +1 for internal call to DoctrineNamespaceCacheKey
-    }
-
-    protected function _getCacheDriver()
-    {
-        return new ArrayCache();
     }
 
     protected function isSharedStorage()

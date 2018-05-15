@@ -30,11 +30,35 @@ use ApplicationException;
  */
 class Page extends ContentBase
 {
-    protected static $menuTreeCache = null;
     public $implement = [
         '@RainLab.Translate.Behaviors.TranslatablePageUrl',
         '@RainLab.Translate.Behaviors.TranslatableCmsObject'
     ];
+
+    /**
+     * @var string The container name associated with the model, eg: pages.
+     */
+    protected $dirName = 'content/static-pages';
+
+    /**
+     * @var bool Wrap code section in PHP tags.
+     */
+    protected $wrapCode = false;
+
+    /**
+     * @var array Properties that can be set with fill()
+     */
+    protected $fillable = [
+        'markup',
+        'settings',
+        'placeholders',
+    ];
+
+    /**
+     * @var array List of attribute names which are not considered "settings".
+     */
+    protected $purgeable = ['parsedMarkup', 'placeholders'];
+
     /**
      * @var array The rules to be applied to the data.
      */
@@ -42,6 +66,7 @@ class Page extends ContentBase
         'title' => 'required',
         'url'   => ['required', 'regex:/^\/[a-z0-9\/_\-\.]*$/i', 'uniqueUrl']
     ];
+
     /**
      * @var array The array of custom attribute names.
      */
@@ -49,6 +74,7 @@ class Page extends ContentBase
         'title' => 'title',
         'url' => 'url',
     ];
+
     /**
      * @var array Attributes that support translation, if available.
      */
@@ -59,35 +85,20 @@ class Page extends ContentBase
         'viewBag[meta_title]',
         'viewBag[meta_description]',
     ];
+
     /**
      * @var string Translation model used for translation, if available.
      */
     public $translatableModel = 'RainLab\Translate\Classes\MLStaticPage';
+
     /**
      * @var string Contains the page parent file name.
      * This property is used by the page editor internally.
      */
     public $parentFileName;
-    /**
-     * @var string The container name associated with the model, eg: pages.
-     */
-    protected $dirName = 'content/static-pages';
-    /**
-     * @var bool Wrap code section in PHP tags.
-     */
-    protected $wrapCode = false;
-    /**
-     * @var array Properties that can be set with fill()
-     */
-    protected $fillable = [
-        'markup',
-        'settings',
-        'placeholders',
-    ];
-    /**
-     * @var array List of attribute names which are not considered "settings".
-     */
-    protected $purgeable = ['parsedMarkup', 'placeholders'];
+
+    protected static $menuTreeCache = null;
+
     protected $parentCache = null;
 
     protected $childrenCache = null;
@@ -115,301 +126,6 @@ class Page extends ContentBase
     //
 
     /**
-     * Clears the menu item cache
-     * @param \Cms\Classes\Theme $theme Specifies the current theme.
-     */
-    public static function clearMenuCache($theme)
-    {
-        Cache::forget(self::getMenuCacheKey($theme));
-    }
-
-    /**
-     * Returns a cache key for this record.
-     */
-    protected static function getMenuCacheKey($theme)
-    {
-        $key = crc32($theme->getPath()).'static-page-menu';
-        Event::fire('pages.page.getMenuCacheKey', [&$key]);
-        return $key;
-    }
-
-    /**
-     * Handler for the pages.menuitem.getTypeInfo event.
-     * Returns a menu item type information. The type information is returned as array
-     * with the following elements:
-     * - references - a list of the item type reference options. The options are returned in the
-     *   ["key"] => "title" format for options that don't have sub-options, and in the format
-     *   ["key"] => ["title"=>"Option title", "items"=>[...]] for options that have sub-options. Optional,
-     *   required only if the menu item type requires references.
-     * - nesting - Boolean value indicating whether the item type supports nested items. Optional,
-     *   false if omitted.
-     * - dynamicItems - Boolean value indicating whether the item type could generate new menu items.
-     *   Optional, false if omitted.
-     * - cmsPages - a list of CMS pages (objects of the Cms\Classes\Page class), if the item type requires a CMS page reference to
-     *   resolve the item URL.
-     * @param string $type Specifies the menu item type
-     * @return array Returns an array
-     */
-    public static function getMenuTypeInfo($type)
-    {
-        if ($type == 'all-static-pages') {
-            return [
-                'dynamicItems' => true
-            ];
-        }
-
-        if ($type == 'static-page') {
-            return [
-                'references'   => self::listStaticPageMenuOptions(),
-                'nesting'      => true,
-                'dynamicItems' => true
-            ];
-        }
-    }
-
-    /**
-     * Returns a list of options for the Reference drop-down menu in the
-     * menu item configuration form, when the Static Page item type is selected.
-     * @return array Returns an array
-     */
-    protected static function listStaticPageMenuOptions()
-    {
-        $theme = Theme::getEditTheme();
-
-        $pageList = new PageList($theme);
-        $pageTree = $pageList->getPageTree(true);
-
-        $iterator = function($pages) use (&$iterator) {
-            $result = [];
-
-            foreach ($pages as $pageInfo) {
-                $pageName = $pageInfo->page->getViewBag()->property('title');
-                $fileName = $pageInfo->page->getBaseFileName();
-
-                if (!$pageInfo->subpages) {
-                    $result[$fileName] = $pageName;
-                }
-                else {
-                    $result[$fileName] = [
-                        'title' => $pageName,
-                        'items' => $iterator($pageInfo->subpages)
-                    ];
-                }
-            }
-
-            return $result;
-        };
-
-        return $iterator($pageTree);
-    }
-
-    /**
-     * Handler for the pages.menuitem.resolveItem event.
-     * Returns information about a menu item. The result is an array
-     * with the following keys:
-     * - url - the menu item URL. Not required for menu item types that return all available records.
-     *   The URL should be returned relative to the website root and include the subdirectory, if any.
-     *   Use the Cms::url() helper to generate the URLs.
-     * - isActive - determines whether the menu item is active. Not required for menu item types that
-     *   return all available records.
-     * - items - an array of arrays with the same keys (url, isActive, items) + the title key.
-     *   The items array should be added only if the $item's $nesting property value is TRUE.
-     * @param \RainLab\Pages\Classes\MenuItem $item Specifies the menu item.
-     * @param \Cms\Classes\Theme $theme Specifies the current theme.
-     * @param string $url Specifies the current page URL, normalized, in lower case
-     * The URL is specified relative to the website root, it includes the subdirectory name, if any.
-     * @return mixed Returns an array. Returns null if the item cannot be resolved.
-     */
-    public static function resolveMenuItem($item, $url, $theme)
-    {
-        $tree = self::buildMenuTree($theme);
-
-        if ($item->type == 'static-page' && !isset($tree[$item->reference])) {
-            return;
-        }
-
-        $result = [];
-
-        if ($item->type == 'static-page') {
-            $pageInfo = $tree[$item->reference];
-            $result['url'] = Cms::url($pageInfo['url']);
-            $result['mtime'] = $pageInfo['mtime'];
-            $result['isActive'] = self::urlsAreEqual($result['url'], $url);
-        }
-
-        if ($item->nesting || $item->type == 'all-static-pages') {
-            $iterator = function($items) use (&$iterator, &$tree, $url) {
-                $branch = [];
-
-                foreach ($items as $itemName) {
-                    if (!isset($tree[$itemName])) {
-                        continue;
-                    }
-
-                    $itemInfo = $tree[$itemName];
-
-                    if ($itemInfo['navigation_hidden']) {
-                        continue;
-                    }
-
-                    $branchItem = [];
-                    $branchItem['url'] = Cms::url($itemInfo['url']);
-                    $branchItem['isActive'] = self::urlsAreEqual($branchItem['url'], $url);
-                    $branchItem['title'] = $itemInfo['title'];
-                    $branchItem['mtime'] = $itemInfo['mtime'];
-
-                    if ($itemInfo['items']) {
-                        $branchItem['items'] = $iterator($itemInfo['items']);
-                    }
-
-                    $branch[] = $branchItem;
-                }
-
-                return $branch;
-            };
-
-            $result['items'] = $iterator($item->type == 'static-page' ? $pageInfo['items'] : $tree['--root-pages--']);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Builds and caches a menu item tree.
-     * This method is used internally for menu items and breadcrumbs.
-     * @param \Cms\Classes\Theme $theme Specifies the current theme.
-     * @return array Returns an array containing the page information
-     */
-    public static function buildMenuTree($theme)
-    {
-        if (self::$menuTreeCache !== null) {
-            return self::$menuTreeCache;
-        }
-
-        $key = self::getMenuCacheKey($theme);
-
-        $cached = Cache::get($key, false);
-        $unserialized = $cached ? @unserialize($cached) : false;
-
-        if ($unserialized !== false) {
-            return self::$menuTreeCache = $unserialized;
-        }
-
-        $menuTree = [
-            '--root-pages--' => []
-        ];
-
-        $iterator = function($items, $parent, $level) use (&$menuTree, &$iterator) {
-            $result = [];
-
-            foreach ($items as $item) {
-                $viewBag = $item->page->viewBag;
-                $pageCode = $item->page->getBaseFileName();
-                $pageUrl = Str::lower(RouterHelper::normalizeUrl(array_get($viewBag, 'url')));
-
-                $itemData = [
-                    'url'    => $pageUrl,
-                    'title'  => array_get($viewBag, 'title'),
-                    'mtime'  => $item->page->mtime,
-                    'items'  => $iterator($item->subpages, $pageCode, $level+1),
-                    'parent' => $parent,
-                    'navigation_hidden' => array_get($viewBag, 'navigation_hidden')
-                ];
-
-                if ($level == 0) {
-                    $menuTree['--root-pages--'][] = $pageCode;
-                }
-
-                $result[] = $pageCode;
-                $menuTree[$pageCode] = $itemData;
-            }
-
-            return $result;
-        };
-
-        $pageList = new PageList($theme);
-        $iterator($pageList->getPageTree(), null, 0);
-
-        self::$menuTreeCache = $menuTree;
-        Cache::put($key, serialize($menuTree), Config::get('cms.parsedPageCacheTTL', 10));
-
-        return self::$menuTreeCache;
-    }
-
-    /*
-     * Generate a file name based on the URL
-     */
-
-    /**
-     * Returns whether the specified URLs are equal.
-     */
-    protected static function urlsAreEqual($url, $other)
-    {
-        return rawurldecode($url) === rawurldecode($other);
-    }
-
-    /**
-     * Handler for the backend.richeditor.getTypeInfo event.
-     * Returns a menu item type information. The type information is returned as array
-     * @param string $type Specifies the page link type
-     * @return array
-     */
-    public static function getRichEditorTypeInfo($type)
-    {
-        if ($type == 'static-page') {
-
-            $pages = self::listStaticPageMenuOptions();
-
-            $iterator = function($pages) use (&$iterator) {
-                $result = [];
-                foreach ($pages as $pageFile => $page) {
-                    $url = self::url($pageFile);
-
-                    if (is_array($page)) {
-                        $result[$url] = [
-                            'title' => array_get($page, 'title', []),
-                            'links' => $iterator(array_get($page, 'items', []))
-                        ];
-                    }
-                    else {
-                        $result[$url] = $page;
-                    }
-                }
-
-                return $result;
-            };
-
-            return $iterator($pages);
-        }
-
-        return [];
-    }
-
-    /**
-     * Helper that makes a URL for a static page in the active theme.
-     *
-     * Guide for the page reference:
-     * - chairs -> content/static-pages/chairs.htm
-     *
-     * @param mixed $page Specifies the Content file name.
-     * @return string
-     */
-    public static function url($name)
-    {
-        if (!$page = static::find($name)) {
-            return null;
-        }
-
-        $url = array_get($page->attributes, 'viewBag.url');
-
-        return Cms::url($url);
-    }
-
-    //
-    // Public API
-    //
-
-    /**
      * Sets the object attributes.
      * @param array $attributes A list of attributes to set.
      */
@@ -426,7 +142,16 @@ class Page extends ContentBase
             $this->fillViewBagArray();
         }
     }
-    
+
+    /**
+     * Returns the attributes used for validation.
+     * @return array
+     */
+    protected function getValidationAttributes()
+    {
+        return $this->getAttributes() + $this->viewBag;
+    }
+
     /**
      * Validates the object properties.
      * Throws a ValidationException in case of an error.
@@ -451,10 +176,6 @@ class Page extends ContentBase
         });
     }
 
-    //
-    // Getters
-    //
-
     /**
      * Triggered before a new object is saved.
      */
@@ -463,6 +184,26 @@ class Page extends ContentBase
         $this->fileName = $this->generateFilenameFromCode();
     }
 
+    /**
+     * Triggered after a new object is saved.
+     */
+    public function afterCreate()
+    {
+        $this->appendToMeta();
+    }
+
+    /**
+     * Adds this page to the meta index.
+     */
+    protected function appendToMeta()
+    {
+        $pageList = new PageList($this->theme);
+        $pageList->appendPage($this);
+    }
+
+    /*
+     * Generate a file name based on the URL
+     */
     protected function generateFilenameFromCode()
     {
         $dir = rtrim($this->getFilePath(''), '/');
@@ -485,23 +226,6 @@ class Page extends ContentBase
         }
 
         return $curName;
-    }
-
-    /**
-     * Triggered after a new object is saved.
-     */
-    public function afterCreate()
-    {
-        $this->appendToMeta();
-    }
-
-    /**
-     * Adds this page to the meta index.
-     */
-    protected function appendToMeta()
-    {
-        $pageList = new PageList($this->theme);
-        $pageList->appendPage($this);
     }
 
     /**
@@ -535,9 +259,91 @@ class Page extends ContentBase
         return $result;
     }
 
+    /**
+     * Removes this page to the meta index.
+     */
+    protected function removeFromMeta()
+    {
+        $pageList = new PageList($this->theme);
+        $pageList->removeSubtree($this);
+    }
+
     //
-    // Syntax field processing
+    // Public API
     //
+
+    /**
+     * Helper that makes a URL for a static page in the active theme.
+     *
+     * Guide for the page reference:
+     * - chairs -> content/static-pages/chairs.htm
+     *
+     * @param mixed $page Specifies the Content file name.
+     * @return string
+     */
+    public static function url($name)
+    {
+        if (!$page = static::find($name)) {
+            return null;
+        }
+
+        $url = array_get($page->attributes, 'viewBag.url');
+
+        return Cms::url($url);
+    }
+    
+    /**
+     * Determine the default layout for a new page
+     * @param \RainLab\Pages\Classes\Page $parentPage
+     */
+    public function setDefaultLayout($parentPage)
+    {
+        // Check parent page for a defined child layout
+        if ($parentPage) {
+            $layout = Layout::load($this->theme, $parentPage->layout);
+            $component = $layout ? $layout->getComponent('staticPage') : null;
+            $childLayoutName = $component ? $component->property('childLayout', null) : null;
+            if ($childLayoutName) {
+                $this->getViewBag()->setProperty('layout', $childLayoutName);
+                $this->fillViewBagArray();
+                return;
+            }
+        }
+        
+        // Check theme layouts for one marked as the default
+        foreach (Layout::listInTheme($this->theme) as $layout) {
+            $component = $layout->getComponent('staticPage');
+            if ($component && $component->property('default', false)) {
+                $this->getViewBag()->setProperty('layout', $layout->getBaseFileName());
+                $this->fillViewBagArray();
+                return;
+            }
+        }
+    }
+
+    //
+    // Getters
+    //
+
+    /**
+     * Returns the parent page that belongs to this one, or null.
+     * @return mixed
+     */
+    public function getParent()
+    {
+        if ($this->parentCache !== null) {
+            return $this->parentCache;
+        }
+
+        $pageList = new PageList($this->theme);
+
+        $parent = null;
+        if ($fileName = $pageList->getPageParent($this)) {
+            $parent = static::load($this->theme, $fileName);
+        }
+
+        return $this->parentCache = $parent;
+    }
 
     /**
      * Returns all the child pages that belong to this one.
@@ -564,84 +370,28 @@ class Page extends ContentBase
         return $this->childrenCache = $children;
     }
 
-    //
-    // Placeholder processing
-    //
-
     /**
-     * Removes this page to the meta index.
+     * Returns a list of layouts available in the theme.
+     * This method is used by the form widget.
+     * @return array Returns an array of strings.
      */
-    protected function removeFromMeta()
+    public function getLayoutOptions()
     {
-        $pageList = new PageList($this->theme);
-        $pageList->removeSubtree($this);
-    }
+        $result = [];
+        $layouts = Layout::listInTheme($this->theme, true);
 
-    /**
-     * Determine the default layout for a new page
-     * @param \RainLab\Pages\Classes\Page $parentPage
-     */
-    public function setDefaultLayout($parentPage)
-    {
-        // Check parent page for a defined child layout
-        if ($parentPage) {
-            $layout = Layout::load($this->theme, $parentPage->layout);
-            $component = $layout ? $layout->getComponent('staticPage') : null;
-            $childLayoutName = $component ? $component->property('childLayout', null) : null;
-            if ($childLayoutName) {
-                $this->getViewBag()->setProperty('layout', $childLayoutName);
-                $this->fillViewBagArray();
-                return;
+        foreach ($layouts as $layout) {
+            if (!$layout->hasComponent('staticPage')) {
+                continue;
             }
+
+            $baseName = $layout->getBaseFileName();
+            $result[$baseName] = strlen($layout->description) ? $layout->description : $baseName;
         }
 
-        // Check theme layouts for one marked as the default
-        foreach (Layout::listInTheme($this->theme) as $layout) {
-            $component = $layout->getComponent('staticPage');
-            if ($component && $component->property('default', false)) {
-                $this->getViewBag()->setProperty('layout', $layout->getBaseFileName());
-                $this->fillViewBagArray();
-                return;
-            }
+        if (!$result) {
+            $result[null] = Lang::get('rainlab.pages::lang.page.layouts_not_found');
         }
-    }
-
-    /**
-     * Returns the parent page that belongs to this one, or null.
-     * @return mixed
-     */
-    public function getParent()
-    {
-        if ($this->parentCache !== null) {
-            return $this->parentCache;
-        }
-
-        $pageList = new PageList($this->theme);
-
-        $parent = null;
-        if ($fileName = $pageList->getPageParent($this)) {
-            $parent = static::load($this->theme, $fileName);
-        }
-
-        return $this->parentCache = $parent;
-    }
-
-    /**
-     * Returns the Twig content string
-     */
-    public function getTwigContent()
-    {
-        return $this->code;
-    }
-
-    public function listLayoutSyntaxFields()
-    {
-        if (!$layout = $this->getLayoutObject()) {
-            return [];
-        }
-
-        $syntax = SyntaxParser::parse($layout->markup, ['tagPrefix' => 'page:']);
-        $result = $syntax->toEditor();
 
         return $result;
     }
@@ -672,39 +422,92 @@ class Page extends ContentBase
         return $layout;
     }
 
-    //
-    // Snippets
-    //
-
     /**
-     * Returns a list of layouts available in the theme.
-     * This method is used by the form widget.
-     * @return array Returns an array of strings.
+     * Returns the Twig content string
      */
-    public function getLayoutOptions()
+    public function getTwigContent()
     {
-        $result = [];
-        $layouts = Layout::listInTheme($this->theme, true);
+        return $this->code;
+    }
 
-        foreach ($layouts as $layout) {
-            if (!$layout->hasComponent('staticPage')) {
-                continue;
-            }
+    //
+    // Syntax field processing
+    //
 
-            $baseName = $layout->getBaseFileName();
-            $result[$baseName] = strlen($layout->description) ? $layout->description : $baseName;
+    public function listLayoutSyntaxFields()
+    {
+        if (!$layout = $this->getLayoutObject()) {
+            return [];
         }
 
-        if (!$result) {
-            $result[null] = Lang::get('rainlab.pages::lang.page.layouts_not_found');
-        }
+        $syntax = SyntaxParser::parse($layout->markup, ['tagPrefix' => 'page:']);
+        $result = $syntax->toEditor();
 
         return $result;
     }
 
     //
-    // Static Menu API
+    // Placeholder processing
     //
+
+    /**
+     * Returns information about placeholders defined in the page layout.
+     * @return array Returns an associative array of the placeholder name and codes.
+     */
+    public function listLayoutPlaceholders()
+    {
+        if (!$layout = $this->getLayoutObject()) {
+            return [];
+        }
+
+        $result = [];
+        $bodyNode = $layout->getTwigNodeTree()->getNode('body')->getNode(0);
+        $nodes = $this->flattenTwigNode($bodyNode);
+
+        foreach ($nodes as $node) {
+            if (!$node instanceof \Cms\Twig\PlaceholderNode) {
+                continue;
+            }
+
+            $title = $node->hasAttribute('title') ? trim($node->getAttribute('title')) : null;
+            if (!strlen($title)) {
+                $title = $node->getAttribute('name');
+            }
+
+            $type = $node->hasAttribute('type') ? trim($node->getAttribute('type')) : null;
+            $ignore = $node->hasAttribute('ignore') ? trim($node->getAttribute('ignore')) : false;
+
+            $placeholderInfo = [
+                'title'  => $title,
+                'type'   => $type ?: 'html',
+                'ignore' => $ignore
+            ];
+
+            $result[$node->getAttribute('name')] = $placeholderInfo;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Recursively flattens a twig node and children
+     * @param $node
+     * @return array A flat array of twig nodes
+     */
+    protected function flattenTwigNode($node)
+    {
+        $result = [];
+        if (!$node instanceof \Twig_Node) {
+            return $result;
+        }
+
+        foreach ($node as $subNode) {
+            $flatNodes = $this->flattenTwigNode($subNode);
+            $result = array_merge($result, [$subNode], $flatNodes);
+        }
+
+        return $result;
+    }
 
     /**
      * Parses the page placeholder {% put %} tags and extracts the placeholder values.
@@ -773,65 +576,6 @@ class Page extends ContentBase
         $this->attributes['placeholders'] = $placeholders;
     }
 
-    /**
-     * Returns information about placeholders defined in the page layout.
-     * @return array Returns an associative array of the placeholder name and codes.
-     */
-    public function listLayoutPlaceholders()
-    {
-        if (!$layout = $this->getLayoutObject()) {
-            return [];
-        }
-
-        $result = [];
-        $bodyNode = $layout->getTwigNodeTree()->getNode('body')->getNode(0);
-        $nodes = $this->flattenTwigNode($bodyNode);
-
-        foreach ($nodes as $node) {
-            if (!$node instanceof \Cms\Twig\PlaceholderNode) {
-                continue;
-            }
-
-            $title = $node->hasAttribute('title') ? trim($node->getAttribute('title')) : null;
-            if (!strlen($title)) {
-                $title = $node->getAttribute('name');
-            }
-
-            $type = $node->hasAttribute('type') ? trim($node->getAttribute('type')) : null;
-            $ignore = $node->hasAttribute('ignore') ? trim($node->getAttribute('ignore')) : false;
-
-            $placeholderInfo = [
-                'title'  => $title,
-                'type'   => $type ?: 'html',
-                'ignore' => $ignore
-            ];
-
-            $result[$node->getAttribute('name')] = $placeholderInfo;
-        }
-
-        return $result;
-    }
-
-    /**
-     * Recursively flattens a twig node and children
-     * @param $node
-     * @return array A flat array of twig nodes
-     */
-    protected function flattenTwigNode($node)
-    {
-        $result = [];
-        if (!$node instanceof \Twig_Node) {
-            return $result;
-        }
-
-        foreach ($node as $subNode) {
-            $flatNodes = $this->flattenTwigNode($subNode);
-            $result = array_merge($result, [$subNode], $flatNodes);
-        }
-
-        return $result;
-    }
-
     public function getProcessedMarkup()
     {
         if ($this->processedMarkupCache !== false) {
@@ -884,6 +628,10 @@ class Page extends ContentBase
         return $this->processedBlockMarkupCache[$placeholderName] = $markup;
     }
 
+    //
+    // Snippets
+    //
+
     /**
      * Initializes CMS components associated with the page.
      */
@@ -914,12 +662,274 @@ class Page extends ContentBase
         }
     }
 
+    //
+    // Static Menu API
+    //
+
     /**
-     * Returns the attributes used for validation.
+     * Returns a cache key for this record.
+     */
+    protected static function getMenuCacheKey($theme)
+    {
+        $key = crc32($theme->getPath()).'static-page-menu';
+        Event::fire('pages.page.getMenuCacheKey', [&$key]);
+        return $key;
+    }
+
+    /**
+     * Returns whether the specified URLs are equal.
+     */
+    protected static function urlsAreEqual($url, $other)
+    {
+        return rawurldecode($url) === rawurldecode($other);
+    }
+
+    /**
+     * Clears the menu item cache
+     * @param \Cms\Classes\Theme $theme Specifies the current theme.
+     */
+    public static function clearMenuCache($theme)
+    {
+        Cache::forget(self::getMenuCacheKey($theme));
+    }
+
+    /**
+     * Handler for the pages.menuitem.getTypeInfo event.
+     * Returns a menu item type information. The type information is returned as array
+     * with the following elements:
+     * - references - a list of the item type reference options. The options are returned in the
+     *   ["key"] => "title" format for options that don't have sub-options, and in the format
+     *   ["key"] => ["title"=>"Option title", "items"=>[...]] for options that have sub-options. Optional,
+     *   required only if the menu item type requires references.
+     * - nesting - Boolean value indicating whether the item type supports nested items. Optional,
+     *   false if omitted.
+     * - dynamicItems - Boolean value indicating whether the item type could generate new menu items.
+     *   Optional, false if omitted.
+     * - cmsPages - a list of CMS pages (objects of the Cms\Classes\Page class), if the item type requires a CMS page reference to 
+     *   resolve the item URL.
+     * @param string $type Specifies the menu item type
+     * @return array Returns an array
+     */
+    public static function getMenuTypeInfo($type)
+    {
+        if ($type == 'all-static-pages') {
+            return [
+                'dynamicItems' => true
+            ];
+        }
+
+        if ($type == 'static-page') {
+            return [
+                'references'   => self::listStaticPageMenuOptions(),
+                'nesting'      => true,
+                'dynamicItems' => true
+            ];
+        }
+    }
+
+    /**
+     * Handler for the pages.menuitem.resolveItem event.
+     * Returns information about a menu item. The result is an array
+     * with the following keys:
+     * - url - the menu item URL. Not required for menu item types that return all available records.
+     *   The URL should be returned relative to the website root and include the subdirectory, if any.
+     *   Use the Cms::url() helper to generate the URLs.
+     * - isActive - determines whether the menu item is active. Not required for menu item types that 
+     *   return all available records.
+     * - items - an array of arrays with the same keys (url, isActive, items) + the title key. 
+     *   The items array should be added only if the $item's $nesting property value is TRUE.
+     * @param \RainLab\Pages\Classes\MenuItem $item Specifies the menu item.
+     * @param \Cms\Classes\Theme $theme Specifies the current theme.
+     * @param string $url Specifies the current page URL, normalized, in lower case
+     * The URL is specified relative to the website root, it includes the subdirectory name, if any.
+     * @return mixed Returns an array. Returns null if the item cannot be resolved.
+     */
+    public static function resolveMenuItem($item, $url, $theme)
+    {
+        $tree = self::buildMenuTree($theme);
+
+        if ($item->type == 'static-page' && !isset($tree[$item->reference])) {
+            return;
+        }
+
+        $result = [];
+
+        if ($item->type == 'static-page') {
+            $pageInfo = $tree[$item->reference];
+            $result['url'] = Cms::url($pageInfo['url']);
+            $result['mtime'] = $pageInfo['mtime'];
+            $result['isActive'] = self::urlsAreEqual($result['url'], $url);
+        }
+
+        if ($item->nesting || $item->type == 'all-static-pages') {
+            $iterator = function($items) use (&$iterator, &$tree, $url) {
+                $branch = [];
+
+                foreach ($items as $itemName) {
+                    if (!isset($tree[$itemName])) {
+                        continue;
+                    }
+
+                    $itemInfo = $tree[$itemName];
+
+                    if ($itemInfo['navigation_hidden']) {
+                        continue;
+                    }
+
+                    $branchItem = [];
+                    $branchItem['url'] = Cms::url($itemInfo['url']);
+                    $branchItem['isActive'] = self::urlsAreEqual($branchItem['url'], $url);
+                    $branchItem['title'] = $itemInfo['title'];
+                    $branchItem['mtime'] = $itemInfo['mtime'];
+
+                    if ($itemInfo['items']) {
+                        $branchItem['items'] = $iterator($itemInfo['items']);
+                    }
+
+                    $branch[] = $branchItem;
+                }
+
+                return $branch;
+            };
+
+            $result['items'] = $iterator($item->type == 'static-page' ? $pageInfo['items'] : $tree['--root-pages--']);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Handler for the backend.richeditor.getTypeInfo event.
+     * Returns a menu item type information. The type information is returned as array
+     * @param string $type Specifies the page link type
      * @return array
      */
-    protected function getValidationAttributes()
+    public static function getRichEditorTypeInfo($type)
     {
-        return $this->getAttributes() + $this->viewBag;
+        if ($type == 'static-page') {
+
+            $pages = self::listStaticPageMenuOptions();
+
+            $iterator = function($pages) use (&$iterator) {
+                $result = [];
+                foreach ($pages as $pageFile => $page) {
+                    $url = self::url($pageFile);
+
+                    if (is_array($page)) {
+                        $result[$url] = [
+                            'title' => array_get($page, 'title', []),
+                            'links' => $iterator(array_get($page, 'items', []))
+                        ];
+                    }
+                    else {
+                        $result[$url] = $page;
+                    }
+                }
+
+                return $result;
+            };
+
+            return $iterator($pages);
+        }
+
+        return [];
+    }
+
+    /**
+     * Builds and caches a menu item tree.
+     * This method is used internally for menu items and breadcrumbs.
+     * @param \Cms\Classes\Theme $theme Specifies the current theme.
+     * @return array Returns an array containing the page information
+     */
+    public static function buildMenuTree($theme)
+    {
+        if (self::$menuTreeCache !== null) {
+            return self::$menuTreeCache;
+        }
+
+        $key = self::getMenuCacheKey($theme);
+
+        $cached = Cache::get($key, false);
+        $unserialized = $cached ? @unserialize($cached) : false;
+
+        if ($unserialized !== false) {
+            return self::$menuTreeCache = $unserialized;
+        }
+
+        $menuTree = [
+            '--root-pages--' => []
+        ];
+
+        $iterator = function($items, $parent, $level) use (&$menuTree, &$iterator) {
+            $result = [];
+
+            foreach ($items as $item) {
+                $viewBag = $item->page->viewBag;
+                $pageCode = $item->page->getBaseFileName();
+                $pageUrl = Str::lower(RouterHelper::normalizeUrl(array_get($viewBag, 'url')));
+
+                $itemData = [
+                    'url'    => $pageUrl,
+                    'title'  => array_get($viewBag, 'title'),
+                    'mtime'  => $item->page->mtime,
+                    'items'  => $iterator($item->subpages, $pageCode, $level+1),
+                    'parent' => $parent,
+                    'navigation_hidden' => array_get($viewBag, 'navigation_hidden')
+                ];
+
+                if ($level == 0) {
+                    $menuTree['--root-pages--'][] = $pageCode;
+                }
+
+                $result[] = $pageCode;
+                $menuTree[$pageCode] = $itemData;
+            }
+
+            return $result;
+        };
+
+        $pageList = new PageList($theme);
+        $iterator($pageList->getPageTree(), null, 0);
+
+        self::$menuTreeCache = $menuTree;
+        Cache::put($key, serialize($menuTree), Config::get('cms.parsedPageCacheTTL', 10));
+
+        return self::$menuTreeCache;
+    }
+
+    /**
+     * Returns a list of options for the Reference drop-down menu in the
+     * menu item configuration form, when the Static Page item type is selected.
+     * @return array Returns an array
+     */
+    protected static function listStaticPageMenuOptions()
+    {
+        $theme = Theme::getEditTheme();
+
+        $pageList = new PageList($theme);
+        $pageTree = $pageList->getPageTree(true);
+
+        $iterator = function($pages) use (&$iterator) {
+            $result = [];
+
+            foreach ($pages as $pageInfo) {
+                $pageName = $pageInfo->page->getViewBag()->property('title');
+                $fileName = $pageInfo->page->getBaseFileName();
+
+                if (!$pageInfo->subpages) {
+                    $result[$fileName] = $pageName;
+                }
+                else {
+                    $result[$fileName] = [
+                        'title' => $pageName,
+                        'items' => $iterator($pageInfo->subpages)
+                    ];
+                }
+            }
+
+            return $result;
+        };
+
+        return $iterator($pageTree);
     }
 }

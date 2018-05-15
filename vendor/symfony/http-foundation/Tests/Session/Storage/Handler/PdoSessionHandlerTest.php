@@ -22,15 +22,20 @@ class PdoSessionHandlerTest extends TestCase
 {
     private $dbFile;
 
-    /**
-     * @expectedException \InvalidArgumentException
-     */
-    public function testWrongPdoErrMode()
+    protected function tearDown()
     {
-        $pdo = $this->getMemorySqlitePdo();
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
+        // make sure the temporary database file is deleted when it has been created (even when a test fails)
+        if ($this->dbFile) {
+            @unlink($this->dbFile);
+        }
+        parent::tearDown();
+    }
 
-        $storage = new PdoSessionHandler($pdo);
+    protected function getPersistentSqliteDsn()
+    {
+        $this->dbFile = tempnam(sys_get_temp_dir(), 'sf2_sqlite_sessions');
+
+        return 'sqlite:'.$this->dbFile;
     }
 
     protected function getMemorySqlitePdo()
@@ -41,6 +46,17 @@ class PdoSessionHandlerTest extends TestCase
         $storage->createTable();
 
         return $pdo;
+    }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testWrongPdoErrMode()
+    {
+        $pdo = $this->getMemorySqlitePdo();
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
+
+        $storage = new PdoSessionHandler($pdo);
     }
 
     /**
@@ -82,13 +98,6 @@ class PdoSessionHandlerTest extends TestCase
         $this->assertSame('data', $data, 'Written value can be read back correctly');
     }
 
-    protected function getPersistentSqliteDsn()
-    {
-        $this->dbFile = tempnam(sys_get_temp_dir(), 'sf2_sqlite_sessions');
-
-        return 'sqlite:' . $this->dbFile;
-    }
-
     public function testWithLazySavePathConnection()
     {
         $dsn = $this->getPersistentSqliteDsn();
@@ -110,7 +119,7 @@ class PdoSessionHandlerTest extends TestCase
 
     public function testReadWriteReadWithNullByte()
     {
-        $sessionData = 'da' . "\0" . 'ta';
+        $sessionData = 'da'."\0".'ta';
 
         $storage = new PdoSessionHandler($this->getMemorySqlitePdo());
         $storage->open('', 'sid');
@@ -144,15 +153,6 @@ class PdoSessionHandlerTest extends TestCase
         $result = $storage->read('foo');
 
         $this->assertSame($content, $result);
-    }
-
-    private function createStream($content)
-    {
-        $stream = tmpfile();
-        fwrite($stream, $content);
-        fseek($stream, 0);
-
-        return $stream;
     }
 
     public function testReadLockedConvertsStreamToString()
@@ -324,13 +324,13 @@ class PdoSessionHandlerTest extends TestCase
         $this->assertInstanceOf('\PDO', $method->invoke($storage));
     }
 
-    protected function tearDown()
+    private function createStream($content)
     {
-        // make sure the temporary database file is deleted when it has been created (even when a test fails)
-        if ($this->dbFile) {
-            @unlink($this->dbFile);
-        }
-        parent::tearDown();
+        $stream = tmpfile();
+        fwrite($stream, $content);
+        fseek($stream, 0);
+
+        return $stream;
     }
 }
 

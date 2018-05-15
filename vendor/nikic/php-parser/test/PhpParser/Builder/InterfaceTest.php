@@ -12,6 +12,15 @@ class InterfaceTest extends \PHPUnit_Framework_TestCase
     /** @var Interface_ */
     protected $builder;
 
+    protected function setUp() {
+        $this->builder = new Interface_('Contract');
+    }
+
+    private function dump($node) {
+        $pp = new \PhpParser\PrettyPrinter\Standard;
+        return $pp->prettyPrint(array($node));
+    }
+
     public function testEmpty() {
         $contract = $this->builder->getNode();
         $this->assertInstanceOf('PhpParser\Node\Stmt\Interface_', $contract);
@@ -91,15 +100,6 @@ class InterfaceTest extends \PHPUnit_Framework_TestCase
         eval($this->dump($contract));
 
         $this->assertTrue(interface_exists('Contract', false));
-    }
-
-    private function dump($node) {
-        $pp = new \PhpParser\PrettyPrinter\Standard;
-        return $pp->prettyPrint(array($node));
-    }
-
-    protected function setUp() {
-        $this->builder = new Interface_('Contract');
     }
 }
 

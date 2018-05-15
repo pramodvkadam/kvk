@@ -22,22 +22,26 @@ trait ViewMaker
      * @var array A list of variables to pass to the page.
      */
     public $vars = [];
-    /**
-     * @var string Layout to use for the view.
-     */
-    public $layout;
-    /**
-     * @var bool Prevents the use of a layout.
-     */
-    public $suppressLayout = false;
+
     /**
      * @var string|array Specifies a path to the views directory.
      */
     protected $viewPath;
+
     /**
      * @var string Specifies a path to the layout directory.
      */
     protected $layoutPath;
+
+    /**
+     * @var string Layout to use for the view.
+     */
+    public $layout;
+
+    /**
+     * @var bool Prevents the use of a layout.
+     */
+    public $suppressLayout = false;
 
     /**
      * Prepends a path on the available view path locations.
@@ -92,71 +96,6 @@ trait ViewMaker
         }
 
         return $this->makeFileContents($partialPath, $params);
-    }
-
-    /**
-     * Locates a file based on its definition. The file name can be prefixed with a
-     * symbol (~|$) to return in context of the application or plugin base path,
-     * otherwise it will be returned in context of this object view path.
-     * @param string $fileName File to load.
-     * @param mixed $viewPath Explicitly define a view path.
-     * @return string Full path to the view file.
-     */
-    public function getViewPath($fileName, $viewPath = null)
-    {
-        if (!isset($this->viewPath)) {
-            $this->viewPath = $this->guessViewPath();
-        }
-
-        if (!$viewPath) {
-            $viewPath = $this->viewPath;
-        }
-
-        $fileName = File::symbolizePath($fileName);
-
-        if (File::isLocalPath($fileName) || realpath($fileName) !== false) {
-            return $fileName;
-        }
-
-        if (!is_array($viewPath)) {
-            $viewPath = [$viewPath];
-        }
-
-        foreach ($viewPath as $path) {
-            $_fileName = File::symbolizePath($path) . '/' . $fileName;
-            if (File::isFile($_fileName)) {
-                return $_fileName;
-            }
-        }
-
-        return $fileName;
-    }
-
-    /**
-     * Guess the package path for the called class.
-     * @param string $suffix An extra path to attach to the end
-     * @param bool $isPublic Returns public path instead of an absolute one
-     * @return string
-     */
-    public function guessViewPath($suffix = '', $isPublic = false)
-    {
-        $class = get_called_class();
-        return $this->guessViewPathFrom($class, $suffix, $isPublic);
-    }
-
-    /**
-     * Guess the package path from a specified class.
-     * @param string $class Class to guess path from.
-     * @param string $suffix An extra path to attach to the end
-     * @param bool $isPublic Returns public path instead of an absolute one
-     * @return string
-     */
-    public function guessViewPathFrom($class, $suffix = '', $isPublic = false)
-    {
-        $classFolder = strtolower(class_basename($class));
-        $classFile = realpath(dirname(File::fromClass($class)));
-        $guessedPath = $classFile ? $classFile . '/' . $classFolder . $suffix : null;
-        return ($isPublic) ? File::localToPublic($guessedPath) : $guessedPath;
     }
 
     /**
@@ -236,6 +175,44 @@ trait ViewMaker
     }
 
     /**
+     * Locates a file based on its definition. The file name can be prefixed with a
+     * symbol (~|$) to return in context of the application or plugin base path,
+     * otherwise it will be returned in context of this object view path.
+     * @param string $fileName File to load.
+     * @param mixed $viewPath Explicitly define a view path.
+     * @return string Full path to the view file.
+     */
+    public function getViewPath($fileName, $viewPath = null)
+    {
+        if (!isset($this->viewPath)) {
+            $this->viewPath = $this->guessViewPath();
+        }
+
+        if (!$viewPath) {
+            $viewPath = $this->viewPath;
+        }
+
+        $fileName = File::symbolizePath($fileName);
+
+        if (File::isLocalPath($fileName) || realpath($fileName) !== false) {
+            return $fileName;
+        }
+
+        if (!is_array($viewPath)) {
+            $viewPath = [$viewPath];
+        }
+
+        foreach ($viewPath as $path) {
+            $_fileName = File::symbolizePath($path) . '/' . $fileName;
+            if (File::isFile($_fileName)) {
+                return $_fileName;
+            }
+        }
+
+        return $fileName;
+    }
+
+    /**
      * Includes a file path using output buffering.
      * Ensures that vars are available.
      * @param string $filePath Absolute path to the view file.
@@ -291,5 +268,32 @@ trait ViewMaker
         }
 
         throw $e;
+    }
+
+    /**
+     * Guess the package path for the called class.
+     * @param string $suffix An extra path to attach to the end
+     * @param bool $isPublic Returns public path instead of an absolute one
+     * @return string
+     */
+    public function guessViewPath($suffix = '', $isPublic = false)
+    {
+        $class = get_called_class();
+        return $this->guessViewPathFrom($class, $suffix, $isPublic);
+    }
+
+    /**
+     * Guess the package path from a specified class.
+     * @param string $class Class to guess path from.
+     * @param string $suffix An extra path to attach to the end
+     * @param bool $isPublic Returns public path instead of an absolute one
+     * @return string
+     */
+    public function guessViewPathFrom($class, $suffix = '', $isPublic = false)
+    {
+        $classFolder = strtolower(class_basename($class));
+        $classFile = realpath(dirname(File::fromClass($class)));
+        $guessedPath = $classFile ? $classFile . '/' . $classFolder . $suffix : null;
+        return ($isPublic) ? File::localToPublic($guessedPath) : $guessedPath;
     }
 }

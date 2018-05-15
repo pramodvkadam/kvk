@@ -4,7 +4,7 @@
 *
 * @license http://opensource.org/licenses/MIT
 * @link https://github.com/thephpleague/csv/
-* @version 8.2.2
+* @version 8.2.3
 * @package League.csv
 *
 * For the full copyright and license information, please view the LICENSE
@@ -55,16 +55,6 @@ trait Controls
     protected $newline = "\n";
 
     /**
-     * Returns the current field delimiter
-     *
-     * @return string
-     */
-    public function getDelimiter()
-    {
-        return $this->delimiter;
-    }
-
-    /**
      * Sets the field delimiter
      *
      * @param string $delimiter
@@ -93,6 +83,16 @@ trait Controls
     protected function isValidCsvControls($str)
     {
         return 1 == mb_strlen($str);
+    }
+
+    /**
+     * Returns the current field delimiter
+     *
+     * @return string
+     */
+    public function getDelimiter()
+    {
+        return $this->delimiter;
     }
 
     /**
@@ -126,21 +126,30 @@ trait Controls
     }
 
     /**
+     * Validate an integer
+     *
+     * @param int    $int
+     * @param int    $minValue
+     * @param string $errorMessage
+     *
+     * @throws InvalidArgumentException If the value is invalid
+     *
+     * @return int
+     */
+    protected function validateInteger($int, $minValue, $errorMessage)
+    {
+        if (false === ($int = filter_var($int, FILTER_VALIDATE_INT, ['options' => ['min_range' => $minValue]]))) {
+            throw new InvalidArgumentException($errorMessage);
+        }
+        return $int;
+    }
+
+    /**
      * Returns the CSV Iterator
      *
      * @return SplFileObject
      */
     abstract public function getIterator();
-
-    /**
-     * Returns the current field enclosure
-     *
-     * @return string
-     */
-    public function getEnclosure()
-    {
-        return $this->enclosure;
-    }
 
     /**
      * Sets the field enclosure
@@ -162,13 +171,13 @@ trait Controls
     }
 
     /**
-     * Returns the current field escape character
+     * Returns the current field enclosure
      *
      * @return string
      */
-    public function getEscape()
+    public function getEnclosure()
     {
-        return $this->escape;
+        return $this->enclosure;
     }
 
     /**
@@ -191,13 +200,13 @@ trait Controls
     }
 
     /**
-     * Returns the current newline sequence characters
+     * Returns the current field escape character
      *
      * @return string
      */
-    public function getNewline()
+    public function getEscape()
     {
-        return $this->newline;
+        return $this->escape;
     }
 
     /**
@@ -215,21 +224,12 @@ trait Controls
     }
 
     /**
-     * Validate an integer
+     * Returns the current newline sequence characters
      *
-     * @param int    $int
-     * @param int    $minValue
-     * @param string $errorMessage
-     *
-     * @throws InvalidArgumentException If the value is invalid
-     *
-     * @return int
+     * @return string
      */
-    protected function validateInteger($int, $minValue, $errorMessage)
+    public function getNewline()
     {
-        if (false === ($int = filter_var($int, FILTER_VALIDATE_INT, ['options' => ['min_range' => $minValue]]))) {
-            throw new InvalidArgumentException($errorMessage);
-        }
-        return $int;
+        return $this->newline;
     }
 }

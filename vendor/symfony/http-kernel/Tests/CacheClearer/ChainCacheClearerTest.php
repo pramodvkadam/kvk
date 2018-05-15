@@ -39,11 +39,6 @@ class ChainCacheClearerTest extends TestCase
         $chainClearer->clear(self::$cacheDir);
     }
 
-    protected function getMockClearer()
-    {
-        return $this->getMockBuilder('Symfony\Component\HttpKernel\CacheClearer\CacheClearerInterface')->getMock();
-    }
-
     /**
      * @group legacy
      */
@@ -57,5 +52,10 @@ class ChainCacheClearerTest extends TestCase
         $chainClearer = new ChainCacheClearer();
         $chainClearer->add($clearer);
         $chainClearer->clear(self::$cacheDir);
+    }
+
+    protected function getMockClearer()
+    {
+        return $this->getMockBuilder('Symfony\Component\HttpKernel\CacheClearer\CacheClearerInterface')->getMock();
     }
 }

@@ -77,6 +77,11 @@ class MailPartialTokenParser extends Twig_TokenParser
         return new MailPartialNode(new Twig_Node($nodes), $paramNames, $body, $token->getLine(), $this->getTag());
     }
 
+    public function decidePartialEnd(Twig_Token $token)
+    {
+        return $token->test('endpartial');
+    }
+
     /**
      * Gets the tag name associated with this token parser.
      *
@@ -85,10 +90,5 @@ class MailPartialTokenParser extends Twig_TokenParser
     public function getTag()
     {
         return 'partial';
-    }
-
-    public function decidePartialEnd(Twig_Token $token)
-    {
-        return $token->test('endpartial');
     }
 }

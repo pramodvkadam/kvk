@@ -13,23 +13,6 @@ class __TwigTemplate_f40203d31c5e3a3c67ca2021f5679876ed02d8e733b26982bd180519845
         );
     }
 
-    public function getTemplateName()
-    {
-        return "/var/www/html/atma/themes/atma-new/partials/nav.htm";
-    }
-
-    // line 5
-
-    public function isTraitable()
-    {
-        return false;
-    }
-
-    public function getDebugInfo()
-    {
-        return array (  129 => 22,  118 => 19,  114 => 17,  103 => 15,  99 => 14,  89 => 12,  87 => 11,  77 => 9,  73 => 8,  70 => 7,  67 => 6,  55 => 5,  48 => 38,  42 => 35,  39 => 34,  37 => 33,  27 => 25,  24 => 4,  22 => 3,  19 => 2,);
-    }
-
     protected function doDisplay(array $context, array $blocks = array())
     {
         // line 2
@@ -68,51 +51,7 @@ class __TwigTemplate_f40203d31c5e3a3c67ca2021f5679876ed02d8e733b26982bd180519845
 </div>";
     }
 
-    public function getSourceContext()
-    {
-        return new Twig_Source("{# Custom navigation implementation that only shows 2 levels deep #}
-
-{% import _self as nav %}
-
-{% macro render_menu(items) %}
-    {% import _self as nav %}
-
-    {% for item in items %}
-        <li class=\"nav-item {{ item.isActive ? 'active' : '' }} {{ item.isChildActive ? 'active' : '' }} {{ item.items ? 'dropdown' : '' }}\">
-
-            {% if item.items %}
-            <a href=\"{{ item.url }}\" class=\"nav-link {{ item.items ? 'dropdown-toggle' : '' }}\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">{{ item.title }}</a>
-                \t\t\t  <div class=\"dropdown-menu dropdown-menu-right\" aria-labelledby=\"navbarDropdownPortfolio\">
-{% for subItem in item.items %}
-<a href=\"{{ subItem.url }}\" class=\"dropdown-item\">{{ subItem.title }}</a>
- {% endfor %}
-</div>
-{% else %}
-            <a href=\"{{ item.url }}\" class=\"nav-link {{ item.items ? 'dropdown-toggle' : '' }}\">{{ item.title }}</a>
-
-            {% endif %}
-        </li>
-    {% endfor %}
-{% endmacro %}
-
-<div class=\"container\">
-    <nav class=\"navbar navbar-expand-lg navbar-dark bg-green\">
-<div class=\"container\">
-        <button class=\"navbar-toggler navbar-toggler-right\" type=\"button\" data-toggle=\"collapse\" data-target=\"#navbarResponsive\" aria-controls=\"navbarResponsive\" aria-expanded=\"false\" aria-label=\"Toggle navigation\">
-          <span class=\"navbar-toggler-icon\"></span>
-        </button>
-        <div class=\"collapse navbar-collapse\" id=\"navbarResponsive\">
-    {% if mainMenu.menuItems %}
-          <ul class=\"navbar-nav\">
-            {{ nav.render_menu(mainMenu.menuItems) }}
-        </ul>
-    {% endif %}
-    </div>
-    </div>
-    </nav>
-</div>", "/var/www/html/atma/themes/atma-new/partials/nav.htm", "");
-    }
-
+    // line 5
     public function macro_render_menu($__items__ = null, ...$__varargs__)
     {
         $context = $this->env->mergeGlobals(array(
@@ -198,5 +137,65 @@ class __TwigTemplate_f40203d31c5e3a3c67ca2021f5679876ed02d8e733b26982bd180519845
         } finally {
             ob_end_clean();
         }
+    }
+
+    public function getTemplateName()
+    {
+        return "/var/www/html/atma/themes/atma-new/partials/nav.htm";
+    }
+
+    public function isTraitable()
+    {
+        return false;
+    }
+
+    public function getDebugInfo()
+    {
+        return array (  129 => 22,  118 => 19,  114 => 17,  103 => 15,  99 => 14,  89 => 12,  87 => 11,  77 => 9,  73 => 8,  70 => 7,  67 => 6,  55 => 5,  48 => 38,  42 => 35,  39 => 34,  37 => 33,  27 => 25,  24 => 4,  22 => 3,  19 => 2,);
+    }
+
+    public function getSourceContext()
+    {
+        return new Twig_Source("{# Custom navigation implementation that only shows 2 levels deep #}
+
+{% import _self as nav %}
+
+{% macro render_menu(items) %}
+    {% import _self as nav %}
+
+    {% for item in items %}
+        <li class=\"nav-item {{ item.isActive ? 'active' : '' }} {{ item.isChildActive ? 'active' : '' }} {{ item.items ? 'dropdown' : '' }}\">
+
+            {% if item.items %}
+            <a href=\"{{ item.url }}\" class=\"nav-link {{ item.items ? 'dropdown-toggle' : '' }}\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">{{ item.title }}</a>
+                \t\t\t  <div class=\"dropdown-menu dropdown-menu-right\" aria-labelledby=\"navbarDropdownPortfolio\">
+{% for subItem in item.items %}
+<a href=\"{{ subItem.url }}\" class=\"dropdown-item\">{{ subItem.title }}</a>
+ {% endfor %}
+</div>
+{% else %}
+            <a href=\"{{ item.url }}\" class=\"nav-link {{ item.items ? 'dropdown-toggle' : '' }}\">{{ item.title }}</a>
+
+            {% endif %}
+        </li>
+    {% endfor %}
+{% endmacro %}
+
+<div class=\"container\">
+    <nav class=\"navbar navbar-expand-lg navbar-dark bg-green\">
+<div class=\"container\">
+        <button class=\"navbar-toggler navbar-toggler-right\" type=\"button\" data-toggle=\"collapse\" data-target=\"#navbarResponsive\" aria-controls=\"navbarResponsive\" aria-expanded=\"false\" aria-label=\"Toggle navigation\">
+          <span class=\"navbar-toggler-icon\"></span>
+        </button>
+        <div class=\"collapse navbar-collapse\" id=\"navbarResponsive\">
+    {% if mainMenu.menuItems %}
+          <ul class=\"navbar-nav\">
+            {{ nav.render_menu(mainMenu.menuItems) }}
+        </ul>
+    {% endif %}
+    </div>
+    </div>
+    </nav>
+</div>", "/var/www/html/atma/themes/atma-new/partials/nav.htm", "");
     }
 }

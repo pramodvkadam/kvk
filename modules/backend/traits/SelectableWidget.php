@@ -21,14 +21,6 @@ trait SelectableWidget
         $this->extendSelection();
     }
 
-    protected function extendSelection()
-    {
-        $items = (array) Input::get($this->selectionInputName, []);
-        $currentSelection = $this->getSelectedItems();
-
-        $this->putSession('selected', $currentSelection + $items);
-    }
-
     protected function getSelectedItems()
     {
         if ($this->selectedItemsCache !== false) {
@@ -41,6 +33,14 @@ trait SelectableWidget
         }
 
         return $this->selectedItemsCache = $items;
+    }
+
+    protected function extendSelection()
+    {
+        $items = (array) Input::get($this->selectionInputName, []);
+        $currentSelection = $this->getSelectedItems();
+
+        $this->putSession('selected', $currentSelection + $items);
     }
 
     protected function resetSelection()

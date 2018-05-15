@@ -40,25 +40,55 @@ class Controller extends Extendable
     use \Backend\Traits\WidgetMaker;
 
     /**
+     * @var object Reference the logged in admin user.
+     */
+    protected $user;
+
+    /**
      * @var array Collection of WidgetBase objects used on this page.
      */
     public $widget;
+
     /**
      * @var bool Prevents the automatic view display.
      */
     public $suppressView = false;
+
+    /**
+     * @var array Routed parameters.
+     */
+    protected $params;
+
+    /**
+     * @var string Page action being called.
+     */
+    protected $action;
+
+    /**
+     * @var array Defines a collection of actions available without authentication.
+     */
+    protected $publicActions = [];
+
+    /**
+     * @var array Permissions required to view this page.
+     */
+    protected $requiredPermissions = [];
+
     /**
      * @var string Page title
      */
     public $pageTitle;
+
     /**
      * @var string Page title template
      */
     public $pageTitleTemplate;
+
     /**
      * @var string Body class property used for customising the layout on a controller basis.
      */
     public $bodyClass;
+
     /**
      * @var array Default methods which cannot be called as actions.
      */
@@ -71,26 +101,7 @@ class Controller extends Extendable
         'handleError',
         'makeHintPartial'
     ];
-    /**
-     * @var object Reference the logged in admin user.
-     */
-    protected $user;
-    /**
-     * @var array Routed parameters.
-     */
-    protected $params;
-    /**
-     * @var string Page action being called.
-     */
-    protected $action;
-    /**
-     * @var array Defines a collection of actions available without authentication.
-     */
-    protected $publicActions = [];
-    /**
-     * @var array Permissions required to view this page.
-     */
-    protected $requiredPermissions = [];
+
     /**
      * @var array Controller specified methods which cannot be called as actions.
      */
@@ -243,50 +254,135 @@ class Controller extends Extendable
     }
 
     /**
-     * Checks the request data / headers for a valid CSRF token.
-     * Returns false if a valid token is not found. Override this
-     * method to disable the check.
-     * @return bool
+     * This method is used internally.
+     * Determines whether an action with the specified name exists.
+     * Action must be a class public method. Action name can not be prefixed with the underscore character.
+     * @param string $name Specifies the action name.
+     * @param bool $internal Allow protected actions.
+     * @return boolean
      */
-    protected function verifyCsrfToken()
+    public function actionExists($name, $internal = false)
     {
-        if (!Config::get('cms.enableCsrfProtection')) {
-            return true;
-        }
-
-        if (in_array(Request::method(), ['HEAD', 'GET', 'OPTIONS'])) {
-            return true;
-        }
-
-        $token = Request::input('_token') ?: Request::header('X-CSRF-TOKEN');
-
-        if (!strlen($token)) {
+        if (!strlen($name) || substr($name, 0, 1) == '_' || !$this->methodExists($name)) {
             return false;
         }
 
-        return hash_equals(
-            Session::token(),
-            $token
-        );
-    }
+        foreach ($this->hiddenActions as $method) {
+            if (strtolower($name) == strtolower($method)) {
+                return false;
+            }
+        }
 
-    /**
-     * Checks if the back-end should force a secure protocol (HTTPS) enabled by config.
-     * @return bool
-     */
-    protected function verifyForceSecure()
-    {
-        if (Request::secure() || Request::ajax()) {
+        $ownMethod = method_exists($this, $name);
+
+        if ($ownMethod) {
+            $methodInfo = new \ReflectionMethod($this, $name);
+            $public = $methodInfo->isPublic();
+            if ($public) {
+                return true;
+            }
+        }
+
+        if ($internal && (($ownMethod && $methodInfo->isProtected()) || !$ownMethod)) {
             return true;
         }
 
-        // @todo if year >= 2018 change default from false to null
-        $forceSecure = Config::get('cms.backendForceSecure', false);
-        if ($forceSecure === null) {
-            $forceSecure = !Config::get('app.debug', false);
+        if (!$ownMethod) {
+            return true;
         }
 
-        return !$forceSecure;
+        return false;
+    }
+
+    /**
+     * Returns a URL for this controller and supplied action.
+     */
+    public function actionUrl($action = null, $path = null)
+    {
+        if ($action === null) {
+            $action = $this->action;
+        }
+
+        $class = get_called_class();
+        $uriPath = dirname(dirname(strtolower(str_replace('\\', '/', $class))));
+        $controllerName = strtolower(class_basename($class));
+
+        $url = $uriPath.'/'.$controllerName.'/'.$action;
+        if ($path) {
+            $url .= '/'.$path;
+        }
+
+        return Backend::url($url);
+    }
+
+    /**
+     * Invokes the current controller action without rendering a view,
+     * used by AJAX handler that may rely on the logic inside the action.
+     */
+    public function pageAction()
+    {
+        if (!$this->action) {
+            return;
+        }
+
+        $this->suppressView = true;
+        $this->execPageAction($this->action, $this->params);
+    }
+
+    /**
+     * This method is used internally.
+     * Invokes the controller action and loads the corresponding view.
+     * @param string $actionName Specifies a action name to execute.
+     * @param array $parameters A list of the action parameters.
+     */
+    protected function execPageAction($actionName, $parameters)
+    {
+        $result = null;
+
+        if (!$this->actionExists($actionName)) {
+            throw new SystemException(sprintf(
+                "Action %s is not found in the controller %s",
+                $actionName,
+                get_class($this)
+            ));
+        }
+
+        // Execute the action
+        $result = call_user_func_array([$this, $actionName], $parameters);
+
+        // Expecting \Response and \RedirectResponse
+        if ($result instanceof \Symfony\Component\HttpFoundation\Response) {
+            return $result;
+        }
+
+        // No page title
+        if (!$this->pageTitle) {
+            $this->pageTitle = 'backend::lang.page.untitled';
+        }
+
+        // Load the view
+        if (!$this->suppressView && is_null($result)) {
+            return $this->makeView($actionName);
+        }
+
+        return $this->makeViewContent($result);
+    }
+
+    /**
+     * Returns the AJAX handler for the current request, if available.
+     * @return string
+     */
+    public function getAjaxHandler()
+    {
+        if (!Request::ajax() || Request::method() != 'POST') {
+            return null;
+        }
+
+        if ($handler = Request::header('X_OCTOBER_REQUEST_HANDLER')) {
+            return trim($handler);
+        }
+
+        return null;
     }
 
     /**
@@ -392,23 +488,6 @@ class Controller extends Extendable
     }
 
     /**
-     * Returns the AJAX handler for the current request, if available.
-     * @return string
-     */
-    public function getAjaxHandler()
-    {
-        if (!Request::ajax() || Request::method() != 'POST') {
-            return null;
-        }
-
-        if ($handler = Request::header('X_OCTOBER_REQUEST_HANDLER')) {
-            return trim($handler);
-        }
-
-        return null;
-    }
-
-    /**
      * Tries to find and run an AJAX handler in the page action.
      * The method stops as soon as the handler is found.
      * @return boolean Returns true if the handler was found. Returns false otherwise.
@@ -483,100 +562,6 @@ class Controller extends Extendable
     }
 
     /**
-     * Invokes the current controller action without rendering a view,
-     * used by AJAX handler that may rely on the logic inside the action.
-     */
-    public function pageAction()
-    {
-        if (!$this->action) {
-            return;
-        }
-
-        $this->suppressView = true;
-        $this->execPageAction($this->action, $this->params);
-    }
-
-    /**
-     * This method is used internally.
-     * Invokes the controller action and loads the corresponding view.
-     * @param string $actionName Specifies a action name to execute.
-     * @param array $parameters A list of the action parameters.
-     */
-    protected function execPageAction($actionName, $parameters)
-    {
-        $result = null;
-
-        if (!$this->actionExists($actionName)) {
-            throw new SystemException(sprintf(
-                "Action %s is not found in the controller %s",
-                $actionName,
-                get_class($this)
-            ));
-        }
-
-        // Execute the action
-        $result = call_user_func_array([$this, $actionName], $parameters);
-
-        // Expecting \Response and \RedirectResponse
-        if ($result instanceof \Symfony\Component\HttpFoundation\Response) {
-            return $result;
-        }
-
-        // No page title
-        if (!$this->pageTitle) {
-            $this->pageTitle = 'backend::lang.page.untitled';
-        }
-
-        // Load the view
-        if (!$this->suppressView && is_null($result)) {
-            return $this->makeView($actionName);
-        }
-
-        return $this->makeViewContent($result);
-    }
-
-    /**
-     * This method is used internally.
-     * Determines whether an action with the specified name exists.
-     * Action must be a class public method. Action name can not be prefixed with the underscore character.
-     * @param string $name Specifies the action name.
-     * @param bool $internal Allow protected actions.
-     * @return boolean
-     */
-    public function actionExists($name, $internal = false)
-    {
-        if (!strlen($name) || substr($name, 0, 1) == '_' || !$this->methodExists($name)) {
-            return false;
-        }
-
-        foreach ($this->hiddenActions as $method) {
-            if (strtolower($name) == strtolower($method)) {
-                return false;
-            }
-        }
-
-        $ownMethod = method_exists($this, $name);
-
-        if ($ownMethod) {
-            $methodInfo = new \ReflectionMethod($this, $name);
-            $public = $methodInfo->isPublic();
-            if ($public) {
-                return true;
-            }
-        }
-
-        if ($internal && (($ownMethod && $methodInfo->isProtected()) || !$ownMethod)) {
-            return true;
-        }
-
-        if (!$ownMethod) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
      * Specific code for executing an AJAX handler for a widget.
      * This will append the widget view paths to the controller and merge the vars.
      * @return mixed
@@ -593,37 +578,12 @@ class Controller extends Extendable
     }
 
     /**
-     * Returns a URL for this controller and supplied action.
-     */
-    public function actionUrl($action = null, $path = null)
-    {
-        if ($action === null) {
-            $action = $this->action;
-        }
-
-        $class = get_called_class();
-        $uriPath = dirname(dirname(strtolower(str_replace('\\', '/', $class))));
-        $controllerName = strtolower(class_basename($class));
-
-        $url = $uriPath.'/'.$controllerName.'/'.$action;
-        if ($path) {
-            $url .= '/'.$path;
-        }
-
-        return Backend::url($url);
-    }
-
-    /**
      * Returns the controllers public actions.
      */
     public function getPublicActions()
     {
         return $this->publicActions;
     }
-
-    //
-    // Hints
-    //
 
     /**
      * Returns a unique ID for the controller and route. Useful in creating HTML markup.
@@ -647,6 +607,10 @@ class Controller extends Extendable
         $this->statusCode = (int) $code;
         return $this;
     }
+
+    //
+    // Hints
+    //
 
     /**
      * Renders a hint partial, used for displaying informative information that
@@ -676,10 +640,6 @@ class Controller extends Extendable
         ] + $params);
     }
 
-    //
-    // Security
-    //
-
     /**
      * Ajax handler to hide a backend hint, once hidden the partial
      * will no longer display for the user.
@@ -707,5 +667,56 @@ class Controller extends Extendable
     {
         $hiddenHints = UserPreference::forUser()->get('backend::hints.hidden', []);
         return array_key_exists($name, $hiddenHints);
+    }
+
+    //
+    // Security
+    //
+
+    /**
+     * Checks the request data / headers for a valid CSRF token.
+     * Returns false if a valid token is not found. Override this
+     * method to disable the check.
+     * @return bool
+     */
+    protected function verifyCsrfToken()
+    {
+        if (!Config::get('cms.enableCsrfProtection')) {
+            return true;
+        }
+
+        if (in_array(Request::method(), ['HEAD', 'GET', 'OPTIONS'])) {
+            return true;
+        }
+
+        $token = Request::input('_token') ?: Request::header('X-CSRF-TOKEN');
+
+        if (!strlen($token)) {
+            return false;
+        }
+
+        return hash_equals(
+            Session::token(),
+            $token
+        );
+    }
+
+    /**
+     * Checks if the back-end should force a secure protocol (HTTPS) enabled by config.
+     * @return bool
+     */
+    protected function verifyForceSecure()
+    {
+        if (Request::secure() || Request::ajax()) {
+            return true;
+        }
+
+        // @todo if year >= 2018 change default from false to null
+        $forceSecure = Config::get('cms.backendForceSecure', false);
+        if ($forceSecure === null) {
+            $forceSecure = !Config::get('app.debug', false);
+        }
+
+        return !$forceSecure;
     }
 }

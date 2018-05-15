@@ -36,22 +36,6 @@ class Less_Tree_Color extends Less_Tree{
 		$this->alpha = is_numeric($a) ? $a : 1;
 	}
 
-	/**
-	 * @param string $keyword
-	 */
-	public static function fromKeyword( $keyword ){
-		$keyword = strtolower($keyword);
-
-		if( Less_Colors::hasOwnProperty($keyword) ){
-			// detect named color
-			return new Less_Tree_Color(substr(Less_Colors::color($keyword), 1));
-		}
-
-		if( $keyword === 'transparent' ){
-			return new Less_Tree_Color( array(0, 0, 0), 0, true);
-		}
-	}
-
 	public function compile(){
 		return $this;
 	}
@@ -74,13 +58,6 @@ class Less_Tree_Color extends Less_Tree{
 	public function genCSS( $output ){
 		$output->add( $this->toCSS() );
 	}
-
-	//
-	// Operations have to be done per-channel, if not,
-	// channels will spill onto each other. Once we have
-	// our result, in the form of an integer triplet,
-	// we create a new Color node to hold the result.
-	//
 
 	public function toCSS( $doNotCompress = false ){
 		$compress = Less_Parser::$options['compress'] && !$doNotCompress;
@@ -122,25 +99,12 @@ class Less_Tree_Color extends Less_Tree{
 		}
 	}
 
-	public function toRGB(){
-		return $this->toHex($this->rgb);
-	}
-
-    public function toHex( $v ){
-
-		$ret = '#';
-		foreach($v as $c){
-			$c = Less_Functions::clamp( Less_Parser::round($c), 255);
-			if( $c < 16 ){
-				$ret .= '0';
-			}
-			$ret .= dechex($c);
-		}
-
-		return $ret;
-	}
-
-	//Adapted from http://mjijackson.com/2008/02/rgb-to-hsl-and-rgb-to-hsv-color-model-conversion-algorithms-in-javascript
+	//
+	// Operations have to be done per-channel, if not,
+	// channels will spill onto each other. Once we have
+	// our result, in the form of an integer triplet,
+	// we create a new Color node to hold the result.
+	//
 
 	/**
 	 * @param string $op
@@ -152,6 +116,10 @@ class Less_Tree_Color extends Less_Tree{
 			$rgb[$c] = Less_Functions::operate( $op, $this->rgb[$c], $other->rgb[$c]);
 		}
 		return new Less_Tree_Color($rgb, $alpha);
+	}
+
+	public function toRGB(){
+		return $this->toHex($this->rgb);
 	}
 
 	public function toHSL(){
@@ -179,6 +147,7 @@ class Less_Tree_Color extends Less_Tree{
 		return array('h' => $h * 360, 's' => $s, 'l' => $l, 'a' => $a );
 	}
 
+	//Adapted from http://mjijackson.com/2008/02/rgb-to-hsl-and-rgb-to-hsv-color-model-conversion-algorithms-in-javascript
     public function toHSV() {
 		$r = $this->rgb[0] / 255;
 		$g = $this->rgb[1] / 255;
@@ -225,6 +194,37 @@ class Less_Tree_Color extends Less_Tree{
 			$x->rgb[1] === $this->rgb[1] &&
 			$x->rgb[2] === $this->rgb[2] &&
 			$x->alpha === $this->alpha) ? 0 : -1;
+	}
+
+    public function toHex( $v ){
+
+		$ret = '#';
+		foreach($v as $c){
+			$c = Less_Functions::clamp( Less_Parser::round($c), 255);
+			if( $c < 16 ){
+				$ret .= '0';
+			}
+			$ret .= dechex($c);
+		}
+
+		return $ret;
+	}
+
+
+	/**
+	 * @param string $keyword
+	 */
+	public static function fromKeyword( $keyword ){
+		$keyword = strtolower($keyword);
+
+		if( Less_Colors::hasOwnProperty($keyword) ){
+			// detect named color
+			return new Less_Tree_Color(substr(Less_Colors::color($keyword), 1));
+		}
+
+		if( $keyword === 'transparent' ){
+			return new Less_Tree_Color( array(0, 0, 0), 0, true);
+		}
 	}
 
 }

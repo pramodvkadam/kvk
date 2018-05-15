@@ -16,6 +16,13 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class UploadedFileTest extends TestCase
 {
+    protected function setUp()
+    {
+        if (!ini_get('file_uploads')) {
+            $this->markTestSkipped('file_uploads is disabled in php.ini');
+        }
+    }
+
     public function testConstructWhenFileNotExists()
     {
         $this->{method_exists($this, $_ = 'expectException') ? $_ : 'setExpectedException'}('Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException');
@@ -262,12 +269,5 @@ class UploadedFileTest extends TestCase
         );
 
         $this->assertFalse($file->isValid());
-    }
-
-    protected function setUp()
-    {
-        if (!ini_get('file_uploads')) {
-            $this->markTestSkipped('file_uploads is disabled in php.ini');
-        }
     }
 }

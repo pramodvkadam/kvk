@@ -58,28 +58,6 @@ class Processor
     }
 
     /**
-     * Convert an array of property-strings into objects
-     *
-     * @param array $properties
-     * @return Property[]
-     */
-    public function convertArrayToObjects(array $properties, Specificity $specificity = null)
-    {
-        $objects = array();
-
-        foreach ($properties as $property) {
-            $object = $this->convertToObject($property, $specificity);
-            if ($object === null) {
-                continue;
-            }
-
-            $objects[] = $object;
-        }
-
-        return $objects;
-    }
-
-    /**
      * Convert a property-string into an object
      *
      * @param string $property
@@ -101,6 +79,28 @@ class Processor
         }
 
         return new Property($name, $value, $specificity);
+    }
+
+    /**
+     * Convert an array of property-strings into objects
+     *
+     * @param array $properties
+     * @return Property[]
+     */
+    public function convertArrayToObjects(array $properties, Specificity $specificity = null)
+    {
+        $objects = array();
+
+        foreach ($properties as $property) {
+            $object = $this->convertToObject($property, $specificity);
+            if ($object === null) {
+                continue;
+            }
+
+            $objects[] = $object;
+        }
+
+        return $objects;
     }
 
     /**

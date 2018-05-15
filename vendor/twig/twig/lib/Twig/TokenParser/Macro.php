@@ -44,14 +44,14 @@ final class Twig_TokenParser_Macro extends Twig_TokenParser
         $this->parser->setMacro($name, new Twig_Node_Macro($name, new Twig_Node_Body(array($body)), $arguments, $lineno, $this->getTag()));
     }
 
-    public function getTag()
-    {
-        return 'macro';
-    }
-
     public function decideBlockEnd(Twig_Token $token)
     {
         return $token->test('endmacro');
+    }
+
+    public function getTag()
+    {
+        return 'macro';
     }
 }
 

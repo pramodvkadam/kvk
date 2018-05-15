@@ -132,6 +132,23 @@ class DBALException extends \Exception
     }
 
     /**
+     * @param \Doctrine\DBAL\Driver     $driver
+     * @param \Exception $driverEx
+     *
+     * @return \Doctrine\DBAL\DBALException
+     */
+    public static function driverException(Driver $driver, \Exception $driverEx)
+    {
+        $msg = "An exception occured in driver: " . $driverEx->getMessage();
+
+        if ($driver instanceof ExceptionConverterDriver && $driverEx instanceof DriverException) {
+            return $driver->convertException($msg, $driverEx);
+        }
+
+        return new self($msg, 0, $driverEx);
+    }
+
+    /**
      * Returns a human-readable representation of an array of parameters.
      * This properly handles binary data by returning a hex representation.
      *
@@ -151,23 +168,6 @@ class DBALException extends \Exception
 
             return $json;
         }, $params)) . ']';
-    }
-
-    /**
-     * @param \Doctrine\DBAL\Driver     $driver
-     * @param \Exception $driverEx
-     *
-     * @return \Doctrine\DBAL\DBALException
-     */
-    public static function driverException(Driver $driver, \Exception $driverEx)
-    {
-        $msg = "An exception occured in driver: " . $driverEx->getMessage();
-
-        if ($driver instanceof ExceptionConverterDriver && $driverEx instanceof DriverException) {
-            return $driver->convertException($msg, $driverEx);
-        }
-
-        return new self($msg, 0, $driverEx);
     }
 
     /**

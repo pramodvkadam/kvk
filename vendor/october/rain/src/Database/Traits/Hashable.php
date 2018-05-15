@@ -41,6 +41,20 @@ trait Hashable
     }
 
     /**
+     * Adds an attribute to the hashable attributes list
+     * @param  array|string|null  $attributes
+     * @return $this
+     */
+    public function addHashable($attributes = null)
+    {
+        $attributes = is_array($attributes) ? $attributes : func_get_args();
+
+        $this->hashable = array_merge($this->hashable, $attributes);
+
+        return $this;
+    }
+
+    /**
      * Hashes an attribute value and saves it in the original locker.
      * @param  string $key   Attribute
      * @param  string $value Value to hash
@@ -101,19 +115,5 @@ trait Hashable
         traceLog('The addHashableAttribute() method is deprecated, use addHashable() instead.');
 
         return $this->addHashable($attribute);
-    }
-
-    /**
-     * Adds an attribute to the hashable attributes list
-     * @param  array|string|null  $attributes
-     * @return $this
-     */
-    public function addHashable($attributes = null)
-    {
-        $attributes = is_array($attributes) ? $attributes : func_get_args();
-
-        $this->hashable = array_merge($this->hashable, $attributes);
-
-        return $this;
     }
 }

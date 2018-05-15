@@ -4,6 +4,17 @@ class Swift_Encoder_Base64EncoderTest extends \PHPUnit\Framework\TestCase
 {
     private $encoder;
 
+    protected function setUp()
+    {
+        $this->encoder = new Swift_Encoder_Base64Encoder();
+    }
+
+    /*
+    There's really no point in testing the entire base64 encoding to the
+    level QP encoding has been tested.  base64_encode() has been in PHP for
+    years.
+    */
+
     public function testInputOutputRatioIs3to4Bytes()
     {
         /*
@@ -29,12 +40,6 @@ class Swift_Encoder_Base64EncoderTest extends \PHPUnit\Framework\TestCase
             '%s: 9 bytes in input should yield 12 bytes of output'
             );
     }
-
-    /*
-    There's really no point in testing the entire base64 encoding to the
-    level QP encoding has been tested.  base64_encode() has been in PHP for
-    years.
-    */
 
     public function testPadLength()
     {
@@ -164,10 +169,5 @@ class Swift_Encoder_Base64EncoderTest extends \PHPUnit\Framework\TestCase
             $output, $this->encoder->encodeString($input, 19),
             '%s: First line offset is 19 so first line should be 57 chars long'
             );
-    }
-
-    protected function setUp()
-    {
-        $this->encoder = new Swift_Encoder_Base64Encoder();
     }
 }

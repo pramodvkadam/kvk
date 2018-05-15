@@ -53,16 +53,6 @@ trait ManagesComponents
     }
 
     /**
-     * Get the index for the current component.
-     *
-     * @return int
-     */
-    protected function currentComponent()
-    {
-        return count($this->componentStack) - 1;
-    }
-
-    /**
      * Render the current component.
      *
      * @return string
@@ -124,5 +114,15 @@ trait ManagesComponents
 
         $this->slots[$this->currentComponent()]
                     [$currentSlot] = new HtmlString(trim(ob_get_clean()));
+    }
+
+    /**
+     * Get the index for the current component.
+     *
+     * @return int
+     */
+    protected function currentComponent()
+    {
+        return count($this->componentStack) - 1;
     }
 }

@@ -4,6 +4,11 @@ class Swift_Mime_HeaderEncoder_Base64HeaderEncoderAcceptanceTest extends \PHPUni
 {
     private $encoder;
 
+    protected function setUp()
+    {
+        $this->encoder = new Swift_Mime_HeaderEncoder_Base64HeaderEncoder();
+    }
+
     public function testEncodingJIS()
     {
         if (function_exists('mb_convert_encoding')) {
@@ -23,10 +28,5 @@ class Swift_Mime_HeaderEncoder_Base64HeaderEncoderAcceptanceTest extends \PHPUni
                 'Encoded string should decode back to original string for sample '
             );
         }
-    }
-
-    protected function setUp()
-    {
-        $this->encoder = new Swift_Mime_HeaderEncoder_Base64HeaderEncoder();
     }
 }

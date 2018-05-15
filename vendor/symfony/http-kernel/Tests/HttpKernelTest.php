@@ -40,27 +40,6 @@ class HttpKernelTest extends TestCase
         $kernel->handle(new Request(), HttpKernelInterface::MASTER_REQUEST, true);
     }
 
-    private function getHttpKernel(EventDispatcherInterface $eventDispatcher, $controller = null, RequestStack $requestStack = null, array $arguments = array())
-    {
-        if (null === $controller) {
-            $controller = function () { return new Response('Hello'); };
-        }
-
-        $controllerResolver = $this->getMockBuilder(ControllerResolverInterface::class)->getMock();
-        $controllerResolver
-            ->expects($this->any())
-            ->method('getController')
-            ->will($this->returnValue($controller));
-
-        $argumentResolver = $this->getMockBuilder(ArgumentResolverInterface::class)->getMock();
-        $argumentResolver
-            ->expects($this->any())
-            ->method('getArguments')
-            ->will($this->returnValue($arguments));
-
-        return new HttpKernel($eventDispatcher, $controllerResolver, $requestStack, $argumentResolver);
-    }
-
     /**
      * @expectedException \RuntimeException
      */
@@ -226,12 +205,6 @@ class HttpKernelTest extends TestCase
         $this->assertResponseEquals(new Response('foo'), $kernel->handle(new Request()));
     }
 
-    private function assertResponseEquals(Response $expected, Response $actual)
-    {
-        $expected->setDate($actual->getDate());
-        $this->assertEquals($expected, $actual);
-    }
-
     public function testHandleWhenTheControllerIsAFunction()
     {
         $dispatcher = new EventDispatcher();
@@ -377,21 +350,48 @@ class HttpKernelTest extends TestCase
         $kernel = $this->getHttpKernel($dispatcher);
         $kernel->handle($request, $kernel::MASTER_REQUEST, false);
     }
+
+    private function getHttpKernel(EventDispatcherInterface $eventDispatcher, $controller = null, RequestStack $requestStack = null, array $arguments = array())
+    {
+        if (null === $controller) {
+            $controller = function () { return new Response('Hello'); };
+        }
+
+        $controllerResolver = $this->getMockBuilder(ControllerResolverInterface::class)->getMock();
+        $controllerResolver
+            ->expects($this->any())
+            ->method('getController')
+            ->will($this->returnValue($controller));
+
+        $argumentResolver = $this->getMockBuilder(ArgumentResolverInterface::class)->getMock();
+        $argumentResolver
+            ->expects($this->any())
+            ->method('getArguments')
+            ->will($this->returnValue($arguments));
+
+        return new HttpKernel($eventDispatcher, $controllerResolver, $requestStack, $argumentResolver);
+    }
+
+    private function assertResponseEquals(Response $expected, Response $actual)
+    {
+        $expected->setDate($actual->getDate());
+        $this->assertEquals($expected, $actual);
+    }
 }
 
 class Controller
 {
-    public static function staticController()
-    {
-        return new Response('foo');
-    }
-
     public function __invoke()
     {
         return new Response('foo');
     }
 
     public function controller()
+    {
+        return new Response('foo');
+    }
+
+    public static function staticController()
     {
         return new Response('foo');
     }

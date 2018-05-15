@@ -43,11 +43,6 @@ class FlashBag extends MessageBag
         $this->purge();
     }
 
-    public function purge()
-    {
-        $this->session->remove(self::SESSION_KEY);
-    }
-
     /**
      * Checks to see if any message is available.
      * @return bool
@@ -76,21 +71,6 @@ class FlashBag extends MessageBag
     }
 
     /**
-     * Gets / Sets an error message
-     * @param string|null $message
-     * @return array|FlashBag
-     */
-    public function error($message = null)
-    {
-        if ($message === null) {
-            return $this->get(FlashBag::ERROR);
-        }
-        else {
-            return $this->add(FlashBag::ERROR, $message);
-        }
-    }
-
-    /**
      * Gets all the flash messages of a given type.
      * @param string $key
      * @param string|null $format
@@ -106,27 +86,18 @@ class FlashBag extends MessageBag
     }
 
     /**
-     * Add a message to the bag and stores it in the session.
-     *
-     * @param  string  $key
-     * @param  string  $message
-     * @return \October\Rain\Flash\FlashBag
+     * Gets / Sets an error message
+     * @param string|null $message
+     * @return array|FlashBag
      */
-    public function add($key, $message)
+    public function error($message = null)
     {
-        $this->newMessages[$key][] = $message;
-
-        $this->store();
-
-        return parent::add($key, $message);
-    }
-
-    /**
-     * Stores the flash data to the session.
-     */
-    public function store()
-    {
-        $this->session->put(self::SESSION_KEY, $this->newMessages);
+        if ($message === null) {
+            return $this->get(FlashBag::ERROR);
+        }
+        else {
+            return $this->add(FlashBag::ERROR, $message);
+        }
     }
 
     /**
@@ -174,9 +145,29 @@ class FlashBag extends MessageBag
         }
     }
 
-    /*
-     * Removes all flash data from the session.
+    /**
+     * Add a message to the bag and stores it in the session.
+     *
+     * @param  string  $key
+     * @param  string  $message
+     * @return \October\Rain\Flash\FlashBag
      */
+    public function add($key, $message)
+    {
+        $this->newMessages[$key][] = $message;
+
+        $this->store();
+
+        return parent::add($key, $message);
+    }
+
+    /**
+     * Stores the flash data to the session.
+     */
+    public function store()
+    {
+        $this->session->put(self::SESSION_KEY, $this->newMessages);
+    }
 
     /**
      * Removes an object with a specified key or erases the flash data.
@@ -199,5 +190,13 @@ class FlashBag extends MessageBag
 
             $this->store();
         }
+    }
+
+    /*
+     * Removes all flash data from the session.
+     */
+    public function purge()
+    {
+        $this->session->remove(self::SESSION_KEY);
     }
 }

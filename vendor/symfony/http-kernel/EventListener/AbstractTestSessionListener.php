@@ -29,14 +29,6 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  */
 abstract class AbstractTestSessionListener implements EventSubscriberInterface
 {
-    public static function getSubscribedEvents()
-    {
-        return array(
-            KernelEvents::REQUEST => array('onKernelRequest', 192),
-            KernelEvents::RESPONSE => array('onKernelResponse', -128),
-        );
-    }
-
     public function onKernelRequest(GetResponseEvent $event)
     {
         if (!$event->isMasterRequest()) {
@@ -57,13 +49,6 @@ abstract class AbstractTestSessionListener implements EventSubscriberInterface
     }
 
     /**
-     * Gets the session object.
-     *
-     * @return SessionInterface|null A SessionInterface instance or null if no session is available
-     */
-    abstract protected function getSession();
-
-    /**
      * Checks if session was initialized and saves if current request is master
      * Runs on 'kernel.response' in test environment.
      */
@@ -73,13 +58,32 @@ abstract class AbstractTestSessionListener implements EventSubscriberInterface
             return;
         }
 
-        $session = $event->getRequest()->getSession();
-        if ($session && $session->isStarted()) {
+        if (!$session = $event->getRequest()->getSession()) {
+            return;
+        }
+
+        if ($wasStarted = $session->isStarted()) {
             $session->save();
-            if (!$session instanceof Session || !\method_exists($session, 'isEmpty') || !$session->isEmpty()) {
-                $params = session_get_cookie_params();
-                $event->getResponse()->headers->setCookie(new Cookie($session->getName(), $session->getId(), 0 === $params['lifetime'] ? 0 : time() + $params['lifetime'], $params['path'], $params['domain'], $params['secure'], $params['httponly']));
-            }
+        }
+
+        if ($session instanceof Session ? !$session->isEmpty() : $wasStarted) {
+            $params = session_get_cookie_params();
+            $event->getResponse()->headers->setCookie(new Cookie($session->getName(), $session->getId(), 0 === $params['lifetime'] ? 0 : time() + $params['lifetime'], $params['path'], $params['domain'], $params['secure'], $params['httponly']));
         }
     }
+
+    public static function getSubscribedEvents()
+    {
+        return array(
+            KernelEvents::REQUEST => array('onKernelRequest', 192),
+            KernelEvents::RESPONSE => array('onKernelResponse', -128),
+        );
+    }
+
+    /**
+     * Gets the session object.
+     *
+     * @return SessionInterface|null A SessionInterface instance or null if no session is available
+     */
+    abstract protected function getSession();
 }

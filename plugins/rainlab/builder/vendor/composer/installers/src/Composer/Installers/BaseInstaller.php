@@ -83,23 +83,13 @@ abstract class BaseInstaller
     }
 
     /**
-     * Search through a passed paths array for a custom install path.
+     * Gets the installer's locations
      *
-     * @param  array  $paths
-     * @param  string $name
-     * @param  string $type
-     * @param  string $vendor = NULL
-     * @return string
+     * @return array
      */
-    protected function mapCustomInstallPaths(array $paths, $name, $type, $vendor = NULL)
+    public function getLocations()
     {
-        foreach ($paths as $path => $names) {
-            if (in_array($name, $names) || in_array('type:' . $type, $names) || in_array('vendor:' . $vendor, $names)) {
-                return $path;
-            }
-        }
-
-        return false;
+        return $this->locations;
     }
 
     /**
@@ -125,12 +115,22 @@ abstract class BaseInstaller
     }
 
     /**
-     * Gets the installer's locations
+     * Search through a passed paths array for a custom install path.
      *
-     * @return array
+     * @param  array  $paths
+     * @param  string $name
+     * @param  string $type
+     * @param  string $vendor = NULL
+     * @return string
      */
-    public function getLocations()
+    protected function mapCustomInstallPaths(array $paths, $name, $type, $vendor = NULL)
     {
-        return $this->locations;
+        foreach ($paths as $path => $names) {
+            if (in_array($name, $names) || in_array('type:' . $type, $names) || in_array('vendor:' . $vendor, $names)) {
+                return $path;
+            }
+        }
+
+        return false;
     }
 }

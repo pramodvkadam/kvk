@@ -4,7 +4,7 @@
 *
 * @license http://opensource.org/licenses/MIT
 * @link https://github.com/thephpleague/csv/
-* @version 8.2.2
+* @version 8.2.3
 * @package League.csv
 *
 * For the full copyright and license information, please view the LICENSE
@@ -76,6 +76,11 @@ trait QueryFilter
     }
 
     /**
+     * @inheritdoc
+     */
+    abstract public function getInputBOM();
+
+    /**
      * Set LimitIterator Offset
      *
      * @param $offset
@@ -139,7 +144,7 @@ trait QueryFilter
     /**
      * @inheritdoc
      */
-    abstract public function getIterator();
+    abstract public function getEnclosure();
 
     /**
      * Returns the CSV Iterator
@@ -160,6 +165,11 @@ trait QueryFilter
 
         return $iterator;
     }
+
+    /**
+     * @inheritdoc
+     */
+    abstract public function getIterator();
 
     /**
      * Remove the BOM sequence from the CSV
@@ -196,11 +206,6 @@ trait QueryFilter
     }
 
     /**
-     * @inheritdoc
-     */
-    abstract public function getInputBOM();
-
-    /**
      * Return the Iterator without the BOM sequence
      *
      * @param Iterator $iterator
@@ -226,11 +231,6 @@ trait QueryFilter
 
         return new MapIterator($iterator, $strip_bom);
     }
-
-    /**
-     * @inheritdoc
-     */
-    abstract public function getEnclosure();
 
     /**
     * Filter the Iterator

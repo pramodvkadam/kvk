@@ -75,6 +75,17 @@ class Manager
     }
 
     /**
+     * Get a connection instance from the global manager.
+     *
+     * @param  string  $connection
+     * @return \Illuminate\Contracts\Queue\Queue
+     */
+    public static function connection($connection = null)
+    {
+        return static::$instance->getConnection($connection);
+    }
+
+    /**
      * Push a new job onto the queue.
      *
      * @param  string  $job
@@ -115,29 +126,6 @@ class Manager
     public static function later($delay, $job, $data = '', $queue = null, $connection = null)
     {
         return static::$instance->connection($connection)->later($delay, $job, $data, $queue);
-    }
-
-    /**
-     * Dynamically pass methods to the default connection.
-     *
-     * @param  string  $method
-     * @param  array   $parameters
-     * @return mixed
-     */
-    public static function __callStatic($method, $parameters)
-    {
-        return static::connection()->$method(...$parameters);
-    }
-
-    /**
-     * Get a connection instance from the global manager.
-     *
-     * @param  string  $connection
-     * @return \Illuminate\Contracts\Queue\Queue
-     */
-    public static function connection($connection = null)
-    {
-        return static::$instance->getConnection($connection);
     }
 
     /**
@@ -183,5 +171,17 @@ class Manager
     public function __call($method, $parameters)
     {
         return $this->manager->$method(...$parameters);
+    }
+
+    /**
+     * Dynamically pass methods to the default connection.
+     *
+     * @param  string  $method
+     * @param  array   $parameters
+     * @return mixed
+     */
+    public static function __callStatic($method, $parameters)
+    {
+        return static::connection()->$method(...$parameters);
     }
 }

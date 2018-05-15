@@ -37,15 +37,18 @@ class MediaManager extends WidgetBase
     const SELECTION_MODE_FIXED_SIZE = 'fixed-size';
 
     const FILTER_EVERYTHING = 'everything';
+
+    protected $brokenImageHash = null;
+
     /**
      * @var boolean Determines whether the bottom toolbar is visible.
      */
     public $bottomToolbar = false;
+
     /**
      * @var boolean Determines whether the Crop & Insert button is visible.
      */
     public $cropAndInsertButton = false;
-    protected $brokenImageHash = null;
 
     /**
      * Constructor.
@@ -59,149 +62,15 @@ class MediaManager extends WidgetBase
         $this->checkUploadPostback();
     }
 
-    protected function checkUploadPostback()
-    {
-        $fileName = null;
-        $quickMode = false;
-
-        if (
-            (!($uniqueId = Request::header('X-OCTOBER-FILEUPLOAD')) || $uniqueId != $this->getId()) &&
-            (!$quickMode = post('X_OCTOBER_MEDIA_MANAGER_QUICK_UPLOAD'))
-        ) {
-            return;
-        }
-
-        try {
-            if (!Input::hasFile('file_data')) {
-                throw new ApplicationException('File missing from request');
-            }
-
-            $uploadedFile = Input::file('file_data');
-
-            $fileName = $uploadedFile->getClientOriginalName();
-
-            /*
-             * Convert uppcare case file extensions to lower case
-             */
-            $extension = strtolower($uploadedFile->getClientOriginalExtension());
-            $fileName = File::name($fileName).'.'.$extension;
-
-            /*
-             * File name contains non-latin characters, attempt to slug the value
-             */
-            if (!$this->validateFileName($fileName)) {
-                $fileNameClean = $this->cleanFileName(File::name($fileName));
-                $fileName = $fileNameClean . '.' . $extension;
-            }
-
-            /*
-             * Check for unsafe file extensions
-             */
-            if (!$this->validateFileType($fileName)) {
-                throw new ApplicationException(Lang::get('backend::lang.media.type_blocked'));
-            }
-
-            /*
-             * See mime type handling in the asset manager
-             */
-            if (!$uploadedFile->isValid()) {
-                throw new ApplicationException($uploadedFile->getErrorMessage());
-            }
-
-            $path = $quickMode ? '/uploaded-files' : Input::get('path');
-            $path = MediaLibrary::validatePath($path);
-            $filePath = $path.'/'.$fileName;
-
-            /*
-             * getRealPath() can be empty for some environments (IIS)
-             */
-            $realPath = empty(trim($uploadedFile->getRealPath()))
-                             ? $uploadedFile->getPath() . DIRECTORY_SEPARATOR . $uploadedFile->getFileName()
-                             : $uploadedFile->getRealPath();
-
-            MediaLibrary::instance()->put(
-                $filePath,
-                File::get($realPath)
-            );
-
-            /*
-             * Extensibility
-             */
-            $this->fireSystemEvent('media.file.upload', [$filePath, $uploadedFile]);
-
-            Response::json([
-                'link' => MediaLibrary::url($filePath),
-                'result' => 'success'
-            ])->send();
-        }
-        catch (Exception $ex) {
-            Response::json($ex->getMessage(), 400)->send();
-        }
-
-        exit;
-    }
-
     /**
-     * Validate a proposed media item file name.
-     * @param string
-     * @return bool
+     * Adds widget specific asset files. Use $this->addJs() and $this->addCss()
+     * to register new assets to include on the page.
+     * @return void
      */
-    protected function validateFileName($name)
+    protected function loadAssets()
     {
-        if (!preg_match('/^[0-9a-z@\.\s_\-]+$/i', $name)) {
-            return false;
-        }
-
-        if (strpos($name, '..') !== false) {
-            return false;
-        }
-
-        return true;
-    }
-
-    //
-    // Event handlers
-    //
-
-    /**
-     * Creates a slug form the string. A modified version of Str::slug
-     * with the main difference that it accepts @-signs
-     * @param string
-     * @return string
-     */
-    protected function cleanFileName($name)
-    {
-        $title = Str::ascii($name);
-
-        // Convert all dashes/underscores into separator
-        $flip = $separator = '-';
-        $title = preg_replace('!['.preg_quote($flip).']+!u', $separator, $title);
-
-        // Remove all characters that are not the separator, letters, numbers, whitespace or @.
-        $title = preg_replace('![^'.preg_quote($separator).'\pL\pN\s@]+!u', '', mb_strtolower($title));
-
-        // Replace all separator characters and whitespace by a single separator
-        $title = preg_replace('!['.preg_quote($separator).'\s]+!u', $separator, $title);
-
-        return trim($title, $separator);
-    }
-
-    /**
-     * Check for blocked / unsafe file extensions
-     * @param string
-     * @return bool
-     */
-    protected function validateFileType($name)
-    {
-        $extension = strtolower(File::extension($name));
-
-        $allowedFileTypes = FileDefinitions::get('defaultExtensions');
-
-        if (!in_array($extension, $allowedFileTypes)) {
-            return false;
-        }
-
-        return true;
+        $this->addCss('css/mediamanager.css', 'core');
+        $this->addJs('js/mediamanager-browser-min.js', 'core');
     }
 
     /**
@@ -215,127 +84,9 @@ class MediaManager extends WidgetBase
         return $this->makePartial('body');
     }
 
-    protected function prepareVars()
-    {
-        clearstatcache();
-
-        $folder = $this->getCurrentFolder();
-        $viewMode = $this->getViewMode();
-        $filter = $this->getFilter();
-        $sortBy = $this->getSortBy();
-        $sortDirection = $this->getSortDirection();
-        $searchTerm = $this->getSearchTerm();
-        $searchMode = strlen($searchTerm) > 0;
-
-        if (!$searchMode) {
-            $this->vars['items'] = $this->listFolderItems($folder, $filter, ['by' => $sortBy, 'direction' => $sortDirection]);
-        }
-        else {
-            $this->vars['items'] = $this->findFiles($searchTerm, $filter, ['by' => $sortBy, 'direction' => $sortDirection]);
-        }
-
-        $this->vars['currentFolder'] = $folder;
-        $this->vars['isRootFolder'] = $folder == self::FOLDER_ROOT;
-        $this->vars['pathSegments'] = $this->splitPathToSegments($folder);
-        $this->vars['viewMode'] = $viewMode;
-        $this->vars['thumbnailParams'] = $this->getThumbnailParams($viewMode);
-        $this->vars['currentFilter'] = $filter;
-        $this->vars['sortBy'] = $sortBy;
-        $this->vars['sortDirection'] = $sortDirection;
-        $this->vars['searchMode'] = $searchMode;
-        $this->vars['searchTerm'] = $searchTerm;
-        $this->vars['sidebarVisible'] = $this->getSidebarVisible();
-    }
-
-    protected function getCurrentFolder()
-    {
-        $folder = $this->getSession('media_folder', self::FOLDER_ROOT);
-
-        return $folder;
-    }
-
-    protected function getViewMode()
-    {
-        return $this->getSession('view_mode', self::VIEW_MODE_GRID);
-    }
-
-    protected function getFilter()
-    {
-        return $this->getSession('media_filter', self::FILTER_EVERYTHING);
-    }
-
-    protected function getSortBy()
-    {
-        return $this->getSession('media_sort_by', MediaLibrary::SORT_BY_TITLE);
-    }
-
-    protected function getSortDirection()
-    {
-        return $this->getSession('media_sort_direction', MediaLibrary::SORT_DIRECTION_ASC);
-    }
-
-    protected function getSearchTerm()
-    {
-        return $this->getSession('media_search', null);
-    }
-
-    protected function listFolderItems($folder, $filter, $sortBy)
-    {
-        $filter = $filter !== self::FILTER_EVERYTHING ? $filter : null;
-
-        return MediaLibrary::instance()->listFolderContents($folder, $sortBy, $filter);
-    }
-
-    protected function findFiles($searchTerm, $filter, $sortBy)
-    {
-        $filter = $filter !== self::FILTER_EVERYTHING ? $filter : null;
-
-        return MediaLibrary::instance()->findFiles($searchTerm, $sortBy, $filter);
-    }
-
-    protected function splitPathToSegments($path)
-    {
-        $path = MediaLibrary::validatePath($path, true);
-        $path = explode('/', ltrim($path, '/'));
-
-        $result = [];
-        while (count($path) > 0) {
-            $folder = array_pop($path);
-
-            $result[$folder] = implode('/', $path).'/'.$folder;
-            if (substr($result[$folder], 0, 1) != '/') {
-                $result[$folder] = '/'.$result[$folder];
-            }
-        }
-
-        return array_reverse($result, true);
-    }
-
-    protected function getThumbnailParams($viewMode = null)
-    {
-        $result = [
-            'mode' => 'crop',
-            'ext' => 'png'
-        ];
-
-        if ($viewMode) {
-            if ($viewMode == self::VIEW_MODE_LIST) {
-                $result['width'] = 75;
-                $result['height'] = 75;
-            }
-            else {
-                $result['width'] = 165;
-                $result['height'] = 165;
-            }
-        }
-
-        return $result;
-    }
-
-    protected function getSidebarVisible()
-    {
-        return $this->getSession('sidebar_visible', true);
-    }
+    //
+    // Event handlers
+    //
 
     public function onSearch()
     {
@@ -347,11 +98,6 @@ class MediaManager extends WidgetBase
             '#'.$this->getId('item-list') => $this->makePartial('item-list'),
             '#'.$this->getId('folder-path') => $this->makePartial('folder-path')
         ];
-    }
-
-    protected function setSearchTerm($searchTerm)
-    {
-        $this->putSession('media_search', trim($searchTerm));
     }
 
     public function onGoToFolder()
@@ -375,17 +121,6 @@ class MediaManager extends WidgetBase
         ];
     }
 
-    protected function setCurrentFolder($path)
-    {
-        $path = MediaLibrary::validatePath($path);
-
-        $this->putSession('media_folder', $path);
-    }
-
-    //
-    // Methods for th internal use
-    //
-
     public function onGenerateThumbnails()
     {
         $batch = Input::get('batch');
@@ -401,197 +136,6 @@ class MediaManager extends WidgetBase
         return [
             'generatedThumbnails'=>$result
         ];
-    }
-
-    protected function generateThumbnail($thumbnailInfo, $thumbnailParams = null)
-    {
-        $tempFilePath = null;
-        $fullThumbnailPath = null;
-        $thumbnailPath = null;
-        $markup = null;
-
-        try {
-            /*
-             * Get and validate input data
-             */
-            $path = $thumbnailInfo['path'];
-            $width = $thumbnailInfo['width'];
-            $height = $thumbnailInfo['height'];
-            $lastModified = $thumbnailInfo['lastModified'];
-
-            if (!is_numeric($width) || !is_numeric($height) || !is_numeric($lastModified)) {
-                throw new ApplicationException('Invalid input data');
-            }
-
-            if (!$thumbnailParams) {
-                $thumbnailParams = $this->getThumbnailParams();
-                $thumbnailParams['width'] = $width;
-                $thumbnailParams['height'] = $height;
-            }
-
-            $thumbnailPath = $this->getThumbnailImagePath($thumbnailParams, $path, $lastModified);
-            $fullThumbnailPath = temp_path(ltrim($thumbnailPath, '/'));
-
-            /*
-             * Save the file locally
-             */
-            $library = MediaLibrary::instance();
-            $tempFilePath = $this->getLocalTempFilePath($path);
-
-            if (!@File::put($tempFilePath, $library->get($path))) {
-                throw new SystemException('Error saving remote file to a temporary location');
-            }
-
-            /*
-             * Resize the thumbnail and save to the thumbnails directory
-             */
-            $this->resizeImage($fullThumbnailPath, $thumbnailParams, $tempFilePath);
-
-            /*
-             * Delete the temporary file
-             */
-            File::delete($tempFilePath);
-            $markup = $this->makePartial('thumbnail-image', [
-                'isError' => false,
-                'imageUrl' => $this->getThumbnailImageUrl($thumbnailPath)
-            ]);
-        }
-        catch (Exception $ex) {
-            if ($tempFilePath) {
-                File::delete($tempFilePath);
-            }
-
-            if ($fullThumbnailPath) {
-                $this->copyBrokenImage($fullThumbnailPath);
-            }
-
-            $markup = $this->makePartial('thumbnail-image', ['isError' => true]);
-
-            /*
-             * @todo We need to log all types of exceptions here
-             */
-            traceLog($ex->getMessage());
-        }
-
-        if ($markup && ($id = $thumbnailInfo['id'])) {
-            return [
-                'id' => $id,
-                'markup' => $markup
-            ];
-        }
-    }
-
-    protected function getThumbnailImagePath($thumbnailParams, $itemPath, $lastModified)
-    {
-        $itemSignature = md5($itemPath).$lastModified;
-
-        $thumbFile = 'thumb_' .
-            $itemSignature . '_' .
-            $thumbnailParams['width'] . 'x' .
-            $thumbnailParams['height'] . '_' .
-            $thumbnailParams['mode'] . '.' .
-            $thumbnailParams['ext'];
-
-        $partition = implode('/', array_slice(str_split($itemSignature, 3), 0, 3)) . '/';
-
-        $result = $this->getThumbnailDirectory().$partition.$thumbFile;
-
-        return $result;
-    }
-
-    protected function getThumbnailDirectory()
-    {
-        /*
-         * NOTE: Custom routing for /storage/temp/$thumbnailDirectory must be setup
-         * to return the thumbnail if not using default 'public' directory
-         */
-        return MediaLibrary::validatePath(Config::get('cms.storage.media.thumbFolder', 'public'), true) . '/';
-    }
-
-    protected function getLocalTempFilePath($fileName)
-    {
-        $fileName = md5($fileName.uniqid().microtime());
-
-        $mediaFolder = Config::get('cms.storage.media.folder', 'media');
-
-        $path = temp_path() . MediaLibrary::validatePath($mediaFolder, true);
-
-        if (!File::isDirectory($path)) {
-            File::makeDirectory($path, 0777, true, true);
-        }
-
-        return $path.'/'.$fileName;
-    }
-
-    protected function resizeImage($fullThumbnailPath, $thumbnailParams, $tempFilePath)
-    {
-        $thumbnailDir = dirname($fullThumbnailPath);
-        if (!File::isDirectory($thumbnailDir)) {
-            if (File::makeDirectory($thumbnailDir, 0777, true) === false) {
-                throw new SystemException('Error creating thumbnail directory');
-            }
-        }
-
-        $targetDimensions = $this->getTargetDimensions($thumbnailParams['width'], $thumbnailParams['height'], $tempFilePath);
-
-        $targetWidth = $targetDimensions[0];
-        $targetHeight = $targetDimensions[1];
-
-        Resizer::open($tempFilePath)
-            ->resize($targetWidth, $targetHeight, [
-                'mode'   => $thumbnailParams['mode'],
-                'offset' => [0, 0]
-            ])
-            ->save($fullThumbnailPath)
-        ;
-
-        File::chmod($fullThumbnailPath);
-    }
-
-    protected function getTargetDimensions($width, $height, $originalImagePath)
-    {
-        $originalDimensions = [$width, $height];
-
-        try {
-            $dimensions = getimagesize($originalImagePath);
-            if (!$dimensions) {
-                return $originalDimensions;
-            }
-
-            if ($dimensions[0] > $width || $dimensions[1] > $height) {
-                return $originalDimensions;
-            }
-
-            return $dimensions;
-        }
-        catch (Exception $ex) {
-            return $originalDimensions;
-        }
-    }
-
-    protected function getThumbnailImageUrl($imagePath)
-    {
-        return Url::to('/storage/temp'.$imagePath);
-    }
-
-    protected function copyBrokenImage($path)
-    {
-        try {
-            $thumbnailDir = dirname($path);
-            if (!File::isDirectory($thumbnailDir)) {
-                if (File::makeDirectory($thumbnailDir, 0777, true) === false)
-                    return;
-            }
-            File::copy($this->getBrokenImagePath(), $path);
-        }
-        catch (Exception $ex) {
-            traceLog($ex->getMessage());
-        }
-    }
-
-    protected function getBrokenImagePath()
-    {
-        return __DIR__.'/mediamanager/assets/images/broken-thumbnail.gif';
     }
 
     public function onGetSidebarThumbnail()
@@ -632,36 +176,6 @@ class MediaManager extends WidgetBase
         return $this->generateThumbnail($thumbnailInfo, $thumbnailParams, true);
     }
 
-    protected function thumbnailExists($thumbnailParams, $itemPath, $lastModified)
-    {
-        $thumbnailPath = $this->getThumbnailImagePath($thumbnailParams, $itemPath, $lastModified);
-
-        $fullPath = temp_path(ltrim($thumbnailPath, '/'));
-
-        if (File::exists($fullPath)) {
-            return $thumbnailPath;
-        }
-
-        return false;
-    }
-
-    protected function thumbnailIsError($thumbnailPath)
-    {
-        $fullPath = temp_path(ltrim($thumbnailPath, '/'));
-
-        return hash_file('crc32', $fullPath) == $this->getBrokenImageHash();
-    }
-
-    protected function getBrokenImageHash()
-    {
-        if ($this->brokenImageHash) {
-            return $this->brokenImageHash;
-        }
-
-        $fullPath = $this->getBrokenImagePath();
-        return $this->brokenImageHash = hash_file('crc32', $fullPath);
-    }
-
     public function onChangeView()
     {
         $viewMode = Input::get('view');
@@ -677,19 +191,6 @@ class MediaManager extends WidgetBase
             '#'.$this->getId('folder-path') => $this->makePartial('folder-path'),
             '#'.$this->getId('view-mode-buttons') => $this->makePartial('view-mode-buttons')
         ];
-    }
-
-    protected function setViewMode($viewMode)
-    {
-        if (!in_array($viewMode, [
-            self::VIEW_MODE_GRID,
-            self::VIEW_MODE_LIST,
-            self::VIEW_MODE_TILES
-        ])) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        $this->putSession('view_mode', $viewMode);
     }
 
     public function onSetFilter()
@@ -709,21 +210,6 @@ class MediaManager extends WidgetBase
         ];
     }
 
-    protected function setFilter($filter)
-    {
-        if (!in_array($filter, [
-            self::FILTER_EVERYTHING,
-            MediaLibraryItem::FILE_TYPE_IMAGE,
-            MediaLibraryItem::FILE_TYPE_AUDIO,
-            MediaLibraryItem::FILE_TYPE_DOCUMENT,
-            MediaLibraryItem::FILE_TYPE_VIDEO
-        ])) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        $this->putSession('media_filter', $filter);
-    }
-
     public function onSetSorting()
     {
         $sortBy = Input::get('sortBy', $this->getSortBy());
@@ -740,31 +226,6 @@ class MediaManager extends WidgetBase
             '#'.$this->getId('item-list') => $this->makePartial('item-list'),
             '#'.$this->getId('folder-path') => $this->makePartial('folder-path')
         ];
-    }
-
-    protected function setSortBy($sortBy)
-    {
-        if (!in_array($sortBy, [
-            MediaLibrary::SORT_BY_TITLE,
-            MediaLibrary::SORT_BY_SIZE,
-            MediaLibrary::SORT_BY_MODIFIED
-        ])) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        $this->putSession('media_sort_by', $sortBy);
-    }
-
-    protected function setSortDirection($sortDirection)
-    {
-        if (!in_array($sortDirection, [
-            MediaLibrary::SORT_DIRECTION_ASC,
-            MediaLibrary::SORT_DIRECTION_DESC
-        ])) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        $this->putSession('media_sort_direction', $sortDirection);
     }
 
     public function onDeleteItem()
@@ -1026,11 +487,6 @@ class MediaManager extends WidgetBase
         $this->setSidebarVisible($visible);
     }
 
-    protected function setSidebarVisible($visible)
-    {
-        $this->putSession('sidebar_visible', !!$visible);
-    }
-
     public function onLoadPopup()
     {
         $this->bottomToolbar = Input::get('bottomToolbar', $this->bottomToolbar);
@@ -1063,6 +519,204 @@ class MediaManager extends WidgetBase
         return $this->makePartial('image-crop-popup-body');
     }
 
+    public function onEndCroppingSession()
+    {
+        $cropSessionKey = Input::get('cropSessionKey');
+        if (!preg_match('/^[0-9a-z]+$/', $cropSessionKey)) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        $this->removeCropEditDir($cropSessionKey);
+    }
+
+    public function onCropImage()
+    {
+        $imageSrcPath = trim(Input::get('img'));
+        $selectionData = Input::get('selection');
+        $cropSessionKey = Input::get('cropSessionKey');
+        $path = Input::get('path');
+        $path = MediaLibrary::validatePath($path);
+
+        if (!strlen($imageSrcPath)) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        if (!preg_match('/^[0-9a-z]+$/', $cropSessionKey)) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        if (!is_array($selectionData)) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        $result = $this->cropImage($imageSrcPath, $selectionData, $cropSessionKey, $path);
+
+        $selectionMode = Input::get('selectionMode');
+        $selectionWidth = Input::get('selectionWidth');
+        $selectionHeight = Input::get('selectionHeight');
+
+        $this->setSelectionParams($selectionMode, $selectionWidth, $selectionHeight);
+
+        return $result;
+    }
+
+    public function onResizeImage()
+    {
+        $cropSessionKey = Input::get('cropSessionKey');
+        if (!preg_match('/^[0-9a-z]+$/', $cropSessionKey)) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        $width = trim(Input::get('width'));
+        if (!strlen($width) || !ctype_digit($width)) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        $height = trim(Input::get('height'));
+        if (!strlen($height) || !ctype_digit($height)) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        $path = Input::get('path');
+        $path = MediaLibrary::validatePath($path);
+
+        $params = array(
+            'width' => $width,
+            'height' => $height
+        );
+
+        return $this->getCropEditImageUrlAndSize($path, $cropSessionKey, $params);
+    }
+
+    //
+    // Methods for th internal use
+    //
+
+    protected function prepareVars()
+    {
+        clearstatcache();
+
+        $folder = $this->getCurrentFolder();
+        $viewMode = $this->getViewMode();
+        $filter = $this->getFilter();
+        $sortBy = $this->getSortBy();
+        $sortDirection = $this->getSortDirection();
+        $searchTerm = $this->getSearchTerm();
+        $searchMode = strlen($searchTerm) > 0;
+
+        if (!$searchMode) {
+            $this->vars['items'] = $this->listFolderItems($folder, $filter, ['by' => $sortBy, 'direction' => $sortDirection]);
+        }
+        else {
+            $this->vars['items'] = $this->findFiles($searchTerm, $filter, ['by' => $sortBy, 'direction' => $sortDirection]);
+        }
+
+        $this->vars['currentFolder'] = $folder;
+        $this->vars['isRootFolder'] = $folder == self::FOLDER_ROOT;
+        $this->vars['pathSegments'] = $this->splitPathToSegments($folder);
+        $this->vars['viewMode'] = $viewMode;
+        $this->vars['thumbnailParams'] = $this->getThumbnailParams($viewMode);
+        $this->vars['currentFilter'] = $filter;
+        $this->vars['sortBy'] = $sortBy;
+        $this->vars['sortDirection'] = $sortDirection;
+        $this->vars['searchMode'] = $searchMode;
+        $this->vars['searchTerm'] = $searchTerm;
+        $this->vars['sidebarVisible'] = $this->getSidebarVisible();
+    }
+
+    protected function listFolderItems($folder, $filter, $sortBy)
+    {
+        $filter = $filter !== self::FILTER_EVERYTHING ? $filter : null;
+
+        return MediaLibrary::instance()->listFolderContents($folder, $sortBy, $filter);
+    }
+
+    protected function findFiles($searchTerm, $filter, $sortBy)
+    {
+        $filter = $filter !== self::FILTER_EVERYTHING ? $filter : null;
+
+        return MediaLibrary::instance()->findFiles($searchTerm, $sortBy, $filter);
+    }
+
+    protected function setCurrentFolder($path)
+    {
+        $path = MediaLibrary::validatePath($path);
+
+        $this->putSession('media_folder', $path);
+    }
+
+    protected function getCurrentFolder()
+    {
+        $folder = $this->getSession('media_folder', self::FOLDER_ROOT);
+
+        return $folder;
+    }
+
+    protected function setFilter($filter)
+    {
+        if (!in_array($filter, [
+            self::FILTER_EVERYTHING,
+            MediaLibraryItem::FILE_TYPE_IMAGE,
+            MediaLibraryItem::FILE_TYPE_AUDIO,
+            MediaLibraryItem::FILE_TYPE_DOCUMENT,
+            MediaLibraryItem::FILE_TYPE_VIDEO
+        ])) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        $this->putSession('media_filter', $filter);
+    }
+
+    protected function getFilter()
+    {
+        return $this->getSession('media_filter', self::FILTER_EVERYTHING);
+    }
+
+    protected function setSearchTerm($searchTerm)
+    {
+        $this->putSession('media_search', trim($searchTerm));
+    }
+
+    protected function getSearchTerm()
+    {
+        return $this->getSession('media_search', null);
+    }
+
+    protected function setSortBy($sortBy)
+    {
+        if (!in_array($sortBy, [
+            MediaLibrary::SORT_BY_TITLE,
+            MediaLibrary::SORT_BY_SIZE,
+            MediaLibrary::SORT_BY_MODIFIED
+        ])) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        $this->putSession('media_sort_by', $sortBy);
+    }
+
+    protected function getSortBy()
+    {
+        return $this->getSession('media_sort_by', MediaLibrary::SORT_BY_TITLE);
+    }
+
+    protected function setSortDirection($sortDirection)
+    {
+        if (!in_array($sortDirection, [
+            MediaLibrary::SORT_DIRECTION_ASC,
+            MediaLibrary::SORT_DIRECTION_DESC
+        ])) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        $this->putSession('media_sort_direction', $sortDirection);
+    }
+
+    protected function getSortDirection()
+    {
+        return $this->getSession('media_sort_direction', MediaLibrary::SORT_DIRECTION_ASC);
+    }
+
     protected function getSelectionParams()
     {
         $result = $this->getSession('media_crop_selection_params');
@@ -1088,6 +742,488 @@ class MediaManager extends WidgetBase
             'width'  => null,
             'height' => null
         ];
+    }
+
+    protected function setSelectionParams($selectionMode, $selectionWidth, $selectionHeight)
+    {
+        if (!in_array($selectionMode, [
+            MediaManager::SELECTION_MODE_NORMAL,
+            MediaManager::SELECTION_MODE_FIXED_RATIO,
+            MediaManager::SELECTION_MODE_FIXED_SIZE
+        ])) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        if (strlen($selectionWidth) && !ctype_digit($selectionWidth)) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        if (strlen($selectionHeight) && !ctype_digit($selectionHeight)) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        $this->putSession('media_crop_selection_params', [
+            'mode'   => $selectionMode,
+            'width'  => $selectionWidth,
+            'height' => $selectionHeight
+        ]);
+    }
+
+    protected function setSidebarVisible($visible)
+    {
+        $this->putSession('sidebar_visible', !!$visible);
+    }
+
+    protected function getSidebarVisible()
+    {
+        return $this->getSession('sidebar_visible', true);
+    }
+
+    protected function itemTypeToIconClass($item, $itemType)
+    {
+        if ($item->type == MediaLibraryItem::TYPE_FOLDER) {
+            return 'icon-folder';
+        }
+
+        switch ($itemType) {
+            case MediaLibraryItem::FILE_TYPE_IMAGE: return "icon-picture-o";
+            case MediaLibraryItem::FILE_TYPE_VIDEO: return "icon-video-camera";
+            case MediaLibraryItem::FILE_TYPE_AUDIO: return "icon-volume-up";
+            default: return "icon-file";
+        }
+    }
+
+    protected function splitPathToSegments($path)
+    {
+        $path = MediaLibrary::validatePath($path, true);
+        $path = explode('/', ltrim($path, '/'));
+
+        $result = [];
+        while (count($path) > 0) {
+            $folder = array_pop($path);
+
+            $result[$folder] = implode('/', $path).'/'.$folder;
+            if (substr($result[$folder], 0, 1) != '/') {
+                $result[$folder] = '/'.$result[$folder];
+            }
+        }
+
+        return array_reverse($result, true);
+    }
+
+    protected function setViewMode($viewMode)
+    {
+        if (!in_array($viewMode, [
+            self::VIEW_MODE_GRID,
+            self::VIEW_MODE_LIST,
+            self::VIEW_MODE_TILES
+        ])) {
+            throw new ApplicationException('Invalid input data');
+        }
+
+        $this->putSession('view_mode', $viewMode);
+    }
+
+    protected function getViewMode()
+    {
+        return $this->getSession('view_mode', self::VIEW_MODE_GRID);
+    }
+
+    protected function getThumbnailParams($viewMode = null)
+    {
+        $result = [
+            'mode' => 'crop',
+            'ext' => 'png'
+        ];
+
+        if ($viewMode) {
+            if ($viewMode == self::VIEW_MODE_LIST) {
+                $result['width'] = 75;
+                $result['height'] = 75;
+            }
+            else {
+                $result['width'] = 165;
+                $result['height'] = 165;
+            }
+        }
+
+        return $result;
+    }
+
+    protected function getThumbnailImagePath($thumbnailParams, $itemPath, $lastModified)
+    {
+        $itemSignature = md5($itemPath).$lastModified;
+
+        $thumbFile = 'thumb_' .
+            $itemSignature . '_' .
+            $thumbnailParams['width'] . 'x' .
+            $thumbnailParams['height'] . '_' .
+            $thumbnailParams['mode'] . '.' .
+            $thumbnailParams['ext'];
+
+        $partition = implode('/', array_slice(str_split($itemSignature, 3), 0, 3)) . '/';
+
+        $result = $this->getThumbnailDirectory().$partition.$thumbFile;
+
+        return $result;
+    }
+
+    protected function getThumbnailImageUrl($imagePath)
+    {
+        return Url::to('/storage/temp'.$imagePath);
+    }
+
+    protected function thumbnailExists($thumbnailParams, $itemPath, $lastModified)
+    {
+        $thumbnailPath = $this->getThumbnailImagePath($thumbnailParams, $itemPath, $lastModified);
+
+        $fullPath = temp_path(ltrim($thumbnailPath, '/'));
+
+        if (File::exists($fullPath)) {
+            return $thumbnailPath;
+        }
+
+        return false;
+    }
+
+    protected function thumbnailIsError($thumbnailPath)
+    {
+        $fullPath = temp_path(ltrim($thumbnailPath, '/'));
+
+        return hash_file('crc32', $fullPath) == $this->getBrokenImageHash();
+    }
+
+    protected function getLocalTempFilePath($fileName)
+    {
+        $fileName = md5($fileName.uniqid().microtime());
+
+        $mediaFolder = Config::get('cms.storage.media.folder', 'media');
+
+        $path = temp_path() . MediaLibrary::validatePath($mediaFolder, true);
+
+        if (!File::isDirectory($path)) {
+            File::makeDirectory($path, 0777, true, true);
+        }
+
+        return $path.'/'.$fileName;
+    }
+
+    protected function getThumbnailDirectory()
+    {
+        /*
+         * NOTE: Custom routing for /storage/temp/$thumbnailDirectory must be setup
+         * to return the thumbnail if not using default 'public' directory
+         */
+        return MediaLibrary::validatePath(Config::get('cms.storage.media.thumbFolder', 'public'), true) . '/';
+    }
+
+    protected function getPlaceholderId($item)
+    {
+        return 'placeholder'.md5($item->path.'-'.$item->lastModified.uniqid(microtime()));
+    }
+
+    protected function generateThumbnail($thumbnailInfo, $thumbnailParams = null)
+    {
+        $tempFilePath = null;
+        $fullThumbnailPath = null;
+        $thumbnailPath = null;
+        $markup = null;
+
+        try {
+            /*
+             * Get and validate input data
+             */
+            $path = $thumbnailInfo['path'];
+            $width = $thumbnailInfo['width'];
+            $height = $thumbnailInfo['height'];
+            $lastModified = $thumbnailInfo['lastModified'];
+
+            if (!is_numeric($width) || !is_numeric($height) || !is_numeric($lastModified)) {
+                throw new ApplicationException('Invalid input data');
+            }
+
+            if (!$thumbnailParams) {
+                $thumbnailParams = $this->getThumbnailParams();
+                $thumbnailParams['width'] = $width;
+                $thumbnailParams['height'] = $height;
+            }
+
+            $thumbnailPath = $this->getThumbnailImagePath($thumbnailParams, $path, $lastModified);
+            $fullThumbnailPath = temp_path(ltrim($thumbnailPath, '/'));
+
+            /*
+             * Save the file locally
+             */
+            $library = MediaLibrary::instance();
+            $tempFilePath = $this->getLocalTempFilePath($path);
+
+            if (!@File::put($tempFilePath, $library->get($path))) {
+                throw new SystemException('Error saving remote file to a temporary location');
+            }
+
+            /*
+             * Resize the thumbnail and save to the thumbnails directory
+             */
+            $this->resizeImage($fullThumbnailPath, $thumbnailParams, $tempFilePath);
+
+            /*
+             * Delete the temporary file
+             */
+            File::delete($tempFilePath);
+            $markup = $this->makePartial('thumbnail-image', [
+                'isError' => false,
+                'imageUrl' => $this->getThumbnailImageUrl($thumbnailPath)
+            ]);
+        }
+        catch (Exception $ex) {
+            if ($tempFilePath) {
+                File::delete($tempFilePath);
+            }
+
+            if ($fullThumbnailPath) {
+                $this->copyBrokenImage($fullThumbnailPath);
+            }
+
+            $markup = $this->makePartial('thumbnail-image', ['isError' => true]);
+
+            /*
+             * @todo We need to log all types of exceptions here
+             */
+            traceLog($ex->getMessage());
+        }
+
+        if ($markup && ($id = $thumbnailInfo['id'])) {
+            return [
+                'id' => $id,
+                'markup' => $markup
+            ];
+        }
+    }
+
+    protected function resizeImage($fullThumbnailPath, $thumbnailParams, $tempFilePath)
+    {
+        $thumbnailDir = dirname($fullThumbnailPath);
+        if (!File::isDirectory($thumbnailDir)) {
+            if (File::makeDirectory($thumbnailDir, 0777, true) === false) {
+                throw new SystemException('Error creating thumbnail directory');
+            }
+        }
+
+        $targetDimensions = $this->getTargetDimensions($thumbnailParams['width'], $thumbnailParams['height'], $tempFilePath);
+
+        $targetWidth = $targetDimensions[0];
+        $targetHeight = $targetDimensions[1];
+
+        Resizer::open($tempFilePath)
+            ->resize($targetWidth, $targetHeight, [
+                'mode'   => $thumbnailParams['mode'],
+                'offset' => [0, 0]
+            ])
+            ->save($fullThumbnailPath)
+        ;
+
+        File::chmod($fullThumbnailPath);
+    }
+
+    protected function getBrokenImagePath()
+    {
+        return __DIR__.'/mediamanager/assets/images/broken-thumbnail.gif';
+    }
+
+    protected function getBrokenImageHash()
+    {
+        if ($this->brokenImageHash) {
+            return $this->brokenImageHash;
+        }
+
+        $fullPath = $this->getBrokenImagePath();
+        return $this->brokenImageHash = hash_file('crc32', $fullPath);
+    }
+
+    protected function copyBrokenImage($path)
+    {
+        try {
+            $thumbnailDir = dirname($path);
+            if (!File::isDirectory($thumbnailDir)) {
+                if (File::makeDirectory($thumbnailDir, 0777, true) === false)
+                    return;
+            }
+            File::copy($this->getBrokenImagePath(), $path);
+        }
+        catch (Exception $ex) {
+            traceLog($ex->getMessage());
+        }
+    }
+
+    protected function getTargetDimensions($width, $height, $originalImagePath)
+    {
+        $originalDimensions = [$width, $height];
+
+        try {
+            $dimensions = getimagesize($originalImagePath);
+            if (!$dimensions) {
+                return $originalDimensions;
+            }
+
+            if ($dimensions[0] > $width || $dimensions[1] > $height) {
+                return $originalDimensions;
+            }
+
+            return $dimensions;
+        }
+        catch (Exception $ex) {
+            return $originalDimensions;
+        }
+    }
+
+    protected function checkUploadPostback()
+    {
+        $fileName = null;
+        $quickMode = false;
+
+        if (
+            (!($uniqueId = Request::header('X-OCTOBER-FILEUPLOAD')) || $uniqueId != $this->getId()) &&
+            (!$quickMode = post('X_OCTOBER_MEDIA_MANAGER_QUICK_UPLOAD'))
+        ) {
+            return;
+        }
+
+        try {
+            if (!Input::hasFile('file_data')) {
+                throw new ApplicationException('File missing from request');
+            }
+
+            $uploadedFile = Input::file('file_data');
+
+            $fileName = $uploadedFile->getClientOriginalName();
+
+            /*
+             * Convert uppcare case file extensions to lower case
+             */
+            $extension = strtolower($uploadedFile->getClientOriginalExtension());
+            $fileName = File::name($fileName).'.'.$extension;
+
+            /*
+             * File name contains non-latin characters, attempt to slug the value
+             */
+            if (!$this->validateFileName($fileName)) {
+                $fileNameClean = $this->cleanFileName(File::name($fileName));
+                $fileName = $fileNameClean . '.' . $extension;
+            }
+
+            /*
+             * Check for unsafe file extensions
+             */
+            if (!$this->validateFileType($fileName)) {
+                throw new ApplicationException(Lang::get('backend::lang.media.type_blocked'));
+            }
+
+            /*
+             * See mime type handling in the asset manager
+             */
+            if (!$uploadedFile->isValid()) {
+                throw new ApplicationException($uploadedFile->getErrorMessage());
+            }
+
+            $path = $quickMode ? '/uploaded-files' : Input::get('path');
+            $path = MediaLibrary::validatePath($path);
+            $filePath = $path.'/'.$fileName;
+
+            /*
+             * getRealPath() can be empty for some environments (IIS)
+             */
+            $realPath = empty(trim($uploadedFile->getRealPath()))
+                             ? $uploadedFile->getPath() . DIRECTORY_SEPARATOR . $uploadedFile->getFileName()
+                             : $uploadedFile->getRealPath();
+
+            MediaLibrary::instance()->put(
+                $filePath,
+                File::get($realPath)
+            );
+
+            /*
+             * Extensibility
+             */
+            $this->fireSystemEvent('media.file.upload', [$filePath, $uploadedFile]);
+
+            Response::json([
+                'link' => MediaLibrary::url($filePath),
+                'result' => 'success'
+            ])->send();
+        }
+        catch (Exception $ex) {
+            Response::json($ex->getMessage(), 400)->send();
+        }
+
+        exit;
+    }
+
+    /**
+     * Validate a proposed media item file name.
+     * @param string
+     * @return bool
+     */
+    protected function validateFileName($name)
+    {
+        if (!preg_match('/^[0-9a-z@\.\s_\-]+$/i', $name)) {
+            return false;
+        }
+
+        if (strpos($name, '..') !== false) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Check for blocked / unsafe file extensions
+     * @param string
+     * @return bool
+     */
+    protected function validateFileType($name)
+    {
+        $extension = strtolower(File::extension($name));
+
+        $allowedFileTypes = FileDefinitions::get('defaultExtensions');
+
+        if (!in_array($extension, $allowedFileTypes)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Creates a slug form the string. A modified version of Str::slug
+     * with the main difference that it accepts @-signs
+     * @param string
+     * @return string
+     */
+    protected function cleanFileName($name)
+    {
+        $title = Str::ascii($name);
+
+        // Convert all dashes/underscores into separator
+        $flip = $separator = '-';
+        $title = preg_replace('!['.preg_quote($flip).']+!u', $separator, $title);
+
+        // Remove all characters that are not the separator, letters, numbers, whitespace or @.
+        $title = preg_replace('![^'.preg_quote($separator).'\pL\pN\s@]+!u', '', mb_strtolower($title));
+
+        // Replace all separator characters and whitespace by a single separator
+        $title = preg_replace('!['.preg_quote($separator).'\s]+!u', $separator, $title);
+
+        return trim($title, $separator);
+    }
+
+    //
+    // Cropping
+    //
+
+    protected function getCropSessionDirPath($cropSessionKey)
+    {
+        return $this->getThumbnailDirectory().'edit-crop-'.$cropSessionKey;
     }
 
     protected function getCropEditImageUrlAndSize($path, $cropSessionKey, $params = null)
@@ -1170,21 +1306,6 @@ class MediaManager extends WidgetBase
         }
     }
 
-    protected function getCropSessionDirPath($cropSessionKey)
-    {
-        return $this->getThumbnailDirectory().'edit-crop-'.$cropSessionKey;
-    }
-
-    public function onEndCroppingSession()
-    {
-        $cropSessionKey = Input::get('cropSessionKey');
-        if (!preg_match('/^[0-9a-z]+$/', $cropSessionKey)) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        $this->removeCropEditDir($cropSessionKey);
-    }
-
     protected function removeCropEditDir($cropSessionKey)
     {
         $sessionDirectoryPath = $this->getCropSessionDirPath($cropSessionKey);
@@ -1193,37 +1314,6 @@ class MediaManager extends WidgetBase
         if (File::isDirectory($fullSessionDirectoryPath)) {
             @File::deleteDirectory($fullSessionDirectoryPath);
         }
-    }
-
-    public function onCropImage()
-    {
-        $imageSrcPath = trim(Input::get('img'));
-        $selectionData = Input::get('selection');
-        $cropSessionKey = Input::get('cropSessionKey');
-        $path = Input::get('path');
-        $path = MediaLibrary::validatePath($path);
-
-        if (!strlen($imageSrcPath)) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        if (!preg_match('/^[0-9a-z]+$/', $cropSessionKey)) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        if (!is_array($selectionData)) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        $result = $this->cropImage($imageSrcPath, $selectionData, $cropSessionKey, $path);
-
-        $selectionMode = Input::get('selectionMode');
-        $selectionWidth = Input::get('selectionWidth');
-        $selectionHeight = Input::get('selectionHeight');
-
-        $this->setSelectionParams($selectionMode, $selectionWidth, $selectionHeight);
-
-        return $result;
     }
 
     protected function cropImage($imageSrcPath, $selectionData, $cropSessionKey, $path)
@@ -1321,91 +1411,4 @@ class MediaManager extends WidgetBase
             'folder' => $targetFolder
         ];
    }
-
-    protected function setSelectionParams($selectionMode, $selectionWidth, $selectionHeight)
-    {
-        if (!in_array($selectionMode, [
-            MediaManager::SELECTION_MODE_NORMAL,
-            MediaManager::SELECTION_MODE_FIXED_RATIO,
-            MediaManager::SELECTION_MODE_FIXED_SIZE
-        ])) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        if (strlen($selectionWidth) && !ctype_digit($selectionWidth)) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        if (strlen($selectionHeight) && !ctype_digit($selectionHeight)) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        $this->putSession('media_crop_selection_params', [
-            'mode'   => $selectionMode,
-            'width'  => $selectionWidth,
-            'height' => $selectionHeight
-        ]);
-    }
-
-    //
-    // Cropping
-    //
-
-    public function onResizeImage()
-    {
-        $cropSessionKey = Input::get('cropSessionKey');
-        if (!preg_match('/^[0-9a-z]+$/', $cropSessionKey)) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        $width = trim(Input::get('width'));
-        if (!strlen($width) || !ctype_digit($width)) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        $height = trim(Input::get('height'));
-        if (!strlen($height) || !ctype_digit($height)) {
-            throw new ApplicationException('Invalid input data');
-        }
-
-        $path = Input::get('path');
-        $path = MediaLibrary::validatePath($path);
-
-        $params = array(
-            'width' => $width,
-            'height' => $height
-        );
-
-        return $this->getCropEditImageUrlAndSize($path, $cropSessionKey, $params);
-    }
-
-    /**
-     * Adds widget specific asset files. Use $this->addJs() and $this->addCss()
-     * to register new assets to include on the page.
-     * @return void
-     */
-    protected function loadAssets()
-    {
-        $this->addCss('css/mediamanager.css', 'core');
-        $this->addJs('js/mediamanager-browser-min.js', 'core');
-    }
-
-    protected function itemTypeToIconClass($item, $itemType)
-    {
-        if ($item->type == MediaLibraryItem::TYPE_FOLDER) {
-            return 'icon-folder';
-        }
-
-        switch ($itemType) {
-            case MediaLibraryItem::FILE_TYPE_IMAGE: return "icon-picture-o";
-            case MediaLibraryItem::FILE_TYPE_VIDEO: return "icon-video-camera";
-            case MediaLibraryItem::FILE_TYPE_AUDIO: return "icon-volume-up";
-            default: return "icon-file";
-        }
-    }
-
-    protected function getPlaceholderId($item)
-    {
-        return 'placeholder'.md5($item->path.'-'.$item->lastModified.uniqid(microtime()));
-    }
 }

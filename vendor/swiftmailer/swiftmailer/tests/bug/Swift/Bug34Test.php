@@ -2,6 +2,11 @@
 
 class Swift_Bug34Test extends \PHPUnit\Framework\TestCase
 {
+    protected function setUp()
+    {
+        Swift_Preferences::getInstance()->setCharset('utf-8');
+    }
+
     public function testEmbeddedFilesWithMultipartDataCreateMultipartRelatedContentAsAnAlternative()
     {
         $message = new Swift_Message();
@@ -66,10 +71,5 @@ class Swift_Bug34Test extends \PHPUnit\Framework\TestCase
         '$~D',
         $message->toString()
         );
-    }
-
-    protected function setUp()
-    {
-        Swift_Preferences::getInstance()->setCharset('utf-8');
     }
 }

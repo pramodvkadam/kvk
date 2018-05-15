@@ -18,97 +18,24 @@ use Db;
 class ModelModel extends BaseModel
 {
     const UNQUALIFIED_CLASS_NAME_PATTERN = '/^[A-Z]+[a-zA-Z0-9_]+$/';
+
+    public $className;
+
+    public $databaseTable;
+
     protected static $fillable = [
         'className',
         'databaseTable',
         'addTimestamps',
         'addSoftDeleting'
     ];
-    public $className;
-    public $databaseTable;
+
     protected $validationRules = [
         'className' => ['required', 'regex:' . self::UNQUALIFIED_CLASS_NAME_PATTERN, 'uniqModelName'],
         'databaseTable' => ['required'],
         'addTimestamps' => ['timestampColumnsMustExist'],
         'addSoftDeleting' => ['deletedAtColumnMustExist']
     ];
-
-    public static function getModelColumnsAndTypes($pluginCodeObj, $modelClassName)
-    {
-        $tableName = self::getTableNameFromModelClass($pluginCodeObj, $modelClassName);
-
-        if (!DatabaseTableModel::tableExists($tableName)) {
-            throw new ApplicationException('Database table not found: '.$tableName);
-        }
-
-        $schema = DatabaseTableModel::getSchema();
-        $tableInfo = $schema->getTable($tableName);
-
-        $columns = $tableInfo->getColumns();
-        $result = [];
-        foreach ($columns as $column) {
-            $columnName = $column->getName();
-            $typeName = $column->getType()->getName();
-
-            if ($typeName == EnumDbType::TYPENAME) {
-                continue;
-            }
-
-            $item = [
-                'name' => $columnName,
-                'type' => MigrationColumnType::toMigrationMethodName($typeName, $columnName)
-            ];
-
-            $result[] = $item;
-        }
-
-        return $result;
-    }
-
-    private static function getTableNameFromModelClass($pluginCodeObj, $modelClassName)
-    {
-        if (!self::validateModelClassName($modelClassName)) {
-            throw new SystemException('Invalid model class name: '.$modelClassName);
-        }
-
-        $modelsDirectoryPath = File::symbolizePath($pluginCodeObj->toPluginDirectoryPath().'/models');
-        if (!File::isDirectory($modelsDirectoryPath)) {
-            return '';
-        }
-
-        $modelFilePath = $modelsDirectoryPath.'/'.$modelClassName.'.php';
-        if (!File::isFile($modelFilePath)) {
-            return '';
-        }
-
-        $parser = new ModelFileParser();
-        $modelInfo = $parser->extractModelInfoFromSource(File::get($modelFilePath));
-        if (!$modelInfo || !isset($modelInfo['table'])) {
-            return '';
-        }
-
-        return $modelInfo['table'];
-    }
-
-    public static function validateModelClassName($modelClassName)
-    {
-      return class_exists($modelClassName) || !!preg_match(self::UNQUALIFIED_CLASS_NAME_PATTERN, $modelClassName);
-    }
-
-    public static function getPluginRegistryData($pluginCode, $subtype)
-    {
-        $pluginCodeObj = new PluginCode($pluginCode);
-
-        $models = self::listPluginModels($pluginCodeObj);
-        $result = [];
-        foreach ($models as $model) {
-            $fullClassName = $pluginCodeObj->toPluginNamespace().'\\Models\\'.$model->className;
-
-            $result[$fullClassName] = $model->className;
-        }
-
-        return $result;
-    }
 
     public static function listPluginModels($pluginCodeObj)
     {
@@ -151,40 +78,6 @@ class ModelModel extends BaseModel
         }
 
         return $result;
-    }
-
-    public static function getPluginRegistryDataColumns($pluginCode, $modelClassName)
-    {
-        $classParts = explode('\\', $modelClassName);
-        if (!$classParts) {
-            return [];
-        }
-
-        $modelClassName = array_pop($classParts);
-
-        if (!self::validateModelClassName($modelClassName)) {
-            return [];
-        }
-
-        $pluginCodeObj = new PluginCode($pluginCode);
-        $columnNames = self::getModelFields($pluginCodeObj, $modelClassName);
-
-        $result = [];
-        foreach ($columnNames as $columnName) {
-            $result[$columnName] = $columnName;
-        }
-
-        return $result;
-    }
-
-    public static function getModelFields($pluginCodeObj, $modelClassName)
-    {
-        $tableName = self::getTableNameFromModelClass($pluginCodeObj, $modelClassName);
-
-        // Currently we return only table columns,
-        // but eventually we might want to return relations as well.
-
-        return Schema::getColumnListing($tableName);
     }
 
     public function save()
@@ -236,7 +129,7 @@ class ModelModel extends BaseModel
             $value = trim($value);
 
             if (!$this->isNewModel()) {
-                // Editing models is not supported at the moment,
+                // Editing models is not supported at the moment, 
                 // so no validation is required.
                 return true;
             }
@@ -256,6 +149,125 @@ class ModelModel extends BaseModel
         parent::validate();
     }
 
+    public function getDatabaseTableOptions()
+    {
+        $pluginCode = $this->getPluginCodeObj()->toCode();
+
+        $tables = DatabaseTableModel::listPluginTables($pluginCode);
+        return array_combine($tables, $tables);
+    }
+
+    private static function getTableNameFromModelClass($pluginCodeObj, $modelClassName)
+    {
+        if (!self::validateModelClassName($modelClassName)) {
+            throw new SystemException('Invalid model class name: '.$modelClassName);
+        }
+
+        $modelsDirectoryPath = File::symbolizePath($pluginCodeObj->toPluginDirectoryPath().'/models');
+        if (!File::isDirectory($modelsDirectoryPath)) {
+            return '';
+        }
+
+        $modelFilePath = $modelsDirectoryPath.'/'.$modelClassName.'.php';
+        if (!File::isFile($modelFilePath)) {
+            return '';
+        }
+
+        $parser = new ModelFileParser();
+        $modelInfo = $parser->extractModelInfoFromSource(File::get($modelFilePath));
+        if (!$modelInfo || !isset($modelInfo['table'])) {
+            return '';
+        }
+
+        return $modelInfo['table'];
+    }
+
+    public static function getModelFields($pluginCodeObj, $modelClassName)
+    {
+        $tableName = self::getTableNameFromModelClass($pluginCodeObj, $modelClassName);
+
+        // Currently we return only table columns,
+        // but eventually we might want to return relations as well.
+
+        return Schema::getColumnListing($tableName);
+    }
+
+    public static function getModelColumnsAndTypes($pluginCodeObj, $modelClassName)
+    {
+        $tableName = self::getTableNameFromModelClass($pluginCodeObj, $modelClassName);
+
+        if (!DatabaseTableModel::tableExists($tableName)) {
+            throw new ApplicationException('Database table not found: '.$tableName);
+        }
+
+        $schema = DatabaseTableModel::getSchema();
+        $tableInfo = $schema->getTable($tableName);
+
+        $columns = $tableInfo->getColumns();
+        $result = [];
+        foreach ($columns as $column) {
+            $columnName = $column->getName();
+            $typeName = $column->getType()->getName();
+
+            if ($typeName == EnumDbType::TYPENAME) {
+                continue;
+            }
+
+            $item = [
+                'name' => $columnName,
+                'type' => MigrationColumnType::toMigrationMethodName($typeName, $columnName)
+            ];
+
+            $result[] = $item;
+        }
+
+        return $result;
+    }
+
+    public static function getPluginRegistryData($pluginCode, $subtype)
+    {
+        $pluginCodeObj = new PluginCode($pluginCode);
+
+        $models = self::listPluginModels($pluginCodeObj);
+        $result = [];
+        foreach ($models as $model) {
+            $fullClassName = $pluginCodeObj->toPluginNamespace().'\\Models\\'.$model->className;
+
+            $result[$fullClassName] = $model->className;
+        }
+
+        return $result;
+    }
+
+    public static function getPluginRegistryDataColumns($pluginCode, $modelClassName)
+    {
+        $classParts = explode('\\', $modelClassName);
+        if (!$classParts) {
+            return [];
+        }
+
+        $modelClassName = array_pop($classParts);
+
+        if (!self::validateModelClassName($modelClassName)) {
+            return [];
+        }
+
+        $pluginCodeObj = new PluginCode($pluginCode);
+        $columnNames = self::getModelFields($pluginCodeObj, $modelClassName);
+        
+        $result = [];
+        foreach ($columnNames as $columnName) {
+            $result[$columnName] = $columnName;
+        }
+
+        return $result;
+    }
+
+    public static function validateModelClassName($modelClassName)
+    {
+      return class_exists($modelClassName) || !!preg_match(self::UNQUALIFIED_CLASS_NAME_PATTERN, $modelClassName);
+    }
+
     protected function getFilePath()
     {
         return $this->getPluginCodeObj()->toFilesystemPath().'/models/'.$this->className.'.php';
@@ -268,7 +280,7 @@ class ModelModel extends BaseModel
         }
 
         if (!$this->isNewModel()) {
-            // Editing models is not supported at the moment,
+            // Editing models is not supported at the moment, 
             // so no validation is required.
             return true;
         }
@@ -278,13 +290,5 @@ class ModelModel extends BaseModel
         }
 
         return count(array_intersect($columnsToCheck, $columns)) == count($columnsToCheck);
-    }
-
-    public function getDatabaseTableOptions()
-    {
-        $pluginCode = $this->getPluginCodeObj()->toCode();
-
-        $tables = DatabaseTableModel::listPluginTables($pluginCode);
-        return array_combine($tables, $tables);
     }
 }

@@ -10,6 +10,10 @@ use PhpParser\Node\Stmt;
 
 class PropertyTest extends \PHPUnit_Framework_TestCase
 {
+    public function createPropertyBuilder($name) {
+        return new Property($name);
+    }
+
     public function testModifiers() {
         $node = $this->createPropertyBuilder('test')
             ->makePrivate()
@@ -57,10 +61,6 @@ class PropertyTest extends \PHPUnit_Framework_TestCase
             ),
             $node
         );
-    }
-
-    public function createPropertyBuilder($name) {
-        return new Property($name);
     }
 
     public function testDocComment() {

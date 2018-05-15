@@ -52,6 +52,25 @@ class SymfonyStyle extends OutputStyle
     }
 
     /**
+     * Formats a message as a block of text.
+     *
+     * @param string|array $messages The message to write in the block
+     * @param string|null  $type     The block type (added in [] on first line)
+     * @param string|null  $style    The style to apply to the whole block
+     * @param string       $prefix   The prefix for the block
+     * @param bool         $padding  Whether to add vertical padding
+     * @param bool         $escape   Whether to escape the message
+     */
+    public function block($messages, $type = null, $style = null, $prefix = ' ', $padding = false, $escape = true)
+    {
+        $messages = is_array($messages) ? array_values($messages) : array($messages);
+
+        $this->autoPrependBlock();
+        $this->writeln($this->createBlock($messages, $type, $style, $prefix, $padding, $escape));
+        $this->newLine();
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function title($message)
@@ -62,44 +81,6 @@ class SymfonyStyle extends OutputStyle
             sprintf('<comment>%s</>', str_repeat('=', Helper::strlenWithoutDecoration($this->getFormatter(), $message))),
         ));
         $this->newLine();
-    }
-
-    private function autoPrependBlock()
-    {
-        $chars = substr(str_replace(PHP_EOL, "\n", $this->bufferedOutput->fetch()), -2);
-
-        if (!isset($chars[0])) {
-            return $this->newLine(); //empty history, so we should start with a new line.
-        }
-        //Prepend new line for each non LF chars (This means no blank line was output before)
-        $this->newLine(2 - substr_count($chars, "\n"));
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function newLine($count = 1)
-    {
-        parent::newLine($count);
-        $this->bufferedOutput->write(str_repeat("\n", $count));
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function writeln($messages, $type = self::OUTPUT_NORMAL)
-    {
-        parent::writeln($messages, $type);
-        $this->bufferedOutput->writeln($this->reduceBuffer($messages), $type);
-    }
-
-    private function reduceBuffer($messages)
-    {
-        // We need to know if the two last chars are PHP_EOL
-        // Preserve the last 4 chars inserted (PHP_EOL on windows is two chars) in the history buffer
-        return array_map(function ($value) {
-            return substr($value, -4);
-        }, array_merge(array($this->bufferedOutput->fetch()), (array) $messages));
     }
 
     /**
@@ -129,15 +110,6 @@ class SymfonyStyle extends OutputStyle
         $this->newLine();
     }
 
-    private function autoPrependText()
-    {
-        $fetched = $this->bufferedOutput->fetch();
-        //Prepend new line if last char isn't EOL:
-        if ("\n" !== substr($fetched, -1)) {
-            $this->newLine();
-        }
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -159,73 +131,6 @@ class SymfonyStyle extends OutputStyle
     public function comment($message)
     {
         $this->block($message, null, null, '<fg=default;bg=default> // </>', false, false);
-    }
-
-    /**
-     * Formats a message as a block of text.
-     *
-     * @param string|array $messages The message to write in the block
-     * @param string|null  $type     The block type (added in [] on first line)
-     * @param string|null  $style    The style to apply to the whole block
-     * @param string       $prefix   The prefix for the block
-     * @param bool         $padding  Whether to add vertical padding
-     * @param bool         $escape   Whether to escape the message
-     */
-    public function block($messages, $type = null, $style = null, $prefix = ' ', $padding = false, $escape = true)
-    {
-        $messages = is_array($messages) ? array_values($messages) : array($messages);
-
-        $this->autoPrependBlock();
-        $this->writeln($this->createBlock($messages, $type, $style, $prefix, $padding, $escape));
-        $this->newLine();
-    }
-
-    private function createBlock($messages, $type = null, $style = null, $prefix = ' ', $padding = false, $escape = false)
-    {
-        $indentLength = 0;
-        $prefixLength = Helper::strlenWithoutDecoration($this->getFormatter(), $prefix);
-        $lines = array();
-
-        if (null !== $type) {
-            $type = sprintf('[%s] ', $type);
-            $indentLength = strlen($type);
-            $lineIndentation = str_repeat(' ', $indentLength);
-        }
-
-        // wrap and add newlines for each element
-        foreach ($messages as $key => $message) {
-            if ($escape) {
-                $message = OutputFormatter::escape($message);
-            }
-
-            $lines = array_merge($lines, explode(PHP_EOL, wordwrap($message, $this->lineLength - $prefixLength - $indentLength, PHP_EOL, true)));
-
-            if (count($messages) > 1 && $key < count($messages) - 1) {
-                $lines[] = '';
-            }
-        }
-
-        $firstLineIndex = 0;
-        if ($padding && $this->isDecorated()) {
-            $firstLineIndex = 1;
-            array_unshift($lines, '');
-            $lines[] = '';
-        }
-
-        foreach ($lines as $i => &$line) {
-            if (null !== $type) {
-                $line = $firstLineIndex === $i ? $type.$line : $lineIndentation.$line;
-            }
-
-            $line = $prefix.$line;
-            $line .= str_repeat(' ', $this->lineLength - Helper::strlenWithoutDecoration($this->getFormatter(), $line));
-
-            if ($style) {
-                $line = sprintf('<%s>%s</>', $style, $line);
-            }
-        }
-
-        return $lines;
     }
 
     /**
@@ -297,29 +202,6 @@ class SymfonyStyle extends OutputStyle
     }
 
     /**
-     * @return string
-     */
-    public function askQuestion(Question $question)
-    {
-        if ($this->input->isInteractive()) {
-            $this->autoPrependBlock();
-        }
-
-        if (!$this->questionHelper) {
-            $this->questionHelper = new SymfonyQuestionHelper();
-        }
-
-        $answer = $this->questionHelper->ask($this->input, $this, $question);
-
-        if ($this->input->isInteractive()) {
-            $this->newLine();
-            $this->bufferedOutput->write("\n");
-        }
-
-        return $answer;
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function askHidden($question, $validator = null)
@@ -365,37 +247,9 @@ class SymfonyStyle extends OutputStyle
     /**
      * {@inheritdoc}
      */
-    public function createProgressBar($max = 0)
-    {
-        $progressBar = parent::createProgressBar($max);
-
-        if ('\\' !== DIRECTORY_SEPARATOR) {
-            $progressBar->setEmptyBarCharacter('░'); // light shade character \u2591
-            $progressBar->setProgressCharacter('');
-            $progressBar->setBarCharacter('▓'); // dark shade character \u2593
-        }
-
-        return $progressBar;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function progressAdvance($step = 1)
     {
         $this->getProgressBar()->advance($step);
-    }
-
-    /**
-     * @return ProgressBar
-     */
-    private function getProgressBar()
-    {
-        if (!$this->progressBar) {
-            throw new RuntimeException('The ProgressBar is not started.');
-        }
-
-        return $this->progressBar;
     }
 
     /**
@@ -411,10 +265,67 @@ class SymfonyStyle extends OutputStyle
     /**
      * {@inheritdoc}
      */
+    public function createProgressBar($max = 0)
+    {
+        $progressBar = parent::createProgressBar($max);
+
+        if ('\\' !== DIRECTORY_SEPARATOR) {
+            $progressBar->setEmptyBarCharacter('░'); // light shade character \u2591
+            $progressBar->setProgressCharacter('');
+            $progressBar->setBarCharacter('▓'); // dark shade character \u2593
+        }
+
+        return $progressBar;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function askQuestion(Question $question)
+    {
+        if ($this->input->isInteractive()) {
+            $this->autoPrependBlock();
+        }
+
+        if (!$this->questionHelper) {
+            $this->questionHelper = new SymfonyQuestionHelper();
+        }
+
+        $answer = $this->questionHelper->ask($this->input, $this, $question);
+
+        if ($this->input->isInteractive()) {
+            $this->newLine();
+            $this->bufferedOutput->write("\n");
+        }
+
+        return $answer;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function writeln($messages, $type = self::OUTPUT_NORMAL)
+    {
+        parent::writeln($messages, $type);
+        $this->bufferedOutput->writeln($this->reduceBuffer($messages), $type);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function write($messages, $newline = false, $type = self::OUTPUT_NORMAL)
     {
         parent::write($messages, $newline, $type);
         $this->bufferedOutput->write($this->reduceBuffer($messages), $newline, $type);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function newLine($count = 1)
+    {
+        parent::newLine($count);
+        $this->bufferedOutput->write(str_repeat("\n", $count));
     }
 
     /**
@@ -425,5 +336,94 @@ class SymfonyStyle extends OutputStyle
     public function getErrorStyle()
     {
         return new self($this->input, $this->getErrorOutput());
+    }
+
+    /**
+     * @return ProgressBar
+     */
+    private function getProgressBar()
+    {
+        if (!$this->progressBar) {
+            throw new RuntimeException('The ProgressBar is not started.');
+        }
+
+        return $this->progressBar;
+    }
+
+    private function autoPrependBlock()
+    {
+        $chars = substr(str_replace(PHP_EOL, "\n", $this->bufferedOutput->fetch()), -2);
+
+        if (!isset($chars[0])) {
+            return $this->newLine(); //empty history, so we should start with a new line.
+        }
+        //Prepend new line for each non LF chars (This means no blank line was output before)
+        $this->newLine(2 - substr_count($chars, "\n"));
+    }
+
+    private function autoPrependText()
+    {
+        $fetched = $this->bufferedOutput->fetch();
+        //Prepend new line if last char isn't EOL:
+        if ("\n" !== substr($fetched, -1)) {
+            $this->newLine();
+        }
+    }
+
+    private function reduceBuffer($messages)
+    {
+        // We need to know if the two last chars are PHP_EOL
+        // Preserve the last 4 chars inserted (PHP_EOL on windows is two chars) in the history buffer
+        return array_map(function ($value) {
+            return substr($value, -4);
+        }, array_merge(array($this->bufferedOutput->fetch()), (array) $messages));
+    }
+
+    private function createBlock($messages, $type = null, $style = null, $prefix = ' ', $padding = false, $escape = false)
+    {
+        $indentLength = 0;
+        $prefixLength = Helper::strlenWithoutDecoration($this->getFormatter(), $prefix);
+        $lines = array();
+
+        if (null !== $type) {
+            $type = sprintf('[%s] ', $type);
+            $indentLength = strlen($type);
+            $lineIndentation = str_repeat(' ', $indentLength);
+        }
+
+        // wrap and add newlines for each element
+        foreach ($messages as $key => $message) {
+            if ($escape) {
+                $message = OutputFormatter::escape($message);
+            }
+
+            $lines = array_merge($lines, explode(PHP_EOL, wordwrap($message, $this->lineLength - $prefixLength - $indentLength, PHP_EOL, true)));
+
+            if (count($messages) > 1 && $key < count($messages) - 1) {
+                $lines[] = '';
+            }
+        }
+
+        $firstLineIndex = 0;
+        if ($padding && $this->isDecorated()) {
+            $firstLineIndex = 1;
+            array_unshift($lines, '');
+            $lines[] = '';
+        }
+
+        foreach ($lines as $i => &$line) {
+            if (null !== $type) {
+                $line = $firstLineIndex === $i ? $type.$line : $lineIndentation.$line;
+            }
+
+            $line = $prefix.$line;
+            $line .= str_repeat(' ', $this->lineLength - Helper::strlenWithoutDecoration($this->getFormatter(), $line));
+
+            if ($style) {
+                $line = sprintf('<%s>%s</>', $style, $line);
+            }
+        }
+
+        return $lines;
     }
 }

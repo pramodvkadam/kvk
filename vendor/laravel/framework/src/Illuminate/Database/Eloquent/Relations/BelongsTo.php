@@ -15,33 +15,37 @@ class BelongsTo extends Relation
     use SupportsDefaultModels;
 
     /**
-     * The count of self joins.
-     *
-     * @var int
-     */
-    protected static $selfJoinCount = 0;
-    /**
      * The child model instance of the relation.
      */
     protected $child;
+
     /**
      * The foreign key of the parent model.
      *
      * @var string
      */
     protected $foreignKey;
+
     /**
      * The associated key on the parent model.
      *
      * @var string
      */
     protected $ownerKey;
+
     /**
      * The name of the relationship.
      *
      * @var string
      */
     protected $relation;
+
+    /**
+     * The count of self joins.
+     *
+     * @var int
+     */
+    protected static $selfJoinCount = 0;
 
     /**
      * Create a new belongs to relationship instance.
@@ -65,6 +69,16 @@ class BelongsTo extends Relation
         $this->child = $child;
 
         parent::__construct($query, $child);
+    }
+
+    /**
+     * Get the results of the relationship.
+     *
+     * @return mixed
+     */
+    public function getResults()
+    {
+        return $this->query->first() ?: $this->getDefaultFor($this->parent);
     }
 
     /**
@@ -194,16 +208,6 @@ class BelongsTo extends Relation
     }
 
     /**
-     * Get the results of the relationship.
-     *
-     * @return mixed
-     */
-    public function getResults()
-    {
-        return $this->query->first() ?: $this->getDefaultFor($this->parent);
-    }
-
-    /**
      * Associate the model instance to the given parent.
      *
      * @param  \Illuminate\Database\Eloquent\Model|int|string  $model
@@ -249,7 +253,7 @@ class BelongsTo extends Relation
         }
 
         return $query->select($columns)->whereColumn(
-            $this->getQualifiedForeignKey(), '=', $query->getModel()->getTable().'.'.$this->ownerKey
+            $this->getQualifiedForeignKey(), '=', $query->qualifyColumn($this->ownerKey)
         );
     }
 
@@ -285,56 +289,6 @@ class BelongsTo extends Relation
     }
 
     /**
-     * Get the fully qualified foreign key of the relationship.
-     *
-     * @return string
-     */
-    public function getQualifiedForeignKey()
-    {
-        return $this->child->getTable().'.'.$this->foreignKey;
-    }
-
-    /**
-     * Get the foreign key of the relationship.
-     *
-     * @return string
-     */
-    public function getForeignKey()
-    {
-        return $this->foreignKey;
-    }
-
-    /**
-     * Get the associated key of the relationship.
-     *
-     * @return string
-     */
-    public function getOwnerKey()
-    {
-        return $this->ownerKey;
-    }
-
-    /**
-     * Get the fully qualified associated key of the relationship.
-     *
-     * @return string
-     */
-    public function getQualifiedOwnerKeyName()
-    {
-        return $this->related->getTable().'.'.$this->ownerKey;
-    }
-
-    /**
-     * Get the name of the relationship.
-     *
-     * @return string
-     */
-    public function getRelation()
-    {
-        return $this->relation;
-    }
-
-    /**
      * Determine if the related model has an auto-incrementing ID.
      *
      * @return bool
@@ -354,5 +308,55 @@ class BelongsTo extends Relation
     protected function newRelatedInstanceFor(Model $parent)
     {
         return $this->related->newInstance();
+    }
+
+    /**
+     * Get the foreign key of the relationship.
+     *
+     * @return string
+     */
+    public function getForeignKey()
+    {
+        return $this->foreignKey;
+    }
+
+    /**
+     * Get the fully qualified foreign key of the relationship.
+     *
+     * @return string
+     */
+    public function getQualifiedForeignKey()
+    {
+        return $this->child->qualifyColumn($this->foreignKey);
+    }
+
+    /**
+     * Get the associated key of the relationship.
+     *
+     * @return string
+     */
+    public function getOwnerKey()
+    {
+        return $this->ownerKey;
+    }
+
+    /**
+     * Get the fully qualified associated key of the relationship.
+     *
+     * @return string
+     */
+    public function getQualifiedOwnerKeyName()
+    {
+        return $this->related->qualifyColumn($this->ownerKey);
+    }
+
+    /**
+     * Get the name of the relationship.
+     *
+     * @return string
+     */
+    public function getRelation()
+    {
+        return $this->relation;
     }
 }

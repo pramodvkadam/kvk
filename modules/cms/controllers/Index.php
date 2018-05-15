@@ -36,6 +36,11 @@ class Index extends Controller
     use \Backend\Traits\InspectableContainer;
 
     /**
+     * @var Cms\Classes\Theme
+     */
+    protected $theme;
+
+    /**
      * @var array Permissions required to view this page.
      */
     public $requiredPermissions = [
@@ -45,10 +50,6 @@ class Index extends Controller
         'cms.manage_layouts',
         'cms.manage_partials'
     ];
-    /**
-     * @var Cms\Classes\Theme
-     */
-    protected $theme;
 
     /**
      * Constructor.
@@ -115,72 +116,6 @@ class Index extends Controller
         }
     }
 
-    protected function bindFormWidgetToController()
-    {
-        $alias = Request::input('formWidgetAlias');
-        $type = Request::input('templateType');
-        $object = $this->loadTemplate($type, Request::input('templatePath'));
-
-        $widget = $this->makeTemplateFormWidget($type, $object, $alias);
-        $widget->bindToController();
-    }
-
-    protected function loadTemplate($type, $path)
-    {
-        $class = $this->resolveTypeClassName($type);
-
-        if (!($template = call_user_func([$class, 'load'], $this->theme, $path))) {
-            throw new ApplicationException(trans('cms::lang.template.not_found'));
-        }
-
-        /*
-         * Extensibility
-         */
-        $this->fireSystemEvent('cms.template.processSettingsAfterLoad', [$template]);
-
-        return $template;
-    }
-
-    protected function resolveTypeClassName($type)
-    {
-        $types = [
-            'page'    => '\Cms\Classes\Page',
-            'partial' => '\Cms\Classes\Partial',
-            'layout'  => '\Cms\Classes\Layout',
-            'content' => '\Cms\Classes\Content',
-            'asset'   => '\Cms\Classes\Asset'
-        ];
-
-        if (!array_key_exists($type, $types)) {
-            throw new ApplicationException(trans('cms::lang.template.invalid_type'));
-        }
-
-        return $types[$type];
-    }
-
-    protected function makeTemplateFormWidget($type, $template, $alias = null)
-    {
-        $formConfigs = [
-            'page'    => '~/modules/cms/classes/page/fields.yaml',
-            'partial' => '~/modules/cms/classes/partial/fields.yaml',
-            'layout'  => '~/modules/cms/classes/layout/fields.yaml',
-            'content' => '~/modules/cms/classes/content/fields.yaml',
-            'asset'   => '~/modules/cms/classes/asset/fields.yaml'
-        ];
-
-        if (!array_key_exists($type, $formConfigs)) {
-            throw new ApplicationException(trans('cms::lang.template.not_found'));
-        }
-
-        $widgetConfig = $this->makeConfig($formConfigs[$type]);
-        $widgetConfig->model = $template;
-        $widgetConfig->alias = $alias ?: 'form'.studly_case($type).md5($template->getFileName()).uniqid();
-
-        $widget = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
-
-        return $widget;
-    }
-
     public function index_onOpenTemplate()
     {
         $this->validateRequestTheme();
@@ -205,36 +140,6 @@ class Index extends Controller
                 'templateMtime' => $template->mtime
             ])
         ];
-    }
-
-    protected function validateRequestTheme()
-    {
-        if ($this->theme->getDirName() != Request::input('theme')) {
-            throw new ApplicationException(trans('cms::lang.theme.edit.not_match'));
-        }
-    }
-
-    protected function getTabTitle($type, $template)
-    {
-        if ($type == 'page') {
-            $result = $template->title ?: $template->getFileName();
-            if (!$result) {
-                $result = trans('cms::lang.page.new');
-            }
-
-            return $result;
-        }
-
-        if ($type == 'partial' || $type == 'layout' || $type == 'content' || $type == 'asset') {
-            $result = in_array($type, ['asset', 'content']) ? $template->getFileName() : $template->getBaseFileName();
-            if (!$result) {
-                $result = trans('cms::lang.'.$type.'.new');
-            }
-
-            return $result;
-        }
-
-        return $template->getFileName();
     }
 
     public function onSave()
@@ -306,89 +211,6 @@ class Index extends Controller
         }
 
         return $result;
-    }
-
-    //
-    // Methods for the internal use
-    //
-
-    protected function createTemplate($type)
-    {
-        $class = $this->resolveTypeClassName($type);
-
-        if (!($template = $class::inTheme($this->theme))) {
-            throw new ApplicationException(trans('cms::lang.template.not_found'));
-        }
-
-        return $template;
-    }
-
-    protected function upgradeSettings($settings)
-    {
-        /*
-         * Handle component usage
-         */
-        $componentProperties = post('component_properties');
-        $componentNames = post('component_names');
-        $componentAliases = post('component_aliases');
-
-        if ($componentProperties !== null) {
-            if ($componentNames === null || $componentAliases === null) {
-                throw new ApplicationException(trans('cms::lang.component.invalid_request'));
-            }
-
-            $count = count($componentProperties);
-            if (count($componentNames) != $count || count($componentAliases) != $count) {
-                throw new ApplicationException(trans('cms::lang.component.invalid_request'));
-            }
-
-            for ($index = 0; $index < $count; $index++) {
-                $componentName = $componentNames[$index];
-                $componentAlias = $componentAliases[$index];
-
-                $section = $componentName;
-                if ($componentAlias != $componentName) {
-                    $section .= ' '.$componentAlias;
-                }
-
-                $properties = json_decode($componentProperties[$index], true);
-                unset($properties['oc.alias']);
-                unset($properties['inspectorProperty']);
-                unset($properties['inspectorClassName']);
-                $settings[$section] = $properties;
-            }
-        }
-
-        /*
-         * Handle view bag
-         */
-        $viewBag = post('viewBag');
-        if ($viewBag !== null) {
-            $settings['viewBag'] = $viewBag;
-        }
-
-        /*
-         * Extensibility
-         */
-        $dataHolder = (object) ['settings' => $settings];
-
-        $this->fireSystemEvent('cms.template.processSettingsBeforeSave', [$dataHolder]);
-
-        return $dataHolder->settings;
-    }
-
-    /**
-     * Replaces Windows style (/r/n) line endings with unix style (/n)
-     * line endings.
-     * @param string $markup The markup to convert to unix style endings
-     * @return string
-     */
-    protected function convertLineEndings($markup)
-    {
-        $markup = str_replace("\r\n", "\n", $markup);
-        $markup = str_replace("\r", "\n", $markup);
-
-        return $markup;
     }
 
     public function onOpenConcurrencyResolveForm()
@@ -507,5 +329,184 @@ class Index extends Controller
         $content = str_replace('__SELF__', $alias, $content);
 
         return $content;
+    }
+
+    //
+    // Methods for the internal use
+    //
+
+    protected function validateRequestTheme()
+    {
+        if ($this->theme->getDirName() != Request::input('theme')) {
+            throw new ApplicationException(trans('cms::lang.theme.edit.not_match'));
+        }
+    }
+
+    protected function resolveTypeClassName($type)
+    {
+        $types = [
+            'page'    => '\Cms\Classes\Page',
+            'partial' => '\Cms\Classes\Partial',
+            'layout'  => '\Cms\Classes\Layout',
+            'content' => '\Cms\Classes\Content',
+            'asset'   => '\Cms\Classes\Asset'
+        ];
+
+        if (!array_key_exists($type, $types)) {
+            throw new ApplicationException(trans('cms::lang.template.invalid_type'));
+        }
+
+        return $types[$type];
+    }
+
+    protected function loadTemplate($type, $path)
+    {
+        $class = $this->resolveTypeClassName($type);
+
+        if (!($template = call_user_func([$class, 'load'], $this->theme, $path))) {
+            throw new ApplicationException(trans('cms::lang.template.not_found'));
+        }
+
+        /*
+         * Extensibility
+         */
+        $this->fireSystemEvent('cms.template.processSettingsAfterLoad', [$template]);
+
+        return $template;
+    }
+
+    protected function createTemplate($type)
+    {
+        $class = $this->resolveTypeClassName($type);
+
+        if (!($template = $class::inTheme($this->theme))) {
+            throw new ApplicationException(trans('cms::lang.template.not_found'));
+        }
+
+        return $template;
+    }
+
+    protected function getTabTitle($type, $template)
+    {
+        if ($type == 'page') {
+            $result = $template->title ?: $template->getFileName();
+            if (!$result) {
+                $result = trans('cms::lang.page.new');
+            }
+
+            return $result;
+        }
+
+        if ($type == 'partial' || $type == 'layout' || $type == 'content' || $type == 'asset') {
+            $result = in_array($type, ['asset', 'content']) ? $template->getFileName() : $template->getBaseFileName();
+            if (!$result) {
+                $result = trans('cms::lang.'.$type.'.new');
+            }
+
+            return $result;
+        }
+
+        return $template->getFileName();
+    }
+
+    protected function makeTemplateFormWidget($type, $template, $alias = null)
+    {
+        $formConfigs = [
+            'page'    => '~/modules/cms/classes/page/fields.yaml',
+            'partial' => '~/modules/cms/classes/partial/fields.yaml',
+            'layout'  => '~/modules/cms/classes/layout/fields.yaml',
+            'content' => '~/modules/cms/classes/content/fields.yaml',
+            'asset'   => '~/modules/cms/classes/asset/fields.yaml'
+        ];
+
+        if (!array_key_exists($type, $formConfigs)) {
+            throw new ApplicationException(trans('cms::lang.template.not_found'));
+        }
+
+        $widgetConfig = $this->makeConfig($formConfigs[$type]);
+        $widgetConfig->model = $template;
+        $widgetConfig->alias = $alias ?: 'form'.studly_case($type).md5($template->getFileName()).uniqid();
+
+        $widget = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
+
+        return $widget;
+    }
+
+    protected function upgradeSettings($settings)
+    {
+        /*
+         * Handle component usage
+         */
+        $componentProperties = post('component_properties');
+        $componentNames = post('component_names');
+        $componentAliases = post('component_aliases');
+
+        if ($componentProperties !== null) {
+            if ($componentNames === null || $componentAliases === null) {
+                throw new ApplicationException(trans('cms::lang.component.invalid_request'));
+            }
+
+            $count = count($componentProperties);
+            if (count($componentNames) != $count || count($componentAliases) != $count) {
+                throw new ApplicationException(trans('cms::lang.component.invalid_request'));
+            }
+
+            for ($index = 0; $index < $count; $index++) {
+                $componentName = $componentNames[$index];
+                $componentAlias = $componentAliases[$index];
+
+                $section = $componentName;
+                if ($componentAlias != $componentName) {
+                    $section .= ' '.$componentAlias;
+                }
+
+                $properties = json_decode($componentProperties[$index], true);
+                unset($properties['oc.alias']);
+                unset($properties['inspectorProperty']);
+                unset($properties['inspectorClassName']);
+                $settings[$section] = $properties;
+            }
+        }
+
+        /*
+         * Handle view bag
+         */
+        $viewBag = post('viewBag');
+        if ($viewBag !== null) {
+            $settings['viewBag'] = $viewBag;
+        }
+
+        /*
+         * Extensibility
+         */
+        $dataHolder = (object) ['settings' => $settings];
+
+        $this->fireSystemEvent('cms.template.processSettingsBeforeSave', [$dataHolder]);
+
+        return $dataHolder->settings;
+    }
+
+    protected function bindFormWidgetToController()
+    {
+        $alias = Request::input('formWidgetAlias');
+        $type = Request::input('templateType');
+        $object = $this->loadTemplate($type, Request::input('templatePath'));
+
+        $widget = $this->makeTemplateFormWidget($type, $object, $alias);
+        $widget->bindToController();
+    }
+
+    /**
+     * Replaces Windows style (/r/n) line endings with unix style (/n)
+     * line endings.
+     * @param string $markup The markup to convert to unix style endings
+     * @return string
+     */
+    protected function convertLineEndings($markup)
+    {
+        $markup = str_replace("\r\n", "\n", $markup);
+        $markup = str_replace("\r", "\n", $markup);
+
+        return $markup;
     }
 }

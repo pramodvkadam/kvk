@@ -204,49 +204,6 @@ class Filesystem extends FilesystemBase
     }
 
     /**
-     * Modify file/folder permissions
-     * @param  string $path
-     * @param  octal $mask
-     * @return void
-     */
-    public function chmod($path, $mask = null)
-    {
-        if (!$mask) {
-            $mask = $this->isDirectory($path)
-                ? $this->getFolderPermissions()
-                : $this->getFilePermissions();
-        }
-
-        if (!$mask) {
-            return;
-        }
-
-        return @chmod($path, $mask);
-    }
-
-    /**
-     * Returns the default folder permission mask to use.
-     * @return string Permission mask as octal (0777) or null
-     */
-    public function getFolderPermissions()
-    {
-        return $this->folderPermissions
-            ? octdec($this->folderPermissions)
-            : null;
-    }
-
-    /**
-     * Returns the default file permission mask to use.
-     * @return string Permission mask as octal (0777) or null
-     */
-    public function getFilePermissions()
-    {
-        return $this->filePermissions
-            ? octdec($this->filePermissions)
-            : null;
-    }
-
-    /**
      * Copy a file to a new location.
      * @param  string  $path
      * @param  string  $target
@@ -308,6 +265,27 @@ class Filesystem extends FilesystemBase
     }
 
     /**
+     * Modify file/folder permissions
+     * @param  string $path
+     * @param  octal $mask
+     * @return void
+     */
+    public function chmod($path, $mask = null)
+    {
+        if (!$mask) {
+            $mask = $this->isDirectory($path)
+                ? $this->getFolderPermissions()
+                : $this->getFilePermissions();
+        }
+
+        if (!$mask) {
+            return;
+        }
+
+        return @chmod($path, $mask);
+    }
+
+    /**
      * Modify file/folder permissions recursively
      * @param  string $path
      * @param  octal $fileMask
@@ -343,6 +321,28 @@ class Filesystem extends FilesystemBase
                 $this->chmod($item->getPathname(), $fileMask);
             }
         }
+    }
+
+    /**
+     * Returns the default file permission mask to use.
+     * @return string Permission mask as octal (0777) or null
+     */
+    public function getFilePermissions()
+    {
+        return $this->filePermissions
+            ? octdec($this->filePermissions)
+            : null;
+    }
+
+    /**
+     * Returns the default folder permission mask to use.
+     * @return string Permission mask as octal (0777) or null
+     */
+    public function getFolderPermissions()
+    {
+        return $this->folderPermissions
+            ? octdec($this->folderPermissions)
+            : null;
     }
 
     /**

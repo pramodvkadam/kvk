@@ -22,6 +22,20 @@ class ClassAliasAutoloader
     protected $classes = [];
 
     /**
+     * Register a new alias loader instance.
+     *
+     * @param  \Psy\Shell  $shell
+     * @param  string  $classMapPath
+     * @return static
+     */
+    public static function register(Shell $shell, $classMapPath)
+    {
+        return tap(new static($shell, $classMapPath), function ($loader) {
+            spl_autoload_register([$loader, 'aliasClass']);
+        });
+    }
+
+    /**
      * Create a new alias loader instance.
      *
      * @param  \Psy\Shell  $shell
@@ -50,20 +64,6 @@ class ClassAliasAutoloader
     }
 
     /**
-     * Register a new alias loader instance.
-     *
-     * @param  \Psy\Shell  $shell
-     * @param  string  $classMapPath
-     * @return static
-     */
-    public static function register(Shell $shell, $classMapPath)
-    {
-        return tap(new static($shell, $classMapPath), function ($loader) {
-            spl_autoload_register([$loader, 'aliasClass']);
-        });
-    }
-
-    /**
      * Find the closest class by name.
      *
      * @param  string  $class
@@ -87,16 +87,6 @@ class ClassAliasAutoloader
     }
 
     /**
-     * Handle the destruction of the instance.
-     *
-     * @return void
-     */
-    public function __destruct()
-    {
-        $this->unregister();
-    }
-
-    /**
      * Unregister the alias loader instance.
      *
      * @return void
@@ -104,5 +94,15 @@ class ClassAliasAutoloader
     public function unregister()
     {
         spl_autoload_unregister([$this, 'aliasClass']);
+    }
+
+    /**
+     * Handle the destruction of the instance.
+     *
+     * @return void
+     */
+    public function __destruct()
+    {
+        $this->unregister();
     }
 }

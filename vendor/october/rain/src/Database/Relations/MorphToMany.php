@@ -84,6 +84,20 @@ class MorphToMany extends BelongsToMany
     }
 
     /**
+     * Set the where clause for the relation query.
+     *
+     * @return $this
+     */
+    protected function addWhereConstraints()
+    {
+        parent::addWhereConstraints();
+
+        $this->query->where($this->table.'.'.$this->morphType, $this->morphClass);
+
+        return $this;
+    }
+
+    /**
      * Set the constraints for an eager load of the relation.
      *
      * @param  array  $models
@@ -94,6 +108,20 @@ class MorphToMany extends BelongsToMany
         parent::addEagerConstraints($models);
 
         $this->query->where($this->table.'.'.$this->morphType, $this->morphClass);
+    }
+
+    /**
+     * Create a new pivot attachment record.
+     *
+     * @param  int   $id
+     * @param  bool  $timed
+     * @return array
+     */
+    protected function baseAttachRecord($id, $timed)
+    {
+        return Arr::add(
+            parent::baseAttachRecord($id, $timed), $this->morphType, $this->morphClass
+        );
     }
 
     /**
@@ -109,6 +137,16 @@ class MorphToMany extends BelongsToMany
         return parent::getRelationExistenceQuery($query, $parentQuery, $columns)->where(
             $this->table.'.'.$this->morphType, $this->morphClass
         );
+    }
+
+    /**
+     * Create a new query builder for the pivot table.
+     *
+     * @return \Illuminate\Database\Query\Builder
+     */
+    protected function newPivotQuery()
+    {
+        return parent::newPivotQuery()->where($this->morphType, $this->morphClass);
     }
 
     /**
@@ -150,43 +188,5 @@ class MorphToMany extends BelongsToMany
     public function getMorphClass()
     {
         return $this->morphClass;
-    }
-
-    /**
-     * Set the where clause for the relation query.
-     *
-     * @return $this
-     */
-    protected function addWhereConstraints()
-    {
-        parent::addWhereConstraints();
-
-        $this->query->where($this->table.'.'.$this->morphType, $this->morphClass);
-
-        return $this;
-    }
-
-    /**
-     * Create a new pivot attachment record.
-     *
-     * @param  int   $id
-     * @param  bool  $timed
-     * @return array
-     */
-    protected function baseAttachRecord($id, $timed)
-    {
-        return Arr::add(
-            parent::baseAttachRecord($id, $timed), $this->morphType, $this->morphClass
-        );
-    }
-
-    /**
-     * Create a new query builder for the pivot table.
-     *
-     * @return \Illuminate\Database\Query\Builder
-     */
-    protected function newPivotQuery()
-    {
-        return parent::newPivotQuery()->where($this->morphType, $this->morphClass);
     }
 }

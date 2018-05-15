@@ -23,6 +23,17 @@ class ExceptionCasterTest extends TestCase
 {
     use VarDumperTestTrait;
 
+    private function getTestException($msg, &$ref = null)
+    {
+        return new \Exception(''.$msg);
+    }
+
+    protected function tearDown()
+    {
+        ExceptionCaster::$srcContext = 1;
+        ExceptionCaster::$traceArgs = true;
+    }
+
     public function testDefaultSettings()
     {
         $ref = array('foo');
@@ -47,11 +58,6 @@ EODUMP;
 
         $this->assertDumpMatchesFormat($expectedDump, $e);
         $this->assertSame(array('foo'), $ref);
-    }
-
-    private function getTestException($msg, &$ref = null)
-    {
-        return new \Exception(''.$msg);
     }
 
     public function testSeek()
@@ -216,11 +222,5 @@ Exception {
 EODUMP;
 
         $this->assertDumpMatchesFormat($expectedDump, $e, Caster::EXCLUDE_VERBOSE);
-    }
-
-    protected function tearDown()
-    {
-        ExceptionCaster::$srcContext = 1;
-        ExceptionCaster::$traceArgs = true;
     }
 }

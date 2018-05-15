@@ -12,8 +12,9 @@ use BackendAuth;
  */
 class PermissionEditor extends FormWidgetBase
 {
-    public $mode;
     protected $user;
+
+    public $mode;
 
     /**
      * @inheritDoc
@@ -57,9 +58,60 @@ class PermissionEditor extends FormWidgetBase
         $this->vars['field'] = $this->formField;
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function getSaveValue($value)
+    {
+        if ($this->user->isSuperUser()) {
+            return is_array($value) ? $value : [];
+        }
+
+        return $this->getSaveValueSecure($value);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function loadAssets()
+    {
+        $this->addCss('css/permissioneditor.css', 'core');
+        $this->addJs('js/permissioneditor.js', 'core');
+    }
+
     protected function getControlMode()
     {
         return strlen($this->mode) ? $this->mode : 'radio';
+    }
+
+    /**
+     * Returns a safely parsed set of permissions, ensuring the user cannot elevate
+     * their own permissions or permissions of another user above their own.
+     *
+     * @param string $value
+     * @return array
+     */
+    protected function getSaveValueSecure($value)
+    {
+        $newPermissions = is_array($value) ? array_map('intval', $value) : [];
+
+        if (!empty($newPermissions)) {
+            $existingPermissions = $this->model->permissions ?: [];
+
+            $allowedPermissions = array_map(function ($permissionObject) {
+                return $permissionObject->code;
+            }, array_flatten($this->getFilteredPermissions()));
+
+            foreach ($newPermissions as $permission => $code) {
+                if (in_array($permission, $allowedPermissions)) {
+                    $existingPermissions[$permission] = $code;
+                }
+            }
+
+            $newPermissions = $existingPermissions;
+        }
+
+        return $newPermissions;
     }
 
     /**
@@ -91,56 +143,5 @@ class PermissionEditor extends FormWidgetBase
         }
 
         return $permissions;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getSaveValue($value)
-    {
-        if ($this->user->isSuperUser()) {
-            return is_array($value) ? $value : [];
-        }
-
-        return $this->getSaveValueSecure($value);
-    }
-
-    /**
-     * Returns a safely parsed set of permissions, ensuring the user cannot elevate
-     * their own permissions or permissions of another user above their own.
-     *
-     * @param string $value
-     * @return array
-     */
-    protected function getSaveValueSecure($value)
-    {
-        $newPermissions = is_array($value) ? array_map('intval', $value) : [];
-
-        if (!empty($newPermissions)) {
-            $existingPermissions = $this->model->permissions;
-
-            $allowedPermissions = array_map(function ($permissionObject) {
-                return $permissionObject->code;
-            }, array_flatten($this->getFilteredPermissions()));
-
-            foreach ($newPermissions as $permission => $code) {
-                if (in_array($permission, $allowedPermissions)) {
-                    $existingPermissions[$permission] = $code;
-                }
-            }
-
-            $newPermissions = $existingPermissions;
-        }
-
-        return $newPermissions;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function loadAssets()
-    {
-        $this->addCss('css/permissioneditor.css', 'core');
-        $this->addJs('js/permissioneditor.js', 'core');
     }
 }

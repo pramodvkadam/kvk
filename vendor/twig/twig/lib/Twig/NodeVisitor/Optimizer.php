@@ -44,15 +44,67 @@ final class Twig_NodeVisitor_Optimizer extends Twig_BaseNodeVisitor
         $this->optimizers = $optimizers;
     }
 
-    public function getPriority()
-    {
-        return 255;
-    }
-
     protected function doEnterNode(Twig_Node $node, Twig_Environment $env)
     {
         if (self::OPTIMIZE_FOR === (self::OPTIMIZE_FOR & $this->optimizers)) {
             $this->enterOptimizeFor($node, $env);
+        }
+
+        return $node;
+    }
+
+    protected function doLeaveNode(Twig_Node $node, Twig_Environment $env)
+    {
+        if (self::OPTIMIZE_FOR === (self::OPTIMIZE_FOR & $this->optimizers)) {
+            $this->leaveOptimizeFor($node, $env);
+        }
+
+        if (self::OPTIMIZE_RAW_FILTER === (self::OPTIMIZE_RAW_FILTER & $this->optimizers)) {
+            $node = $this->optimizeRawFilter($node, $env);
+        }
+
+        $node = $this->optimizePrintNode($node, $env);
+
+        return $node;
+    }
+
+    /**
+     * Optimizes print nodes.
+     *
+     * It replaces:
+     *
+     *   * "echo $this->render(Parent)Block()" with "$this->display(Parent)Block()"
+     *
+     * @return Twig_Node
+     */
+    private function optimizePrintNode(Twig_Node $node, Twig_Environment $env)
+    {
+        if (!$node instanceof Twig_Node_Print) {
+            return $node;
+        }
+
+        $exprNode = $node->getNode('expr');
+        if (
+            $exprNode instanceof Twig_Node_Expression_BlockReference ||
+            $exprNode instanceof Twig_Node_Expression_Parent
+        ) {
+            $exprNode->setAttribute('output', true);
+
+            return $exprNode;
+        }
+
+        return $node;
+    }
+
+    /**
+     * Removes "raw" filters.
+     *
+     * @return Twig_Node
+     */
+    private function optimizeRawFilter(Twig_Node $node, Twig_Environment $env)
+    {
+        if ($node instanceof Twig_Node_Expression_Filter && 'raw' == $node->getNode('filter')->getAttribute('value')) {
+            return $node->getNode('node');
         }
 
         return $node;
@@ -122,33 +174,6 @@ final class Twig_NodeVisitor_Optimizer extends Twig_BaseNodeVisitor
         }
     }
 
-    private function addLoopToCurrent()
-    {
-        $this->loops[0]->setAttribute('with_loop', true);
-    }
-
-    private function addLoopToAll()
-    {
-        foreach ($this->loops as $loop) {
-            $loop->setAttribute('with_loop', true);
-        }
-    }
-
-    protected function doLeaveNode(Twig_Node $node, Twig_Environment $env)
-    {
-        if (self::OPTIMIZE_FOR === (self::OPTIMIZE_FOR & $this->optimizers)) {
-            $this->leaveOptimizeFor($node, $env);
-        }
-
-        if (self::OPTIMIZE_RAW_FILTER === (self::OPTIMIZE_RAW_FILTER & $this->optimizers)) {
-            $node = $this->optimizeRawFilter($node, $env);
-        }
-
-        $node = $this->optimizePrintNode($node, $env);
-
-        return $node;
-    }
-
     /**
      * Optimizes "for" tag by removing the "loop" variable creation whenever possible.
      */
@@ -161,46 +186,21 @@ final class Twig_NodeVisitor_Optimizer extends Twig_BaseNodeVisitor
         }
     }
 
-    /**
-     * Removes "raw" filters.
-     *
-     * @return Twig_Node
-     */
-    private function optimizeRawFilter(Twig_Node $node, Twig_Environment $env)
+    private function addLoopToCurrent()
     {
-        if ($node instanceof Twig_Node_Expression_Filter && 'raw' == $node->getNode('filter')->getAttribute('value')) {
-            return $node->getNode('node');
-        }
-
-        return $node;
+        $this->loops[0]->setAttribute('with_loop', true);
     }
 
-    /**
-     * Optimizes print nodes.
-     *
-     * It replaces:
-     *
-     *   * "echo $this->render(Parent)Block()" with "$this->display(Parent)Block()"
-     *
-     * @return Twig_Node
-     */
-    private function optimizePrintNode(Twig_Node $node, Twig_Environment $env)
+    private function addLoopToAll()
     {
-        if (!$node instanceof Twig_Node_Print) {
-            return $node;
+        foreach ($this->loops as $loop) {
+            $loop->setAttribute('with_loop', true);
         }
+    }
 
-        $exprNode = $node->getNode('expr');
-        if (
-            $exprNode instanceof Twig_Node_Expression_BlockReference ||
-            $exprNode instanceof Twig_Node_Expression_Parent
-        ) {
-            $exprNode->setAttribute('output', true);
-
-            return $exprNode;
-        }
-
-        return $node;
+    public function getPriority()
+    {
+        return 255;
     }
 }
 

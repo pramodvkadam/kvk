@@ -30,18 +30,6 @@ class Resolver implements ResolverInterface
     }
 
     /**
-     * Add a datasource to the resolver.
-     *
-     * @param  string  $name
-     * @param  \October\Rain\Halcyon\Datasource\DatasourceInterface  $datasource
-     * @return void
-     */
-    public function addDatasource($name, DatasourceInterface $datasource)
-    {
-        $this->datasources[$name] = $datasource;
-    }
-
-    /**
      * Get a database datasource instance.
      *
      * @param  string  $name
@@ -57,13 +45,15 @@ class Resolver implements ResolverInterface
     }
 
     /**
-     * Get the default datasource name.
+     * Add a datasource to the resolver.
      *
-     * @return string
+     * @param  string  $name
+     * @param  \October\Rain\Halcyon\Datasource\DatasourceInterface  $datasource
+     * @return void
      */
-    public function getDefaultDatasource()
+    public function addDatasource($name, DatasourceInterface $datasource)
     {
-        return $this->default;
+        $this->datasources[$name] = $datasource;
     }
 
     /**
@@ -75,6 +65,16 @@ class Resolver implements ResolverInterface
     public function hasDatasource($name)
     {
         return isset($this->datasources[$name]);
+    }
+
+    /**
+     * Get the default datasource name.
+     *
+     * @return string
+     */
+    public function getDefaultDatasource()
+    {
+        return $this->default;
     }
 
     /**

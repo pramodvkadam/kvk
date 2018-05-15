@@ -110,6 +110,24 @@ class ProviderRepository
     }
 
     /**
+     * Register the load events for the given provider.
+     *
+     * @param  string  $provider
+     * @param  array  $events
+     * @return void
+     */
+    protected function registerLoadEvents($provider, array $events)
+    {
+        if (count($events) < 1) {
+            return;
+        }
+
+        $this->app->make('events')->listen($events, function () use ($provider) {
+            $this->app->register($provider);
+        });
+    }
+
+    /**
      * Compile the application service manifest file.
      *
      * @param  array  $providers
@@ -159,17 +177,6 @@ class ProviderRepository
     }
 
     /**
-     * Create a new provider instance.
-     *
-     * @param  string  $provider
-     * @return \Illuminate\Support\ServiceProvider
-     */
-    public function createProvider($provider)
-    {
-        return new $provider($this->app);
-    }
-
-    /**
      * Write the service manifest file to disk.
      *
      * @param  array  $manifest
@@ -191,20 +198,13 @@ class ProviderRepository
     }
 
     /**
-     * Register the load events for the given provider.
+     * Create a new provider instance.
      *
      * @param  string  $provider
-     * @param  array  $events
-     * @return void
+     * @return \Illuminate\Support\ServiceProvider
      */
-    protected function registerLoadEvents($provider, array $events)
+    public function createProvider($provider)
     {
-        if (count($events) < 1) {
-            return;
-        }
-
-        $this->app->make('events')->listen($events, function () use ($provider) {
-            $this->app->register($provider);
-        });
+        return new $provider($this->app);
     }
 }

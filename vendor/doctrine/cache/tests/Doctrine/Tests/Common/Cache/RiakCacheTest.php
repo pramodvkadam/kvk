@@ -25,6 +25,16 @@ class RiakCacheTest extends CacheTest
      */
     private $bucket;
 
+    protected function setUp()
+    {
+        try {
+            $this->connection = new Connection('127.0.0.1', 8087);
+            $this->bucket     = new Bucket($this->connection, 'test');
+        } catch (Exception\RiakException $e) {
+            $this->markTestSkipped('Cannot connect to Riak.');
+        }
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -44,15 +54,5 @@ class RiakCacheTest extends CacheTest
     protected function _getCacheDriver()
     {
         return new RiakCache($this->bucket);
-    }
-
-    protected function setUp()
-    {
-        try {
-            $this->connection = new Connection('127.0.0.1', 8087);
-            $this->bucket     = new Bucket($this->connection, 'test');
-        } catch (Exception\RiakException $e) {
-            $this->markTestSkipped('Cannot connect to Riak.');
-        }
     }
 }

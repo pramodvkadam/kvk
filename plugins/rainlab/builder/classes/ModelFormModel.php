@@ -11,14 +11,36 @@ use ValidationException;
  */
 class ModelFormModel extends ModelYamlModel
 {
+    public $controls;
+
     protected static $fillable = [
         'fileName',
         'controls'
     ];
-    public $controls;
+
     protected $validationRules = [
         'fileName' => ['required', 'regex:/^[a-z0-9\.\-_]+$/i']
     ];
+
+    public function loadForm($path)
+    {
+        $this->fileName = $path;
+        
+        return parent::load($this->getFilePath());
+    }
+
+    public function fill(array $attributes)
+    {
+        if (!is_array($attributes['controls'])) {
+            $attributes['controls'] = json_decode($attributes['controls'], true);
+
+            if ($attributes['controls'] === null) {
+                throw new SystemException('Cannot decode controls JSON string.');
+            }
+        }
+
+        return parent::fill($attributes);
+    }
 
     public static function validateFileIsModelType($fileContentsArray)
     {
@@ -35,26 +57,6 @@ class ModelFormModel extends ModelYamlModel
         }
 
         return false;
-    }
-
-    public function loadForm($path)
-    {
-        $this->fileName = $path;
-
-        return parent::load($this->getFilePath());
-    }
-
-    public function fill(array $attributes)
-    {
-        if (!is_array($attributes['controls'])) {
-            $attributes['controls'] = json_decode($attributes['controls'], true);
-
-            if ($attributes['controls'] === null) {
-                throw new SystemException('Cannot decode controls JSON string.');
-            }
-        }
-
-        return parent::fill($attributes);
     }
 
     public function validate()

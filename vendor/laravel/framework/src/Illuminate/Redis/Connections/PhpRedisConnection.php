@@ -63,30 +63,6 @@ class PhpRedisConnection extends Connection
     }
 
     /**
-     * Apply prefix to the given key if necessary.
-     *
-     * @param  string  $key
-     * @return string
-     */
-    private function applyPrefix($key)
-    {
-        $prefix = (string) $this->client->getOption(Redis::OPT_PREFIX);
-
-        return $prefix.$key;
-    }
-
-    /**
-     * Execute a raw command.
-     *
-     * @param  array  $parameters
-     * @return mixed
-     */
-    public function executeRaw(array $parameters)
-    {
-        return $this->command('rawCommand', $parameters);
-    }
-
-    /**
      * Set the string value in argument as value of the key.
      *
      * @param  string  $key
@@ -386,6 +362,17 @@ class PhpRedisConnection extends Connection
     }
 
     /**
+     * Execute a raw command.
+     *
+     * @param  array  $parameters
+     * @return mixed
+     */
+    public function executeRaw(array $parameters)
+    {
+        return $this->command('rawCommand', $parameters);
+    }
+
+    /**
      * Disconnects from the Redis instance.
      *
      * @return void
@@ -393,6 +380,19 @@ class PhpRedisConnection extends Connection
     public function disconnect()
     {
         $this->client->close();
+    }
+
+    /**
+     * Apply prefix to the given key if necessary.
+     *
+     * @param  string  $key
+     * @return string
+     */
+    private function applyPrefix($key)
+    {
+        $prefix = (string) $this->client->getOption(Redis::OPT_PREFIX);
+
+        return $prefix.$key;
     }
 
     /**

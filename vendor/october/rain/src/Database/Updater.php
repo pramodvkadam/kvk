@@ -45,6 +45,32 @@ class Updater
     }
 
     /**
+     * Packs down a migration or seed file.
+     */
+    public function packDown($file)
+    {
+        $object = $this->resolve($file);
+
+        if ($object === null) {
+            return false;
+        }
+
+        $this->isValidScript($object);
+
+        Eloquent::unguard();
+
+        Db::transaction(function() use ($object) {
+            if ($object instanceof Updates\Migration) {
+                $object->down();
+            }
+        });
+
+        Eloquent::reguard();
+
+        return true;
+    }
+
+    /**
      * Resolve a migration instance from a file.
      * @param  string  $file
      * @return object
@@ -60,6 +86,24 @@ class Updater
         if ($class = $this->getClassFromFile($file)) {
             return new $class;
         }
+    }
+
+    /**
+     * Checks if the object is a valid update script.
+     */
+    protected function isValidScript($object)
+    {
+        if ($object instanceof Updates\Migration) {
+            return true;
+        }
+        elseif ($object instanceof Updates\Seeder) {
+            return true;
+        }
+
+        throw new Exception(sprintf(
+            'Database script [%s] must inherit October\Rain\Database\Updates\Migration or October\Rain\Database\Updates\Seeder classes',
+            get_class($object)
+        ));
     }
 
     /**
@@ -121,49 +165,5 @@ class Updater
         }
 
         return trim($namespace) . '\\' . trim($class);
-    }
-
-    /**
-     * Checks if the object is a valid update script.
-     */
-    protected function isValidScript($object)
-    {
-        if ($object instanceof Updates\Migration) {
-            return true;
-        }
-        elseif ($object instanceof Updates\Seeder) {
-            return true;
-        }
-
-        throw new Exception(sprintf(
-            'Database script [%s] must inherit October\Rain\Database\Updates\Migration or October\Rain\Database\Updates\Seeder classes',
-            get_class($object)
-        ));
-    }
-
-    /**
-     * Packs down a migration or seed file.
-     */
-    public function packDown($file)
-    {
-        $object = $this->resolve($file);
-
-        if ($object === null) {
-            return false;
-        }
-
-        $this->isValidScript($object);
-
-        Eloquent::unguard();
-
-        Db::transaction(function() use ($object) {
-            if ($object instanceof Updates\Migration) {
-                $object->down();
-            }
-        });
-
-        Eloquent::reguard();
-
-        return true;
     }
 }

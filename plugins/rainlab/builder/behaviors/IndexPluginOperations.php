@@ -60,19 +60,6 @@ class IndexPluginOperations extends IndexOperationsBehaviorBase
         }
     }
 
-    protected function loadOrCreateBaseModel($pluginCode, $options = [])
-    {
-        $model = new PluginBaseModel();
-
-        if (!$pluginCode) {
-            $model->initDefaults();
-            return $model;
-        }
-
-        $model->loadPlugin($pluginCode);
-        return $model;
-    }
-
     public function onPluginSetActive()
     {
         $pluginCode = Input::get('pluginCode');
@@ -87,5 +74,18 @@ class IndexPluginOperations extends IndexOperationsBehaviorBase
         $result['responseData'] = ['pluginCode'=>$pluginCode];
 
         return $result;
+    }
+
+    protected function loadOrCreateBaseModel($pluginCode, $options = [])
+    {
+        $model = new PluginBaseModel();
+
+        if (!$pluginCode) {
+            $model->initDefaults();
+            return $model;
+        }
+
+        $model->loadPlugin($pluginCode);
+        return $model;
     }
 }

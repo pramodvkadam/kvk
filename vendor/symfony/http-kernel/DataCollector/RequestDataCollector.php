@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\HttpKernel\DataCollector;
 
+use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,14 +30,6 @@ class RequestDataCollector extends DataCollector implements EventSubscriberInter
     public function __construct()
     {
         $this->controllers = new \SplObjectStorage();
-    }
-
-    public static function getSubscribedEvents()
-    {
-        return array(
-            KernelEvents::CONTROLLER => 'onKernelController',
-            KernelEvents::RESPONSE => 'onKernelResponse',
-        );
     }
 
     /**
@@ -136,85 +129,27 @@ class RequestDataCollector extends DataCollector implements EventSubscriberInter
             unset($this->controllers[$request]);
         }
 
-        if (null !== $session) {
-            if ($request->attributes->has('_redirected')) {
-                $this->data['redirect'] = $session->remove('sf_redirect');
-            }
+        if ($request->attributes->has('_redirected') && $redirectCookie = $request->cookies->get('sf_redirect')) {
+            $this->data['redirect'] = json_decode($redirectCookie, true);
 
-            if ($response->isRedirect()) {
-                $session->set('sf_redirect', array(
+            $response->headers->clearCookie('sf_redirect');
+        }
+
+        if ($response->isRedirect()) {
+            $response->headers->setCookie(new Cookie(
+                'sf_redirect',
+                json_encode(array(
                     'token' => $response->headers->get('x-debug-token'),
                     'route' => $request->attributes->get('_route', 'n/a'),
                     'method' => $request->getMethod(),
                     'controller' => $this->parseController($request->attributes->get('_controller')),
                     'status_code' => $statusCode,
                     'status_text' => Response::$statusTexts[(int) $statusCode],
-                ));
-            }
+                ))
+            ));
         }
 
         $this->data['identifier'] = $this->data['route'] ?: (is_array($this->data['controller']) ? $this->data['controller']['class'].'::'.$this->data['controller']['method'].'()' : $this->data['controller']);
-    }
-
-    /**
-     * Parse a controller.
-     *
-     * @param mixed $controller The controller to parse
-     *
-     * @return array|string An array of controller data or a simple string
-     */
-    protected function parseController($controller)
-    {
-        if (is_string($controller) && false !== strpos($controller, '::')) {
-            $controller = explode('::', $controller);
-        }
-
-        if (is_array($controller)) {
-            try {
-                $r = new \ReflectionMethod($controller[0], $controller[1]);
-
-                return array(
-                    'class' => is_object($controller[0]) ? get_class($controller[0]) : $controller[0],
-                    'method' => $controller[1],
-                    'file' => $r->getFileName(),
-                    'line' => $r->getStartLine(),
-                );
-            } catch (\ReflectionException $e) {
-                if (is_callable($controller)) {
-                    // using __call or  __callStatic
-                    return array(
-                        'class' => is_object($controller[0]) ? get_class($controller[0]) : $controller[0],
-                        'method' => $controller[1],
-                        'file' => 'n/a',
-                        'line' => 'n/a',
-                    );
-                }
-            }
-        }
-
-        if ($controller instanceof \Closure) {
-            $r = new \ReflectionFunction($controller);
-
-            return array(
-                'class' => $r->getName(),
-                'method' => null,
-                'file' => $r->getFileName(),
-                'line' => $r->getStartLine(),
-            );
-        }
-
-        if (is_object($controller)) {
-            $r = new \ReflectionClass($controller);
-
-            return array(
-                'class' => $r->getName(),
-                'method' => null,
-                'file' => $r->getFileName(),
-                'line' => $r->getStartLine(),
-            );
-        }
-
-        return is_string($controller) ? $controller : 'n/a';
     }
 
     public function lateCollect()
@@ -381,13 +316,21 @@ class RequestDataCollector extends DataCollector implements EventSubscriberInter
 
     public function onKernelResponse(FilterResponseEvent $event)
     {
-        if (!$event->isMasterRequest() || !$event->getRequest()->hasSession()) {
+        if (!$event->isMasterRequest()) {
             return;
         }
 
-        if ($event->getRequest()->getSession()->has('sf_redirect')) {
+        if ($event->getRequest()->cookies->has('sf_redirect')) {
             $event->getRequest()->attributes->set('_redirected', true);
         }
+    }
+
+    public static function getSubscribedEvents()
+    {
+        return array(
+            KernelEvents::CONTROLLER => 'onKernelController',
+            KernelEvents::RESPONSE => 'onKernelResponse',
+        );
     }
 
     /**
@@ -396,5 +339,66 @@ class RequestDataCollector extends DataCollector implements EventSubscriberInter
     public function getName()
     {
         return 'request';
+    }
+
+    /**
+     * Parse a controller.
+     *
+     * @param mixed $controller The controller to parse
+     *
+     * @return array|string An array of controller data or a simple string
+     */
+    protected function parseController($controller)
+    {
+        if (is_string($controller) && false !== strpos($controller, '::')) {
+            $controller = explode('::', $controller);
+        }
+
+        if (is_array($controller)) {
+            try {
+                $r = new \ReflectionMethod($controller[0], $controller[1]);
+
+                return array(
+                    'class' => is_object($controller[0]) ? get_class($controller[0]) : $controller[0],
+                    'method' => $controller[1],
+                    'file' => $r->getFileName(),
+                    'line' => $r->getStartLine(),
+                );
+            } catch (\ReflectionException $e) {
+                if (is_callable($controller)) {
+                    // using __call or  __callStatic
+                    return array(
+                        'class' => is_object($controller[0]) ? get_class($controller[0]) : $controller[0],
+                        'method' => $controller[1],
+                        'file' => 'n/a',
+                        'line' => 'n/a',
+                    );
+                }
+            }
+        }
+
+        if ($controller instanceof \Closure) {
+            $r = new \ReflectionFunction($controller);
+
+            return array(
+                'class' => $r->getName(),
+                'method' => null,
+                'file' => $r->getFileName(),
+                'line' => $r->getStartLine(),
+            );
+        }
+
+        if (is_object($controller)) {
+            $r = new \ReflectionClass($controller);
+
+            return array(
+                'class' => $r->getName(),
+                'method' => null,
+                'file' => $r->getFileName(),
+                'line' => $r->getStartLine(),
+            );
+        }
+
+        return is_string($controller) ? $controller : 'n/a';
     }
 }

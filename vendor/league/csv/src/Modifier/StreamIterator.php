@@ -4,7 +4,7 @@
 *
 * @license http://opensource.org/licenses/MIT
 * @link https://github.com/thephpleague/csv/
-* @version 8.2.2
+* @version 8.2.3
 * @package League.csv
 *
 * For the full copyright and license information, please view the LICENSE
@@ -172,29 +172,6 @@ class StreamIterator implements Iterator
     }
 
     /**
-     * Get line number
-     *
-     * @return int
-     */
-    public function key()
-    {
-        return $this->current_line_number;
-    }
-
-    /**
-     * Rewind the file to the first line
-     */
-    public function rewind()
-    {
-        rewind($this->stream);
-        $this->current_line_number = 0;
-        $this->current_line = false;
-        if ($this->flags & SplFileObject::READ_AHEAD) {
-            $this->current();
-        }
-    }
-
-    /**
      * Retrieves the current line of the file.
      *
      * @return mixed
@@ -245,6 +222,38 @@ class StreamIterator implements Iterator
     }
 
     /**
+     * Get line number
+     *
+     * @return int
+     */
+    public function key()
+    {
+        return $this->current_line_number;
+    }
+
+    /**
+     * Read next line
+     */
+    public function next()
+    {
+        $this->current_line = false;
+        $this->current_line_number++;
+    }
+
+    /**
+     * Rewind the file to the first line
+     */
+    public function rewind()
+    {
+        rewind($this->stream);
+        $this->current_line_number = 0;
+        $this->current_line = false;
+        if ($this->flags & SplFileObject::READ_AHEAD) {
+            $this->current();
+        }
+    }
+
+    /**
      * Not at EOF
      *
      * @return bool
@@ -271,15 +280,6 @@ class StreamIterator implements Iterator
             $this->next();
         }
         return $this->current_line = $this->getCurrentLine();
-    }
-
-    /**
-     * Read next line
-     */
-    public function next()
-    {
-        $this->current_line = false;
-        $this->current_line_number++;
     }
 
     /**

@@ -31,6 +31,22 @@ class ControllerFileParser
         }
     }
 
+    public function getStringPropertyValue($property)
+    {
+        $this->stream->reset();
+
+        while ($this->stream->forward()) {
+            $tokenCode = $this->stream->getCurrentCode();
+
+            if ($tokenCode == T_PUBLIC) {
+                $value = $this->extractPropertyValue($property);
+                if ($value !== false) {
+                    return $value;
+                }
+            }
+        }
+    }
+
     protected function extractBehaviors()
     {
         if ($this->stream->getNextExpected(T_WHITESPACE) === null) {
@@ -51,7 +67,7 @@ class ControllerFileParser
 
         if ($this->stream->getCurrentText() === 'array') {
             // For the array syntax 'array(' - forward to the next
-            // character after the opening bracket
+            // character after the opening bracket 
 
             if ($this->stream->getNextExpectedTerminated(['(', T_WHITESPACE], [T_CONSTANT_ENCAPSED_STRING]) === null) {
                 return false;
@@ -71,28 +87,6 @@ class ControllerFileParser
         }
 
         return $result;
-    }
-
-    protected function normalizeBehaviorClassName($className)
-    {
-        $className = str_replace('.', '\\', trim($className));
-        return ltrim($className, '\\');
-    }
-
-    public function getStringPropertyValue($property)
-    {
-        $this->stream->reset();
-
-        while ($this->stream->forward()) {
-            $tokenCode = $this->stream->getCurrentCode();
-
-            if ($tokenCode == T_PUBLIC) {
-                $value = $this->extractPropertyValue($property);
-                if ($value !== false) {
-                    return $value;
-                }
-            }
-        }
     }
 
     protected function extractPropertyValue($property)
@@ -121,5 +115,11 @@ class ControllerFileParser
         }
 
         return $value;
+    }
+
+    protected function normalizeBehaviorClassName($className)
+    {
+        $className = str_replace('.', '\\', trim($className));
+        return ltrim($className, '\\');
     }
 }

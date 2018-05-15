@@ -39,6 +39,13 @@ abstract class Lock
     /**
      * Attempt to acquire the lock.
      *
+     * @return bool
+     */
+    abstract public function acquire();
+
+    /**
+     * Attempt to acquire the lock.
+     *
      * @param  callable|null  $callback
      * @return bool
      */
@@ -54,13 +61,6 @@ abstract class Lock
 
         return $result;
     }
-
-    /**
-     * Attempt to acquire the lock.
-     *
-     * @return bool
-     */
-    abstract public function acquire();
 
     /**
      * Attempt to acquire the lock for the given number of seconds.

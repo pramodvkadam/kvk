@@ -144,31 +144,6 @@ class CodeEditor extends FormWidgetBase
     }
 
     /**
-     * Looks at the user preferences and overrides any set values.
-     * @return void
-     */
-    protected function applyEditorPreferences()
-    {
-        // Load the editor system settings
-        $preferences = BackendPreference::instance();
-
-        $this->fontSize = $preferences->editor_font_size;
-        $this->wordWrap = $preferences->editor_word_wrap;
-        $this->codeFolding = $preferences->editor_code_folding;
-        $this->autoClosing = $preferences->editor_auto_closing;
-        $this->tabSize = $preferences->editor_tab_size;
-        $this->theme = $preferences->editor_theme;
-        $this->showInvisibles = $preferences->editor_show_invisibles;
-        $this->highlightActiveLine = $preferences->editor_highlight_active_line;
-        $this->useSoftTabs = !$preferences->editor_use_hard_tabs;
-        $this->showGutter = $preferences->editor_show_gutter;
-        $this->autocompletion = $preferences->editor_autocompletion;
-        $this->enableSnippets = $preferences->editor_enable_snippets;
-        $this->displayIndentGuides = $preferences->editor_display_indent_guides;
-        $this->showPrintMargin = $preferences->editor_show_print_margin;
-    }
-
-    /**
      * @inheritDoc
      */
     public function render()
@@ -214,6 +189,31 @@ class CodeEditor extends FormWidgetBase
     {
         $this->addCss('css/codeeditor.css', 'core');
         $this->addJs('js/build-min.js', 'core');
+    }
+
+    /**
+     * Looks at the user preferences and overrides any set values.
+     * @return void
+     */
+    protected function applyEditorPreferences()
+    {
+        // Load the editor system settings
+        $preferences = BackendPreference::instance();
+
+        $this->fontSize = $preferences->editor_font_size;
+        $this->wordWrap = $preferences->editor_word_wrap;
+        $this->codeFolding = $preferences->editor_code_folding;
+        $this->autoClosing = $preferences->editor_auto_closing;
+        $this->tabSize = $preferences->editor_tab_size;
+        $this->theme = $preferences->editor_theme;
+        $this->showInvisibles = $preferences->editor_show_invisibles;
+        $this->highlightActiveLine = $preferences->editor_highlight_active_line;
+        $this->useSoftTabs = !$preferences->editor_use_hard_tabs;
+        $this->showGutter = $preferences->editor_show_gutter;
+        $this->autocompletion = $preferences->editor_autocompletion;
+        $this->enableSnippets = $preferences->editor_enable_snippets;
+        $this->displayIndentGuides = $preferences->editor_display_indent_guides;
+        $this->showPrintMargin = $preferences->editor_show_print_margin;
     }
 
 }

@@ -64,16 +64,6 @@ class DropSchemaSqlCollector extends AbstractVisitor
     }
 
     /**
-     * @return void
-     */
-    public function clearQueries()
-    {
-        $this->constraints = new \SplObjectStorage();
-        $this->sequences = new \SplObjectStorage();
-        $this->tables = new \SplObjectStorage();
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function acceptTable(Table $table)
@@ -99,6 +89,16 @@ class DropSchemaSqlCollector extends AbstractVisitor
     public function acceptSequence(Sequence $sequence)
     {
         $this->sequences->attach($sequence);
+    }
+
+    /**
+     * @return void
+     */
+    public function clearQueries()
+    {
+        $this->constraints = new \SplObjectStorage();
+        $this->sequences = new \SplObjectStorage();
+        $this->tables = new \SplObjectStorage();
     }
 
     /**

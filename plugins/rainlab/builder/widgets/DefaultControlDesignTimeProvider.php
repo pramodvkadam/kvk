@@ -56,14 +56,6 @@ class DefaultControlDesignTimeProvider extends ControlDesignTimeProviderBase
         ]);
     }
 
-    protected function renderUnknownControl($type, $properties)
-    {
-        return $this->makePartial('control-unknowncontrol', [
-            'properties'=>$properties,
-            'type'=>$type
-        ]);
-    }
-
     /**
      * Renders control static body.
      * The control static body is never updated with AJAX during the form editing.
@@ -114,5 +106,13 @@ class DefaultControlDesignTimeProvider extends ControlDesignTimeProviderBase
         }
 
         return null;
+    }
+
+    protected function renderUnknownControl($type, $properties)
+    {
+        return $this->makePartial('control-unknowncontrol', [
+            'properties'=>$properties,
+            'type'=>$type
+        ]);
     }
 }

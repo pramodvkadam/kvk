@@ -73,6 +73,18 @@ class AttachOne extends MorphOneBase
     }
 
     /**
+     * Helper for getting this relationship validation value.
+     */
+    public function getValidationValue()
+    {
+        if ($value = $this->getSimpleValueInternal()) {
+            return $this->makeValidationFile($value);
+        }
+
+        return null;
+    }
+
+    /**
      * Internal method used by `getSimpleValue` and `getValidationValue`
      */
     protected function getSimpleValueInternal()
@@ -88,17 +100,5 @@ class AttachOne extends MorphOneBase
         }
 
         return $value;
-    }
-
-    /**
-     * Helper for getting this relationship validation value.
-     */
-    public function getValidationValue()
-    {
-        if ($value = $this->getSimpleValueInternal()) {
-            return $this->makeValidationFile($value);
-        }
-
-        return null;
     }
 }

@@ -2,21 +2,34 @@ columns:
     fullname:
         label: fullname
         type: text
+        searchable: true
+        sortable: true
     deleted_at:
         label: deleted_at
         type: datetime
+        searchable: false
+        sortable: true
     created_at:
         label: created_at
         type: datetime
+        searchable: false
+        sortable: true
     designation:
         label: designation
         type: text
+        searchable: true
+        sortable: true
     education:
         label: education
         type: text
+        searchable: true
+        sortable: true
     mobile:
         label: mobile
         type: text
+        searchable: true
+        sortable: true
     image_url:
         label: image_url
         type: text
+        sortable: true

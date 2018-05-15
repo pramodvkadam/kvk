@@ -1,0 +1,57 @@
+title = "gallary"
+url = "/gallary"
+layout = "default"
+description = "Gallary"
+meta_title = "Photo gallary of Krishi Vigyan Kendra"
+is_hidden = 0
+
+[galleryId]
+idGallery = 1
+lang = "Gallery"
+jqueryinject = "yes"
+thumbnail = "true"
+caption = "true"
+desc = "true"
+counter = "true"
+controls = "true"
+preload = 1
+mode = "lg-slide"
+speed = 600
+loop = "true"
+auto = "false"
+pause = 2000
+escKey = "true"
+height = 70
+width = 100
+resizer = "auto"
+
+[gallerySlug]
+slug = "{{ name }}"
+lang = "{{ Gallary }}"
+jqueryinject = "yes"
+thumbnail = "true"
+caption = "true"
+desc = "true"
+counter = "true"
+controls = "true"
+preload = 1
+mode = "lg-slide"
+speed = 600
+loop = "true"
+auto = "false"
+pause = 2000
+escKey = "true"
+height = 70
+width = 100
+resizer = "auto"
+==
+<?php
+function onStart()
+{
+        $this->addCss('assets/css/default.css');
+    $this->addCss('assets/css/component.css');
+    $this->addJs('assets/js/modernizr.custom.js');
+}
+?>
+==
+{% component 'galleryId' %}

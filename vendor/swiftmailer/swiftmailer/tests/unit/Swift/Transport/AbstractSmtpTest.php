@@ -2,6 +2,8 @@
 
 abstract class Swift_Transport_AbstractSmtpTest extends \SwiftMailerTestCase
 {
+    abstract protected function getTransport($buf);
+
     public function testStartAccepts220ServiceGreeting()
     {
         /* -- RFC 2821, 4.2.
@@ -32,76 +34,6 @@ abstract class Swift_Transport_AbstractSmtpTest extends \SwiftMailerTestCase
         } catch (Exception $e) {
             $this->fail('220 is a valid SMTP greeting and should be accepted');
         }
-    }
-
-    protected function getBuffer()
-    {
-        return $this->getMockery('Swift_Transport_IoBuffer')->shouldIgnoreMissing();
-    }
-
-    abstract protected function getTransport($buf);
-
-    protected function finishBuffer($buf)
-    {
-        $buf->shouldReceive('readLine')
-            ->zeroOrMoreTimes()
-            ->with(0)
-            ->andReturn('220 server.com foo'."\r\n");
-        $buf->shouldReceive('write')
-            ->zeroOrMoreTimes()
-            ->with('~^(EH|HE)LO .*?\r\n$~D')
-            ->andReturn($x = uniqid('', true));
-        $buf->shouldReceive('readLine')
-            ->zeroOrMoreTimes()
-            ->with($x)
-            ->andReturn('250 ServerName'."\r\n");
-        $buf->shouldReceive('write')
-            ->zeroOrMoreTimes()
-            ->with('~^MAIL FROM:<.*?>\r\n$~D')
-            ->andReturn($x = uniqid('', true));
-        $buf->shouldReceive('readLine')
-            ->zeroOrMoreTimes()
-            ->with($x)
-            ->andReturn("250 OK\r\n");
-        $buf->shouldReceive('write')
-            ->zeroOrMoreTimes()
-            ->with('~^RCPT TO:<.*?>\r\n$~D')
-            ->andReturn($x = uniqid('', true));
-        $buf->shouldReceive('readLine')
-            ->zeroOrMoreTimes()
-            ->with($x)
-            ->andReturn("250 OK\r\n");
-        $buf->shouldReceive('write')
-            ->zeroOrMoreTimes()
-            ->with("DATA\r\n")
-            ->andReturn($x = uniqid('', true));
-        $buf->shouldReceive('readLine')
-            ->zeroOrMoreTimes()
-            ->with($x)
-            ->andReturn("354 OK\r\n");
-        $buf->shouldReceive('write')
-            ->zeroOrMoreTimes()
-            ->with("\r\n.\r\n")
-            ->andReturn($x = uniqid('', true));
-        $buf->shouldReceive('readLine')
-            ->zeroOrMoreTimes()
-            ->with($x)
-            ->andReturn("250 OK\r\n");
-        $buf->shouldReceive('write')
-            ->zeroOrMoreTimes()
-            ->with("RSET\r\n")
-            ->andReturn($x = uniqid('', true));
-        $buf->shouldReceive('readLine')
-            ->zeroOrMoreTimes()
-            ->with($x)
-            ->andReturn("250 OK\r\n");
-
-        $buf->shouldReceive('write')
-            ->zeroOrMoreTimes()
-            ->andReturn(false);
-        $buf->shouldReceive('readLine')
-            ->zeroOrMoreTimes()
-            ->andReturn(false);
     }
 
     public function testBadGreetingCausesException()
@@ -316,11 +248,6 @@ abstract class Swift_Transport_AbstractSmtpTest extends \SwiftMailerTestCase
         } catch (Exception $e) {
             $this->fail('MAIL FROM should accept a 250 response');
         }
-    }
-
-    protected function createMessage()
-    {
-        return $this->getMockery('Swift_Mime_SimpleMessage')->shouldIgnoreMissing();
     }
 
     public function testInvalidResponseCodeFromMailCausesException()
@@ -1312,5 +1239,78 @@ abstract class Swift_Transport_AbstractSmtpTest extends \SwiftMailerTestCase
 
         $smtp->setLocalDomain('[IPv6:fd00::]');
         $this->assertEquals('[IPv6:fd00::]', $smtp->getLocalDomain());
+    }
+
+    protected function getBuffer()
+    {
+        return $this->getMockery('Swift_Transport_IoBuffer')->shouldIgnoreMissing();
+    }
+
+    protected function createMessage()
+    {
+        return $this->getMockery('Swift_Mime_SimpleMessage')->shouldIgnoreMissing();
+    }
+
+    protected function finishBuffer($buf)
+    {
+        $buf->shouldReceive('readLine')
+            ->zeroOrMoreTimes()
+            ->with(0)
+            ->andReturn('220 server.com foo'."\r\n");
+        $buf->shouldReceive('write')
+            ->zeroOrMoreTimes()
+            ->with('~^(EH|HE)LO .*?\r\n$~D')
+            ->andReturn($x = uniqid('', true));
+        $buf->shouldReceive('readLine')
+            ->zeroOrMoreTimes()
+            ->with($x)
+            ->andReturn('250 ServerName'."\r\n");
+        $buf->shouldReceive('write')
+            ->zeroOrMoreTimes()
+            ->with('~^MAIL FROM:<.*?>\r\n$~D')
+            ->andReturn($x = uniqid('', true));
+        $buf->shouldReceive('readLine')
+            ->zeroOrMoreTimes()
+            ->with($x)
+            ->andReturn("250 OK\r\n");
+        $buf->shouldReceive('write')
+            ->zeroOrMoreTimes()
+            ->with('~^RCPT TO:<.*?>\r\n$~D')
+            ->andReturn($x = uniqid('', true));
+        $buf->shouldReceive('readLine')
+            ->zeroOrMoreTimes()
+            ->with($x)
+            ->andReturn("250 OK\r\n");
+        $buf->shouldReceive('write')
+            ->zeroOrMoreTimes()
+            ->with("DATA\r\n")
+            ->andReturn($x = uniqid('', true));
+        $buf->shouldReceive('readLine')
+            ->zeroOrMoreTimes()
+            ->with($x)
+            ->andReturn("354 OK\r\n");
+        $buf->shouldReceive('write')
+            ->zeroOrMoreTimes()
+            ->with("\r\n.\r\n")
+            ->andReturn($x = uniqid('', true));
+        $buf->shouldReceive('readLine')
+            ->zeroOrMoreTimes()
+            ->with($x)
+            ->andReturn("250 OK\r\n");
+        $buf->shouldReceive('write')
+            ->zeroOrMoreTimes()
+            ->with("RSET\r\n")
+            ->andReturn($x = uniqid('', true));
+        $buf->shouldReceive('readLine')
+            ->zeroOrMoreTimes()
+            ->with($x)
+            ->andReturn("250 OK\r\n");
+
+        $buf->shouldReceive('write')
+            ->zeroOrMoreTimes()
+            ->andReturn(false);
+        $buf->shouldReceive('readLine')
+            ->zeroOrMoreTimes()
+            ->andReturn(false);
     }
 }

@@ -100,6 +100,17 @@ class PendingMail
     }
 
     /**
+     * Send a mailable message immediately.
+     *
+     * @param  \Illuminate\Mail\Mailable  $mailable
+     * @return mixed
+     */
+    public function sendNow(Mailable $mailable)
+    {
+        return $this->mailer->send($this->fill($mailable));
+    }
+
+    /**
      * Push the given mailable onto the queue.
      *
      * @param  \Illuminate\Mail\Mailable  $mailable
@@ -117,6 +128,18 @@ class PendingMail
     }
 
     /**
+     * Deliver the queued message after the given delay.
+     *
+     * @param  \DateTimeInterface|\DateInterval|int  $delay
+     * @param  \Illuminate\Mail\Mailable  $mailable
+     * @return mixed
+     */
+    public function later($delay, Mailable $mailable)
+    {
+        return $this->mailer->later($delay, $this->fill($mailable));
+    }
+
+    /**
      * Populate the mailable with the addresses.
      *
      * @param  \Illuminate\Mail\Mailable  $mailable
@@ -127,28 +150,5 @@ class PendingMail
         return $mailable->to($this->to)
                         ->cc($this->cc)
                         ->bcc($this->bcc);
-    }
-
-    /**
-     * Send a mailable message immediately.
-     *
-     * @param  \Illuminate\Mail\Mailable  $mailable
-     * @return mixed
-     */
-    public function sendNow(Mailable $mailable)
-    {
-        return $this->mailer->send($this->fill($mailable));
-    }
-
-    /**
-     * Deliver the queued message after the given delay.
-     *
-     * @param  \DateTimeInterface|\DateInterval|int  $delay
-     * @param  \Illuminate\Mail\Mailable  $mailable
-     * @return mixed
-     */
-    public function later($delay, Mailable $mailable)
-    {
-        return $this->mailer->later($delay, $this->fill($mailable));
     }
 }

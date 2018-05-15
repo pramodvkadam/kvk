@@ -67,14 +67,6 @@ class SchemaConfig
     }
 
     /**
-     * @return integer
-     */
-    public function getMaxIdentifierLength()
-    {
-        return $this->maxIdentifierLength;
-    }
-
-    /**
      * @param integer $length
      *
      * @return void
@@ -82,6 +74,14 @@ class SchemaConfig
     public function setMaxIdentifierLength($length)
     {
         $this->maxIdentifierLength = (int) $length;
+    }
+
+    /**
+     * @return integer
+     */
+    public function getMaxIdentifierLength()
+    {
+        return $this->maxIdentifierLength;
     }
 
     /**

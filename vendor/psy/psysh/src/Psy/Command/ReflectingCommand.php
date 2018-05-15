@@ -47,21 +47,6 @@ abstract class ReflectingCommand extends Command implements ContextAware
     }
 
     /**
-     * Get a Reflector and documentation for a function, class or instance, constant, method or property.
-     *
-     * @param string $valueName Function, class, variable, constant, method or property name
-     * @param bool   $classOnly True if the name should only refer to a class, function or instance
-     *
-     * @return array (value, Reflector)
-     */
-    protected function getTargetAndReflector($valueName, $classOnly = false)
-    {
-        list($value, $member, $kind) = $this->getTarget($valueName, $classOnly);
-
-        return array($value, Mirror::get($value, $member, $kind));
-    }
-
-    /**
      * Get the target for a value.
      *
      * @throws \InvalidArgumentException when the value specified can't be resolved
@@ -80,10 +65,9 @@ abstract class ReflectingCommand extends Command implements ContextAware
                 // @todo maybe do something interesting with these at some point?
                 if (array_key_exists($matches[1], $GLOBALS)) {
                     throw new RuntimeException('Unable to inspect a non-object');
-                } else {
-                    throw new RuntimeException('Unknown target: ' . $valueName);
                 }
 
+                throw new RuntimeException('Unknown target: ' . $valueName);
             case preg_match(self::CLASS_OR_FUNC, $valueName, $matches):
                 return array($this->resolveName($matches[0], true), null, 0);
 
@@ -136,6 +120,21 @@ abstract class ReflectingCommand extends Command implements ContextAware
         }
 
         return $name;
+    }
+
+    /**
+     * Get a Reflector and documentation for a function, class or instance, constant, method or property.
+     *
+     * @param string $valueName Function, class, variable, constant, method or property name
+     * @param bool   $classOnly True if the name should only refer to a class, function or instance
+     *
+     * @return array (value, Reflector)
+     */
+    protected function getTargetAndReflector($valueName, $classOnly = false)
+    {
+        list($value, $member, $kind) = $this->getTarget($valueName, $classOnly);
+
+        return array($value, Mirror::get($value, $member, $kind));
     }
 
     /**

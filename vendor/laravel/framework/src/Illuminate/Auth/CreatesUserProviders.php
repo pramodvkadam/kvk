@@ -59,16 +59,6 @@ trait CreatesUserProviders
     }
 
     /**
-     * Get the default user provider name.
-     *
-     * @return string
-     */
-    public function getDefaultUserProvider()
-    {
-        return $this->app['config']['auth.defaults.provider'];
-    }
-
-    /**
      * Create an instance of the database user provider.
      *
      * @param  array  $config
@@ -90,5 +80,15 @@ trait CreatesUserProviders
     protected function createEloquentProvider($config)
     {
         return new EloquentUserProvider($this->app['hash'], $config['model']);
+    }
+
+    /**
+     * Get the default user provider name.
+     *
+     * @return string
+     */
+    public function getDefaultUserProvider()
+    {
+        return $this->app['config']['auth.defaults.provider'];
     }
 }

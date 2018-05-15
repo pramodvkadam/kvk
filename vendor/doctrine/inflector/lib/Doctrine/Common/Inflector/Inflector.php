@@ -261,18 +261,6 @@ class Inflector
     }
 
     /**
-     * Camelizes a word. This uses the classify() method and turns the first character to lowercase.
-     *
-     * @param string $word The word to camelize.
-     *
-     * @return string The camelized word.
-     */
-    public static function camelize($word)
-    {
-        return lcfirst(self::classify($word));
-    }
-
-    /**
      * Converts a word into the format for a Doctrine class name. Converts 'table_name' to 'TableName'.
      *
      * @param string $word The word to classify.
@@ -282,6 +270,18 @@ class Inflector
     public static function classify($word)
     {
         return str_replace(' ', '', ucwords(strtr($word, '_-', '  ')));
+    }
+
+    /**
+     * Camelizes a word. This uses the classify() method and turns the first character to lowercase.
+     *
+     * @param string $word The word to camelize.
+     *
+     * @return string The camelized word.
+     */
+    public static function camelize($word)
+    {
+        return lcfirst(self::classify($word));
     }
 
     /**

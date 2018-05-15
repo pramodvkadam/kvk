@@ -47,20 +47,6 @@ class DB2SchemaManager extends AbstractSchemaManager
     /**
      * {@inheritdoc}
      */
-    protected function _getPortableTablesList($tables)
-    {
-        $tableNames = array();
-        foreach ($tables as $tableRow) {
-            $tableRow = array_change_key_case($tableRow, \CASE_LOWER);
-            $tableNames[] = $tableRow['name'];
-        }
-
-        return $tableNames;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     protected function _getPortableTableColumnDefinition($tableColumn)
     {
         $tableColumn = array_change_key_case($tableColumn, \CASE_LOWER);
@@ -125,6 +111,20 @@ class DB2SchemaManager extends AbstractSchemaManager
         }
 
         return new Column($tableColumn['colname'], \Doctrine\DBAL\Types\Type::getType($type), $options);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function _getPortableTablesList($tables)
+    {
+        $tableNames = array();
+        foreach ($tables as $tableRow) {
+            $tableRow = array_change_key_case($tableRow, \CASE_LOWER);
+            $tableNames[] = $tableRow['name'];
+        }
+
+        return $tableNames;
     }
 
     /**

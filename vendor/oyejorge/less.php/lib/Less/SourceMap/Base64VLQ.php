@@ -77,6 +77,34 @@ class Less_SourceMap_Base64VLQ {
 	}
 
 	/**
+	 * Convert from a two-complement value to a value where the sign bit is
+	 * is placed in the least significant bit.	For example, as decimals:
+	 *	 1 becomes 2 (10 binary), -1 becomes 3 (11 binary)
+	 *	 2 becomes 4 (100 binary), -2 becomes 5 (101 binary)
+	 * We generate the value for 32 bit machines, hence -2147483648 becomes 1, not 4294967297,
+	 * even on a 64 bit machine.
+	 * @param string $aValue
+	 */
+	public function toVLQSigned($aValue){
+		return 0xffffffff & ($aValue < 0 ? ((-$aValue) << 1) + 1 : ($aValue << 1) + 0);
+	}
+
+	/**
+	 * Convert to a two-complement value from a value where the sign bit is
+	 * is placed in the least significant bit. For example, as decimals:
+	 *	 2 (10 binary) becomes 1, 3 (11 binary) becomes -1
+	 *	 4 (100 binary) becomes 2, 5 (101 binary) becomes -2
+	 * We assume that the value was generated with a 32 bit machine in mind.
+	 * Hence
+	 *	 1 becomes -2147483648
+	 * even on a 64 bit machine.
+	 * @param integer $aValue
+	 */
+	public function fromVLQSigned($aValue){
+		return $aValue & 1 ? $this->zeroFill(~$aValue + 2, 1) | (-1 - 0x7fffffff) : $this->zeroFill($aValue, 1);
+	}
+
+	/**
 	 * Return the base 64 VLQ encoded value.
 	 *
 	 * @param string $aValue The value to encode
@@ -99,16 +127,22 @@ class Less_SourceMap_Base64VLQ {
 	}
 
 	/**
-	 * Convert from a two-complement value to a value where the sign bit is
-	 * is placed in the least significant bit.	For example, as decimals:
-	 *	 1 becomes 2 (10 binary), -1 becomes 3 (11 binary)
-	 *	 2 becomes 4 (100 binary), -2 becomes 5 (101 binary)
-	 * We generate the value for 32 bit machines, hence -2147483648 becomes 1, not 4294967297,
-	 * even on a 64 bit machine.
-	 * @param string $aValue
+	 * Return the value decoded from base 64 VLQ.
+	 *
+	 * @param string $encoded The encoded value to decode
+	 * @return integer The decoded value
 	 */
-	public function toVLQSigned($aValue){
-		return 0xffffffff & ($aValue < 0 ? ((-$aValue) << 1) + 1 : ($aValue << 1) + 0);
+	public function decode($encoded){
+		$vlq = 0;
+		$i = 0;
+		do
+		{
+			$digit = $this->base64Decode($encoded[$i]);
+			$vlq |= ($digit & $this->mask) << ($i * $this->shift);
+			$i++;
+		} while($digit & $this->continuationBit);
+
+		return $this->fromVLQSigned($vlq);
 	}
 
 	/**
@@ -137,25 +171,6 @@ class Less_SourceMap_Base64VLQ {
 	}
 
 	/**
-	 * Return the value decoded from base 64 VLQ.
-	 *
-	 * @param string $encoded The encoded value to decode
-	 * @return integer The decoded value
-	 */
-	public function decode($encoded){
-		$vlq = 0;
-		$i = 0;
-		do
-		{
-			$digit = $this->base64Decode($encoded[$i]);
-			$vlq |= ($digit & $this->mask) << ($i * $this->shift);
-			$i++;
-		} while($digit & $this->continuationBit);
-
-		return $this->fromVLQSigned($vlq);
-	}
-
-	/**
 	 * Decode single 6-bit digit from base64
 	 *
 	 * @param string $char
@@ -167,21 +182,6 @@ class Less_SourceMap_Base64VLQ {
 			throw new Exception(sprintf('Invalid base 64 digit "%s" given.', $char));
 		}
 		return $this->charToIntMap[$char];
-	}
-
-	/**
-	 * Convert to a two-complement value from a value where the sign bit is
-	 * is placed in the least significant bit. For example, as decimals:
-	 *	 2 (10 binary) becomes 1, 3 (11 binary) becomes -1
-	 *	 4 (100 binary) becomes 2, 5 (101 binary) becomes -2
-	 * We assume that the value was generated with a 32 bit machine in mind.
-	 * Hence
-	 *	 1 becomes -2147483648
-	 * even on a 64 bit machine.
-	 * @param integer $aValue
-	 */
-	public function fromVLQSigned($aValue){
-		return $aValue & 1 ? $this->zeroFill(~$aValue + 2, 1) | (-1 - 0x7fffffff) : $this->zeroFill($aValue, 1);
 	}
 
 }

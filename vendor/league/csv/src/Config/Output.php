@@ -4,7 +4,7 @@
 *
 * @license http://opensource.org/licenses/MIT
 * @link https://github.com/thephpleague/csv/
-* @version 8.2.2
+* @version 8.2.3
 * @package League.csv
 *
 * For the full copyright and license information, please view the LICENSE
@@ -50,46 +50,6 @@ trait Output
     /**
      * Sets the CSV encoding charset
      *
-     * DEPRECATION WARNING! This method will be removed in the next major point release
-     *
-     * @deprecated deprecated since version 8.1
-     *
-     * @param string $str
-     *
-     * @return static
-     */
-    public function setEncodingFrom($str)
-    {
-        return $this->setInputEncoding($str);
-    }
-
-    /**
-     * Gets the source CSV encoding charset
-     *
-     * DEPRECATION WARNING! This method will be removed in the next major point release
-     *
-     * @deprecated deprecated since version 8.1
-     *
-     * @return string
-     */
-    public function getEncodingFrom()
-    {
-        return $this->getInputEncoding();
-    }
-
-    /**
-     * Gets the source CSV encoding charset
-     *
-     * @return string
-     */
-    public function getInputEncoding()
-    {
-        return $this->input_encoding;
-    }
-
-    /**
-     * Sets the CSV encoding charset
-     *
      * @param string $str
      *
      * @return static
@@ -107,13 +67,43 @@ trait Output
     }
 
     /**
-     * Returns the BOM sequence in use on Output methods
+     * Sets the CSV encoding charset
+     *
+     * DEPRECATION WARNING! This method will be removed in the next major point release
+     *
+     * @deprecated deprecated since version 8.1
+     *
+     * @param string $str
+     *
+     * @return static
+     */
+    public function setEncodingFrom($str)
+    {
+        return $this->setInputEncoding($str);
+    }
+
+    /**
+     * Gets the source CSV encoding charset
      *
      * @return string
      */
-    public function getOutputBOM()
+    public function getInputEncoding()
     {
-        return $this->output_bom;
+        return $this->input_encoding;
+    }
+
+    /**
+     * Gets the source CSV encoding charset
+     *
+     * DEPRECATION WARNING! This method will be removed in the next major point release
+     *
+     * @deprecated deprecated since version 8.1
+     *
+     * @return string
+     */
+    public function getEncodingFrom()
+    {
+        return $this->getInputEncoding();
     }
 
     /**
@@ -134,6 +124,16 @@ trait Output
         $this->output_bom = (string) $str;
 
         return $this;
+    }
+
+    /**
+     * Returns the BOM sequence in use on Output methods
+     *
+     * @return string
+     */
+    public function getOutputBOM()
+    {
+        return $this->output_bom;
     }
 
     /**
@@ -234,6 +234,13 @@ trait Output
     }
 
     /**
+     * Returns the CSV Iterator
+     *
+     * @return Iterator
+     */
+    abstract protected function getQueryIterator();
+
+    /**
      * Convert Csv file into UTF-8
      *
      * @param Iterator $iterator
@@ -299,11 +306,4 @@ trait Output
 
         return $doc;
     }
-
-    /**
-     * Returns the CSV Iterator
-     *
-     * @return Iterator
-     */
-    abstract protected function getQueryIterator();
 }

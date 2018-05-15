@@ -17,6 +17,23 @@ class MongoDBCacheTest extends CacheTest
      */
     private $collection;
 
+    protected function setUp()
+    {
+        if ( ! version_compare(phpversion('mongo'), '1.3.0', '>=')) {
+            $this->markTestSkipped('Mongo >= 1.3.0 is required.');
+        }
+
+        $mongo = new MongoClient();
+        $this->collection = $mongo->selectCollection('doctrine_common_cache', 'test');
+    }
+
+    protected function tearDown()
+    {
+        if ($this->collection instanceof MongoCollection) {
+            $this->collection->drop();
+        }
+    }
+
     public function testGetStats()
     {
         $cache = $this->_getCacheDriver();
@@ -27,11 +44,6 @@ class MongoDBCacheTest extends CacheTest
         $this->assertGreaterThan(0, $stats[Cache::STATS_UPTIME]);
         $this->assertEquals(0, $stats[Cache::STATS_MEMORY_USAGE]);
         $this->assertNull($stats[Cache::STATS_MEMORY_AVAILABLE]);
-    }
-
-    protected function _getCacheDriver()
-    {
-        return new MongoDBCache($this->collection);
     }
 
     /**
@@ -49,20 +61,8 @@ class MongoDBCacheTest extends CacheTest
         self::assertFalse($cache->save('foo', 'bar'));
     }
 
-    protected function setUp()
+    protected function _getCacheDriver()
     {
-        if ( ! version_compare(phpversion('mongo'), '1.3.0', '>=')) {
-            $this->markTestSkipped('Mongo >= 1.3.0 is required.');
-        }
-
-        $mongo = new MongoClient();
-        $this->collection = $mongo->selectCollection('doctrine_common_cache', 'test');
-    }
-
-    protected function tearDown()
-    {
-        if ($this->collection instanceof MongoCollection) {
-            $this->collection->drop();
-        }
+        return new MongoDBCache($this->collection);
     }
 }

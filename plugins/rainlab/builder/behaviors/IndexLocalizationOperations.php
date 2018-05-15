@@ -52,26 +52,6 @@ class IndexLocalizationOperations extends IndexOperationsBehaviorBase
         return $result;
     }
 
-    protected function getTabName($model)
-    {
-        $pluginName = Lang::get($model->getModelPluginName());
-
-        if (!strlen($model->language)) {
-            return $pluginName.'/'.Lang::get('rainlab.builder::lang.localization.tab_new_language');
-        }
-
-        return $pluginName.'/'.$model->language;
-    }
-
-    protected function getTabId($pluginCode, $language)
-    {
-        if (!strlen($language)) {
-            return 'localization-'.$pluginCode.'-'.uniqid(time());
-        }
-
-        return 'localization-'.$pluginCode.'-'.$language;
-    }
-
     public function onLanguageSave()
     {
         $model = $this->loadOrCreateLocalizationFromPost();
@@ -100,34 +80,6 @@ class IndexLocalizationOperations extends IndexOperationsBehaviorBase
         }
 
         return $result;
-    }
-
-    protected function loadOrCreateLocalizationFromPost()
-    {
-        $pluginCodeObj = new PluginCode(Request::input('plugin_code'));
-        $options = [
-            'pluginCode' => $pluginCodeObj->toCode()
-        ];
-
-        $originalLanguage = Input::get('original_language');
-
-        return $this->loadOrCreateBaseModel($originalLanguage, $options);
-    }
-
-    protected function loadOrCreateBaseModel($language, $options = [])
-    {
-        $model = new LocalizationModel();
-
-        if (isset($options['pluginCode'])) {
-            $model->setPluginCode($options['pluginCode']);
-        }
-
-        if (!$language) {
-            return $model;
-        }
-
-        $model->load($language);
-        return $model;
     }
 
     public function onLanguageDelete()
@@ -187,7 +139,7 @@ class IndexLocalizationOperations extends IndexOperationsBehaviorBase
         $defaultLanguage = LocalizationModel::getDefaultLanguage();
         if (LocalizationModel::languageFileExists($pluginCode, $defaultLanguage)) {
             $model = $this->loadOrCreateBaseModel($defaultLanguage, $options);
-        }
+        } 
         else {
             $model = LocalizationModel::initModel($pluginCode, $defaultLanguage);
         }
@@ -214,5 +166,53 @@ class IndexLocalizationOperations extends IndexOperationsBehaviorBase
         return ['builderResponseData' => [
             'strings' => $model ? $model->strings : null
         ]];
+    }
+
+    protected function loadOrCreateLocalizationFromPost()
+    {
+        $pluginCodeObj = new PluginCode(Request::input('plugin_code'));
+        $options = [
+            'pluginCode' => $pluginCodeObj->toCode()
+        ];
+
+        $originalLanguage = Input::get('original_language');
+
+        return $this->loadOrCreateBaseModel($originalLanguage, $options);
+    }
+
+    protected function getTabName($model)
+    {
+        $pluginName = Lang::get($model->getModelPluginName());
+
+        if (!strlen($model->language)) {
+            return $pluginName.'/'.Lang::get('rainlab.builder::lang.localization.tab_new_language');
+        }
+
+        return $pluginName.'/'.$model->language;
+    }
+
+    protected function getTabId($pluginCode, $language)
+    {
+        if (!strlen($language)) {
+            return 'localization-'.$pluginCode.'-'.uniqid(time());
+        }
+
+        return 'localization-'.$pluginCode.'-'.$language;
+    }
+
+    protected function loadOrCreateBaseModel($language, $options = [])
+    {
+        $model = new LocalizationModel();
+
+        if (isset($options['pluginCode'])) {
+            $model->setPluginCode($options['pluginCode']);
+        }
+
+        if (!$language) {
+            return $model;
+        }
+
+        $model->load($language);
+        return $model;
     }
 }

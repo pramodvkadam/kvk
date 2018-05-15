@@ -208,15 +208,6 @@ class Dongle
     }
 
     /**
-     * Get the table prefix.
-     * @return string
-     */
-    public function getTablePrefix()
-    {
-        return $this->db->getTablePrefix();
-    }
-
-    /**
      * Used to disable strict mode during migrations
      */
     public function disableStrictMode()
@@ -240,5 +231,14 @@ class Dongle
     public function getDriver()
     {
         return $this->driver;
+    }
+
+    /**
+     * Get the table prefix.
+     * @return string
+     */
+    public function getTablePrefix()
+    {
+        return $this->db->getTablePrefix();
     }
 }

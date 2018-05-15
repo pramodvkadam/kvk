@@ -1,4 +1,4 @@
-1518454985a:1:{s:18:"home-slideshow.htm";a:8:{s:8:"fileName";s:18:"home-slideshow.htm";s:7:"content";s:1729:"description = "Home page slide show"
+1526350441a:1:{s:18:"home-slideshow.htm";a:8:{s:8:"fileName";s:18:"home-slideshow.htm";s:7:"content";s:1691:"description = "Home page slide show"
 
 [viewBag]
 snippetCode = "slideshow"
@@ -44,7 +44,7 @@ slide_show_id = 1
         </a>
       </div>
 </header>
-{% endif %}";s:5:"mtime";i:1518365742;s:6:"markup";s:1624:"{% if slider.slides.slideShows != 'no_slider' %}
+{% endif %}";s:5:"mtime";i:1526201526;s:6:"markup";s:1586:"{% if slider.slides.slideShows != 'no_slider' %}
 <header>
       <div id="carouselIndicators{{slider.slides.slideShows.id}}" class="carousel slide" data-ride="carousel">
         <ol class="carousel-indicators">

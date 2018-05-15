@@ -17,6 +17,26 @@ trait FormModelWidget
 {
 
     /**
+     * Returns the final model and attribute name of
+     * a nested HTML array attribute.
+     * Eg: list($model, $attribute) = $this->resolveModelAttribute($this->valueFrom);
+     * @param  string $attribute.
+     * @return array
+     */
+    public function resolveModelAttribute($attribute)
+    {
+        try {
+            return $this->formField->resolveModelAttribute($this->model, $attribute);
+        }
+        catch (Exception $ex) {
+            throw new ApplicationException(Lang::get('backend::lang.model.missing_relation', [
+                'class' => get_class($this->model),
+                'relation' => $attribute
+            ]));
+        }
+    }
+
+    /**
      * Returns the model of a relation type,
      * supports nesting via HTML array.
      * @return Relation
@@ -40,26 +60,6 @@ trait FormModelWidget
         }
 
         return $model->makeRelation($attribute);
-    }
-
-    /**
-     * Returns the final model and attribute name of
-     * a nested HTML array attribute.
-     * Eg: list($model, $attribute) = $this->resolveModelAttribute($this->valueFrom);
-     * @param  string $attribute.
-     * @return array
-     */
-    public function resolveModelAttribute($attribute)
-    {
-        try {
-            return $this->formField->resolveModelAttribute($this->model, $attribute);
-        }
-        catch (Exception $ex) {
-            throw new ApplicationException(Lang::get('backend::lang.model.missing_relation', [
-                'class' => get_class($this->model),
-                'relation' => $attribute
-            ]));
-        }
     }
 
     /**

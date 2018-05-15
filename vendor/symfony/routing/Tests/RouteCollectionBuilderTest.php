@@ -33,7 +33,7 @@ class RouteCollectionBuilderTest extends TestCase
         $originalRoute = new Route('/foo/path');
         $expectedCollection = new RouteCollection();
         $expectedCollection->add('one_test_route', $originalRoute);
-        $expectedCollection->addResource(new FileResource(__DIR__ . '/Fixtures/file_resource.yml'));
+        $expectedCollection->addResource(new FileResource(__DIR__.'/Fixtures/file_resource.yml'));
 
         $resolvedLoader
             ->expects($this->once())
@@ -68,7 +68,7 @@ class RouteCollectionBuilderTest extends TestCase
 
     public function testImportAddResources()
     {
-        $routeCollectionBuilder = new RouteCollectionBuilder(new YamlFileLoader(new FileLocator(array(__DIR__ . '/Fixtures/'))));
+        $routeCollectionBuilder = new RouteCollectionBuilder(new YamlFileLoader(new FileLocator(array(__DIR__.'/Fixtures/'))));
         $routeCollectionBuilder->import('file_resource.yml');
         $routeCollection = $routeCollectionBuilder->build();
 
@@ -334,5 +334,31 @@ class RouteCollectionBuilderTest extends TestCase
         $collection = $routes->build();
         // there are 2 routes (i.e. with non-conflicting names)
         $this->assertCount(3, $collection->all());
+    }
+
+    public function testAddsThePrefixOnlyOnceWhenLoadingMultipleCollections()
+    {
+        $firstCollection = new RouteCollection();
+        $firstCollection->add('a', new Route('/a'));
+
+        $secondCollection = new RouteCollection();
+        $secondCollection->add('b', new Route('/b'));
+
+        $loader = $this->getMockBuilder('Symfony\Component\Config\Loader\LoaderInterface')->getMock();
+        $loader->expects($this->any())
+            ->method('supports')
+            ->will($this->returnValue(true));
+        $loader
+            ->expects($this->any())
+            ->method('load')
+            ->will($this->returnValue(array($firstCollection, $secondCollection)));
+
+        $routeCollectionBuilder = new RouteCollectionBuilder($loader);
+        $routeCollectionBuilder->import('/directory/recurse/*', '/other/', 'glob');
+        $routes = $routeCollectionBuilder->build()->all();
+
+        $this->assertEquals(2, count($routes));
+        $this->assertEquals('/other/a', $routes['a']->getPath());
+        $this->assertEquals('/other/b', $routes['b']->getPath());
     }
 }

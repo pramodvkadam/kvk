@@ -25,6 +25,36 @@ class PhpRedisConnector
     }
 
     /**
+     * Create a new clustered Predis connection.
+     *
+     * @param  array  $config
+     * @param  array  $clusterOptions
+     * @param  array  $options
+     * @return \Illuminate\Redis\Connections\PhpRedisClusterConnection
+     */
+    public function connectToCluster(array $config, array $clusterOptions, array $options)
+    {
+        $options = array_merge($options, $clusterOptions, Arr::pull($config, 'options', []));
+
+        return new PhpRedisClusterConnection($this->createRedisClusterInstance(
+            array_map([$this, 'buildClusterConnectionString'], $config), $options
+        ));
+    }
+
+    /**
+     * Build a single cluster seed string from array.
+     *
+     * @param  array  $server
+     * @return string
+     */
+    protected function buildClusterConnectionString(array $server)
+    {
+        return $server['host'].':'.$server['port'].'?'.http_build_query(Arr::only($server, [
+            'database', 'password', 'prefix', 'read_timeout',
+        ]));
+    }
+
+    /**
      * Create the Redis client instance.
      *
      * @param  array  $config
@@ -68,23 +98,6 @@ class PhpRedisConnector
     }
 
     /**
-     * Create a new clustered Predis connection.
-     *
-     * @param  array  $config
-     * @param  array  $clusterOptions
-     * @param  array  $options
-     * @return \Illuminate\Redis\Connections\PhpRedisClusterConnection
-     */
-    public function connectToCluster(array $config, array $clusterOptions, array $options)
-    {
-        $options = array_merge($options, $clusterOptions, Arr::pull($config, 'options', []));
-
-        return new PhpRedisClusterConnection($this->createRedisClusterInstance(
-            array_map([$this, 'buildClusterConnectionString'], $config), $options
-        ));
-    }
-
-    /**
      * Create a new redis cluster instance.
      *
      * @param  array  $servers
@@ -100,18 +113,5 @@ class PhpRedisConnector
             $options['read_timeout'] ?? 0,
             isset($options['persistent']) && $options['persistent']
         );
-    }
-
-    /**
-     * Build a single cluster seed string from array.
-     *
-     * @param  array  $server
-     * @return string
-     */
-    protected function buildClusterConnectionString(array $server)
-    {
-        return $server['host'].':'.$server['port'].'?'.http_build_query(Arr::only($server, [
-            'database', 'password', 'prefix', 'read_timeout',
-        ]));
     }
 }

@@ -25,19 +25,6 @@ class DatabaseServiceProvider extends DatabaseServiceProviderBase
     }
 
     /**
-     * Adds a touch of Rain to the Schema Blueprints.
-     * @return void
-     */
-    protected function swapSchemaBuilderBlueprint()
-    {
-        $this->app['events']->listen('db.schema.getBuilder', function($builder) {
-            $builder->blueprintResolver(function($table, $callback) {
-                return new Blueprint($table, $callback);
-            });
-        });
-    }
-
-    /**
      * Register the service provider.
      * @return void
      */
@@ -91,6 +78,19 @@ class DatabaseServiceProvider extends DatabaseServiceProviderBase
     {
         $defaultConnection = $this->app['db']->getDefaultConnection();
         return $this->app['config']['database.connections.' . $defaultConnection . '.driver'];
+    }
+
+    /**
+     * Adds a touch of Rain to the Schema Blueprints.
+     * @return void
+     */
+    protected function swapSchemaBuilderBlueprint()
+    {
+        $this->app['events']->listen('db.schema.getBuilder', function($builder) {
+            $builder->blueprintResolver(function($table, $callback) {
+                return new Blueprint($table, $callback);
+            });
+        });
     }
 
 }

@@ -23,13 +23,6 @@ class FilterException extends \RuntimeException implements Exception
     private $originalMessage;
     private $input;
 
-    public function __construct($message, $code = 0, \Exception $previous = null)
-    {
-        parent::__construct($message, $code, $previous);
-
-        $this->originalMessage = $message;
-    }
-
     public static function fromProcess(Process $proc)
     {
         $message = sprintf("An error occurred while running:\n%s", $proc->getCommandLine());
@@ -47,9 +40,11 @@ class FilterException extends \RuntimeException implements Exception
         return new self($message);
     }
 
-    public function getInput()
+    public function __construct($message, $code = 0, \Exception $previous = null)
     {
-        return $this->input;
+        parent::__construct($message, $code, $previous);
+
+        $this->originalMessage = $message;
     }
 
     public function setInput($input)
@@ -58,6 +53,11 @@ class FilterException extends \RuntimeException implements Exception
         $this->updateMessage();
 
         return $this;
+    }
+
+    public function getInput()
+    {
+        return $this->input;
     }
 
     private function updateMessage()

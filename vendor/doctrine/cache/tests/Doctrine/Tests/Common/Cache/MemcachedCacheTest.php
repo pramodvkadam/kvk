@@ -12,6 +12,25 @@ class MemcachedCacheTest extends CacheTest
 {
     private $memcached;
 
+    protected function setUp()
+    {
+        $this->memcached = new Memcached();
+        $this->memcached->setOption(Memcached::OPT_COMPRESSION, false);
+        $this->memcached->addServer('127.0.0.1', 11211);
+
+        if (@fsockopen('127.0.0.1', 11211) === false) {
+            unset($this->memcached);
+            $this->markTestSkipped('Cannot connect to Memcached.');
+        }
+    }
+
+    protected function tearDown()
+    {
+        if ($this->memcached instanceof Memcached) {
+            $this->memcached->flush();
+        }
+    }
+
     /**
      * {@inheritdoc}
      *
@@ -38,24 +57,5 @@ class MemcachedCacheTest extends CacheTest
         $driver = new MemcachedCache();
         $driver->setMemcached($this->memcached);
         return $driver;
-    }
-
-    protected function setUp()
-    {
-        $this->memcached = new Memcached();
-        $this->memcached->setOption(Memcached::OPT_COMPRESSION, false);
-        $this->memcached->addServer('127.0.0.1', 11211);
-
-        if (@fsockopen('127.0.0.1', 11211) === false) {
-            unset($this->memcached);
-            $this->markTestSkipped('Cannot connect to Memcached.');
-        }
-    }
-
-    protected function tearDown()
-    {
-        if ($this->memcached instanceof Memcached) {
-            $this->memcached->flush();
-        }
     }
 }

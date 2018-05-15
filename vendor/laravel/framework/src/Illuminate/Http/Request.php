@@ -22,7 +22,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * The decoded JSON content for the request.
      *
-     * @var string
+     * @var \Symfony\Component\HttpFoundation\ParameterBag|null
      */
     protected $json;
 
@@ -57,6 +57,290 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
         static::enableHttpMethodParameterOverride();
 
         return static::createFromBase(SymfonyRequest::createFromGlobals());
+    }
+
+    /**
+     * Return the Request instance.
+     *
+     * @return $this
+     */
+    public function instance()
+    {
+        return $this;
+    }
+
+    /**
+     * Get the request method.
+     *
+     * @return string
+     */
+    public function method()
+    {
+        return $this->getMethod();
+    }
+
+    /**
+     * Get the root URL for the application.
+     *
+     * @return string
+     */
+    public function root()
+    {
+        return rtrim($this->getSchemeAndHttpHost().$this->getBaseUrl(), '/');
+    }
+
+    /**
+     * Get the URL (no query string) for the request.
+     *
+     * @return string
+     */
+    public function url()
+    {
+        return rtrim(preg_replace('/\?.*/', '', $this->getUri()), '/');
+    }
+
+    /**
+     * Get the full URL for the request.
+     *
+     * @return string
+     */
+    public function fullUrl()
+    {
+        $query = $this->getQueryString();
+
+        $question = $this->getBaseUrl().$this->getPathInfo() == '/' ? '/?' : '?';
+
+        return $query ? $this->url().$question.$query : $this->url();
+    }
+
+    /**
+     * Get the full URL for the request with the added query string parameters.
+     *
+     * @param  array  $query
+     * @return string
+     */
+    public function fullUrlWithQuery(array $query)
+    {
+        $question = $this->getBaseUrl().$this->getPathInfo() == '/' ? '/?' : '?';
+
+        return count($this->query()) > 0
+            ? $this->url().$question.http_build_query(array_merge($this->query(), $query))
+            : $this->fullUrl().$question.http_build_query($query);
+    }
+
+    /**
+     * Get the current path info for the request.
+     *
+     * @return string
+     */
+    public function path()
+    {
+        $pattern = trim($this->getPathInfo(), '/');
+
+        return $pattern == '' ? '/' : $pattern;
+    }
+
+    /**
+     * Get the current decoded path info for the request.
+     *
+     * @return string
+     */
+    public function decodedPath()
+    {
+        return rawurldecode($this->path());
+    }
+
+    /**
+     * Get a segment from the URI (1 based index).
+     *
+     * @param  int  $index
+     * @param  string|null  $default
+     * @return string|null
+     */
+    public function segment($index, $default = null)
+    {
+        return Arr::get($this->segments(), $index - 1, $default);
+    }
+
+    /**
+     * Get all of the segments for the request path.
+     *
+     * @return array
+     */
+    public function segments()
+    {
+        $segments = explode('/', $this->decodedPath());
+
+        return array_values(array_filter($segments, function ($value) {
+            return $value !== '';
+        }));
+    }
+
+    /**
+     * Determine if the current request URI matches a pattern.
+     *
+     * @param  dynamic  $patterns
+     * @return bool
+     */
+    public function is(...$patterns)
+    {
+        foreach ($patterns as $pattern) {
+            if (Str::is($pattern, $this->decodedPath())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if the route name matches a given pattern.
+     *
+     * @param  dynamic  $patterns
+     * @return bool
+     */
+    public function routeIs(...$patterns)
+    {
+        return $this->route() && $this->route()->named(...$patterns);
+    }
+
+    /**
+     * Determine if the current request URL and query string matches a pattern.
+     *
+     * @param  dynamic  $patterns
+     * @return bool
+     */
+    public function fullUrlIs(...$patterns)
+    {
+        $url = $this->fullUrl();
+
+        foreach ($patterns as $pattern) {
+            if (Str::is($pattern, $url)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if the request is the result of an AJAX call.
+     *
+     * @return bool
+     */
+    public function ajax()
+    {
+        return $this->isXmlHttpRequest();
+    }
+
+    /**
+     * Determine if the request is the result of an PJAX call.
+     *
+     * @return bool
+     */
+    public function pjax()
+    {
+        return $this->headers->get('X-PJAX') == true;
+    }
+
+    /**
+     * Determine if the request is over HTTPS.
+     *
+     * @return bool
+     */
+    public function secure()
+    {
+        return $this->isSecure();
+    }
+
+    /**
+     * Get the client IP address.
+     *
+     * @return string
+     */
+    public function ip()
+    {
+        return $this->getClientIp();
+    }
+
+    /**
+     * Get the client IP addresses.
+     *
+     * @return array
+     */
+    public function ips()
+    {
+        return $this->getClientIps();
+    }
+
+    /**
+     * Get the client user agent.
+     *
+     * @return string
+     */
+    public function userAgent()
+    {
+        return $this->headers->get('User-Agent');
+    }
+
+    /**
+     * Merge new input into the current request's input array.
+     *
+     * @param  array  $input
+     * @return \Illuminate\Http\Request
+     */
+    public function merge(array $input)
+    {
+        $this->getInputSource()->add($input);
+
+        return $this;
+    }
+
+    /**
+     * Replace the input for the current request.
+     *
+     * @param  array  $input
+     * @return \Illuminate\Http\Request
+     */
+    public function replace(array $input)
+    {
+        $this->getInputSource()->replace($input);
+
+        return $this;
+    }
+
+    /**
+     * Get the JSON payload for the request.
+     *
+     * @param  string  $key
+     * @param  mixed   $default
+     * @return \Symfony\Component\HttpFoundation\ParameterBag|mixed
+     */
+    public function json($key = null, $default = null)
+    {
+        if (! isset($this->json)) {
+            $this->json = new ParameterBag((array) json_decode($this->getContent(), true));
+        }
+
+        if (is_null($key)) {
+            return $this->json;
+        }
+
+        return data_get($this->json->all(), $key, $default);
+    }
+
+    /**
+     * Get the input source for the request.
+     *
+     * @return \Symfony\Component\HttpFoundation\ParameterBag
+     */
+    protected function getInputSource()
+    {
+        if ($this->isJson()) {
+            return $this->json();
+        }
+
+        return $this->getRealMethod() == 'GET' ? $this->query : $this->request;
     }
 
     /**
@@ -119,319 +403,6 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     }
 
     /**
-     * Return the Request instance.
-     *
-     * @return $this
-     */
-    public function instance()
-    {
-        return $this;
-    }
-
-    /**
-     * Get the request method.
-     *
-     * @return string
-     */
-    public function method()
-    {
-        return $this->getMethod();
-    }
-
-    /**
-     * Get the root URL for the application.
-     *
-     * @return string
-     */
-    public function root()
-    {
-        return rtrim($this->getSchemeAndHttpHost().$this->getBaseUrl(), '/');
-    }
-
-    /**
-     * Get the full URL for the request with the added query string parameters.
-     *
-     * @param  array  $query
-     * @return string
-     */
-    public function fullUrlWithQuery(array $query)
-    {
-        $question = $this->getBaseUrl().$this->getPathInfo() == '/' ? '/?' : '?';
-
-        return count($this->query()) > 0
-            ? $this->url().$question.http_build_query(array_merge($this->query(), $query))
-            : $this->fullUrl().$question.http_build_query($query);
-    }
-
-    /**
-     * Get the URL (no query string) for the request.
-     *
-     * @return string
-     */
-    public function url()
-    {
-        return rtrim(preg_replace('/\?.*/', '', $this->getUri()), '/');
-    }
-
-    /**
-     * Get the full URL for the request.
-     *
-     * @return string
-     */
-    public function fullUrl()
-    {
-        $query = $this->getQueryString();
-
-        $question = $this->getBaseUrl().$this->getPathInfo() == '/' ? '/?' : '?';
-
-        return $query ? $this->url().$question.$query : $this->url();
-    }
-
-    /**
-     * Get a segment from the URI (1 based index).
-     *
-     * @param  int  $index
-     * @param  string|null  $default
-     * @return string|null
-     */
-    public function segment($index, $default = null)
-    {
-        return Arr::get($this->segments(), $index - 1, $default);
-    }
-
-    /**
-     * Get all of the segments for the request path.
-     *
-     * @return array
-     */
-    public function segments()
-    {
-        $segments = explode('/', $this->decodedPath());
-
-        return array_values(array_filter($segments, function ($v) {
-            return $v !== '';
-        }));
-    }
-
-    /**
-     * Get the current decoded path info for the request.
-     *
-     * @return string
-     */
-    public function decodedPath()
-    {
-        return rawurldecode($this->path());
-    }
-
-    /**
-     * Get the current path info for the request.
-     *
-     * @return string
-     */
-    public function path()
-    {
-        $pattern = trim($this->getPathInfo(), '/');
-
-        return $pattern == '' ? '/' : $pattern;
-    }
-
-    /**
-     * Determine if the current request URI matches a pattern.
-     *
-     * @param  dynamic  $patterns
-     * @return bool
-     */
-    public function is(...$patterns)
-    {
-        foreach ($patterns as $pattern) {
-            if (Str::is($pattern, $this->decodedPath())) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Determine if the route name matches a given pattern.
-     *
-     * @param  dynamic  $patterns
-     * @return bool
-     */
-    public function routeIs(...$patterns)
-    {
-        return $this->route() && $this->route()->named(...$patterns);
-    }
-
-    /**
-     * Get the route handling the request.
-     *
-     * @param  string|null  $param
-     *
-     * @return \Illuminate\Routing\Route|object|string
-     */
-    public function route($param = null)
-    {
-        $route = call_user_func($this->getRouteResolver());
-
-        if (is_null($route) || is_null($param)) {
-            return $route;
-        }
-
-        return $route->parameter($param);
-    }
-
-    /**
-     * Get the route resolver callback.
-     *
-     * @return \Closure
-     */
-    public function getRouteResolver()
-    {
-        return $this->routeResolver ?: function () {
-            //
-        };
-    }
-
-    /**
-     * Set the route resolver callback.
-     *
-     * @param  \Closure  $callback
-     * @return $this
-     */
-    public function setRouteResolver(Closure $callback)
-    {
-        $this->routeResolver = $callback;
-
-        return $this;
-    }
-
-    /**
-     * Determine if the current request URL and query string matches a pattern.
-     *
-     * @param  dynamic  $patterns
-     * @return bool
-     */
-    public function fullUrlIs(...$patterns)
-    {
-        $url = $this->fullUrl();
-
-        foreach ($patterns as $pattern) {
-            if (Str::is($pattern, $url)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Determine if the request is the result of an AJAX call.
-     *
-     * @return bool
-     */
-    public function ajax()
-    {
-        return $this->isXmlHttpRequest();
-    }
-
-    /**
-     * Determine if the request is the result of an PJAX call.
-     *
-     * @return bool
-     */
-    public function pjax()
-    {
-        return $this->headers->get('X-PJAX') == true;
-    }
-
-    /**
-     * Determine if the request is over HTTPS.
-     *
-     * @return bool
-     */
-    public function secure()
-    {
-        return $this->isSecure();
-    }
-
-    /**
-     * Get the client IP addresses.
-     *
-     * @return array
-     */
-    public function ips()
-    {
-        return $this->getClientIps();
-    }
-
-    /**
-     * Get the client user agent.
-     *
-     * @return string
-     */
-    public function userAgent()
-    {
-        return $this->headers->get('User-Agent');
-    }
-
-    /**
-     * Merge new input into the current request's input array.
-     *
-     * @param  array  $input
-     * @return void
-     */
-    public function merge(array $input)
-    {
-        $this->getInputSource()->add($input);
-    }
-
-    /**
-     * Get the input source for the request.
-     *
-     * @return \Symfony\Component\HttpFoundation\ParameterBag
-     */
-    protected function getInputSource()
-    {
-        if ($this->isJson()) {
-            return $this->json();
-        }
-
-        return $this->getRealMethod() == 'GET' ? $this->query : $this->request;
-    }
-
-    /**
-     * Get the JSON payload for the request.
-     *
-     * @param  string  $key
-     * @param  mixed   $default
-     * @return mixed
-     */
-    public function json($key = null, $default = null)
-    {
-        if (! isset($this->json)) {
-            $this->json = new ParameterBag((array) json_decode($this->getContent(), true));
-        }
-
-        if (is_null($key)) {
-            return $this->json;
-        }
-
-        return data_get($this->json->all(), $key, $default);
-    }
-
-    /**
-     * Replace the input for the current request.
-     *
-     * @param  array  $input
-     * @return void
-     */
-    public function replace(array $input)
-    {
-        $this->getInputSource()->replace($input);
-    }
-
-    /**
      * Get the session associated with the request.
      *
      * @return \Illuminate\Session\Store
@@ -470,6 +441,55 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     }
 
     /**
+     * Get the route handling the request.
+     *
+     * @param  string|null  $param
+     *
+     * @return \Illuminate\Routing\Route|object|string
+     */
+    public function route($param = null)
+    {
+        $route = call_user_func($this->getRouteResolver());
+
+        if (is_null($route) || is_null($param)) {
+            return $route;
+        }
+
+        return $route->parameter($param);
+    }
+
+    /**
+     * Get a unique fingerprint for the request / route / IP address.
+     *
+     * @return string
+     *
+     * @throws \RuntimeException
+     */
+    public function fingerprint()
+    {
+        if (! $route = $this->route()) {
+            throw new RuntimeException('Unable to generate fingerprint. Route unavailable.');
+        }
+
+        return sha1(implode('|', array_merge(
+            $route->methods(), [$route->getDomain(), $route->uri(), $this->ip()]
+        )));
+    }
+
+    /**
+     * Set the JSON payload for the request.
+     *
+     * @param  \Symfony\Component\HttpFoundation\ParameterBag  $json
+     * @return $this
+     */
+    public function setJson($json)
+    {
+        $this->json = $json;
+
+        return $this;
+    }
+
+    /**
      * Get the user resolver callback.
      *
      * @return \Closure
@@ -495,42 +515,26 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     }
 
     /**
-     * Get a unique fingerprint for the request / route / IP address.
+     * Get the route resolver callback.
      *
-     * @return string
-     *
-     * @throws \RuntimeException
+     * @return \Closure
      */
-    public function fingerprint()
+    public function getRouteResolver()
     {
-        if (! $route = $this->route()) {
-            throw new RuntimeException('Unable to generate fingerprint. Route unavailable.');
-        }
-
-        return sha1(implode('|', array_merge(
-            $route->methods(), [$route->getDomain(), $route->uri(), $this->ip()]
-        )));
+        return $this->routeResolver ?: function () {
+            //
+        };
     }
 
     /**
-     * Get the client IP address.
+     * Set the route resolver callback.
      *
-     * @return string
-     */
-    public function ip()
-    {
-        return $this->getClientIp();
-    }
-
-    /**
-     * Set the JSON payload for the request.
-     *
-     * @param  array  $json
+     * @param  \Closure  $callback
      * @return $this
      */
-    public function setJson($json)
+    public function setRouteResolver(Closure $callback)
     {
-        $this->json = $json;
+        $this->routeResolver = $callback;
 
         return $this;
     }
@@ -570,21 +574,6 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     }
 
     /**
-     * Get an input element from the request.
-     *
-     * @param  string  $key
-     * @return mixed
-     */
-    public function __get($key)
-    {
-        if (array_key_exists($key, $this->all())) {
-            return data_get($this->all(), $key);
-        }
-
-        return $this->route($key);
-    }
-
-    /**
      * Set the value at the given offset.
      *
      * @param  string  $offset
@@ -616,5 +605,20 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     public function __isset($key)
     {
         return ! is_null($this->__get($key));
+    }
+
+    /**
+     * Get an input element from the request.
+     *
+     * @param  string  $key
+     * @return mixed
+     */
+    public function __get($key)
+    {
+        if (array_key_exists($key, $this->all())) {
+            return data_get($this->all(), $key);
+        }
+
+        return $this->route($key);
     }
 }

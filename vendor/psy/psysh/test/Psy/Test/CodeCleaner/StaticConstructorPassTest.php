@@ -15,6 +15,11 @@ use Psy\CodeCleaner\StaticConstructorPass;
 
 class StaticConstructorPassTest extends CodeCleanerTestCase
 {
+    protected function setUp()
+    {
+        $this->setPass(new StaticConstructorPass());
+    }
+
     /**
      * @dataProvider invalidStatements
      * @expectedException \Psy\Exception\FatalErrorException
@@ -68,6 +73,9 @@ class StaticConstructorPassTest extends CodeCleanerTestCase
     {
         $stmts = $this->parse($code);
         $this->traverser->traverse($stmts);
+
+        // @todo a better thing to assert here?
+        $this->assertTrue(true);
     }
 
     public function validStatements()
@@ -82,10 +90,5 @@ class StaticConstructorPassTest extends CodeCleanerTestCase
         }
 
         return $statements;
-    }
-
-    protected function setUp()
-    {
-        $this->setPass(new StaticConstructorPass());
     }
 }

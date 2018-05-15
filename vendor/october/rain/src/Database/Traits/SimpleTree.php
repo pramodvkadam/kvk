@@ -77,15 +77,6 @@ trait SimpleTree
     }
 
     /**
-     * Returns number of all children below it.
-     * @return int
-     */
-    public function getChildCount()
-    {
-        return count($this->getAllChildren());
-    }
-
-    /**
      * Get a list of children records, with their children (recursive)
      * @return \October\Rain\Database\Collection
      */
@@ -115,6 +106,15 @@ trait SimpleTree
         return $this->children;
     }
 
+    /**
+     * Returns number of all children below it.
+     * @return int
+     */
+    public function getChildCount()
+    {
+        return count($this->getAllChildren());
+    }
+
     //
     // Scopes
     //
@@ -129,15 +129,6 @@ trait SimpleTree
     }
 
     /**
-     * Get parent column name.
-     * @return string
-     */
-    public function getParentColumnName()
-    {
-        return defined('static::PARENT_ID') ? static::PARENT_ID : 'parent_id';
-    }
-
-    /**
      * Non chaining scope, returns an eager loaded hierarchy tree. Children are
      * eager loaded inside the $model->children relation.
      * @return Collection A collection
@@ -146,10 +137,6 @@ trait SimpleTree
     {
         return $query->get()->toNested();
     }
-
-    //
-    // Column getters
-    //
 
     /**
      * Gets an array with values of a given column. Values are indented according to their depth.
@@ -231,6 +218,19 @@ trait SimpleTree
          */
         $result = $buildCollection($rootItems, $pairMap);
         return $result;
+    }
+
+    //
+    // Column getters
+    //
+
+    /**
+     * Get parent column name.
+     * @return string
+     */
+    public function getParentColumnName()
+    {
+        return defined('static::PARENT_ID') ? static::PARENT_ID : 'parent_id';
     }
 
     /**

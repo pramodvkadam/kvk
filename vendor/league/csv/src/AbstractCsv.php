@@ -4,7 +4,7 @@
 *
 * @license http://opensource.org/licenses/MIT
 * @link https://github.com/thephpleague/csv/
-* @version 8.2.2
+* @version 8.2.3
 * @package League.csv
 *
 * For the full copyright and license information, please view the LICENSE
@@ -100,6 +100,14 @@ abstract class AbstractCsv implements JsonSerializable, IteratorAggregate
     }
 
     /**
+     * The destructor
+     */
+    public function __destruct()
+    {
+        $this->path = null;
+    }
+
+    /**
      * Return a new {@link AbstractCsv} from a SplFileObject
      *
      * @param SplFileObject $file
@@ -190,26 +198,6 @@ abstract class AbstractCsv implements JsonSerializable, IteratorAggregate
     }
 
     /**
-     * The destructor
-     */
-    public function __destruct()
-    {
-        $this->path = null;
-    }
-
-    /**
-     * Return a new {@link Writer} instance from a {@link AbstractCsv} object
-     *
-     * @param string $open_mode the file open mode flag
-     *
-     * @return Writer
-     */
-    public function newWriter($open_mode = 'r+')
-    {
-        return $this->newInstance(Writer::class, $open_mode);
-    }
-
-    /**
      * Return a new {@link AbstractCsv} instance from another {@link AbstractCsv} object
      *
      * @param string $class     the class to be instantiated
@@ -229,6 +217,18 @@ abstract class AbstractCsv implements JsonSerializable, IteratorAggregate
         $csv->newline = $this->newline;
 
         return $csv;
+    }
+
+    /**
+     * Return a new {@link Writer} instance from a {@link AbstractCsv} object
+     *
+     * @param string $open_mode the file open mode flag
+     *
+     * @return Writer
+     */
+    public function newWriter($open_mode = 'r+')
+    {
+        return $this->newInstance(Writer::class, $open_mode);
     }
 
     /**

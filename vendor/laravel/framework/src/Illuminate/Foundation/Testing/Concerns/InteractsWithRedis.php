@@ -21,21 +21,6 @@ trait InteractsWithRedis
     private $redis;
 
     /**
-     * Run test if redis is available.
-     *
-     * @param  callable  $callback
-     * @return void
-     */
-    public function ifRedisAvailable($callback)
-    {
-        $this->setUpRedis();
-
-        $callback();
-
-        $this->tearDownRedis();
-    }
-
-    /**
      * Setup redis connection.
      *
      * @return void
@@ -76,6 +61,20 @@ trait InteractsWithRedis
     }
 
     /**
+     * Teardown redis connection.
+     *
+     * @return void
+     */
+    public function tearDownRedis()
+    {
+        $this->redis['predis']->connection()->flushdb();
+
+        foreach ($this->redisDriverProvider() as $driver) {
+            $this->redis[$driver[0]]->connection()->disconnect();
+        }
+    }
+
+    /**
      * Get redis driver provider.
      *
      * @return array
@@ -94,16 +93,17 @@ trait InteractsWithRedis
     }
 
     /**
-     * Teardown redis connection.
+     * Run test if redis is available.
      *
+     * @param  callable  $callback
      * @return void
      */
-    public function tearDownRedis()
+    public function ifRedisAvailable($callback)
     {
-        $this->redis['predis']->connection()->flushdb();
+        $this->setUpRedis();
 
-        foreach ($this->redisDriverProvider() as $driver) {
-            $this->redis[$driver[0]]->connection()->disconnect();
-        }
+        $callback();
+
+        $this->tearDownRedis();
     }
 }

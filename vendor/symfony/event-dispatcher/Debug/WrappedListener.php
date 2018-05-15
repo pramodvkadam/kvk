@@ -21,7 +21,6 @@ use Symfony\Component\VarDumper\Caster\ClassStub;
  */
 class WrappedListener
 {
-    private static $hasClassStub;
     private $listener;
     private $name;
     private $called;
@@ -30,6 +29,7 @@ class WrappedListener
     private $dispatcher;
     private $pretty;
     private $stub;
+    private static $hasClassStub;
 
     public function __construct($listener, $name, Stopwatch $stopwatch, EventDispatcherInterface $dispatcher = null)
     {

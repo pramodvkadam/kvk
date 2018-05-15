@@ -18,6 +18,15 @@ class ScaffoldBaseTest extends TestCase
     // Helpers
     //
 
+    protected static function callProtectedMethod($object, $name, $params = [])
+    {
+        $className = get_class($object);
+        $class = new ReflectionClass($className);
+        $method = $class->getMethod($name);
+        $method->setAccessible(true);
+        return $method->invokeArgs($object, $params);
+    }
+
     public static function getProtectedProperty($object, $name)
     {
         $className = get_class($object);
@@ -35,6 +44,10 @@ class ScaffoldBaseTest extends TestCase
         $property->setAccessible(true);
         return $property->setValue($object, $value);
     }
+
+    //
+    // Tests
+    //
 
     public function testProcessVars()
     {
@@ -166,18 +179,5 @@ class ScaffoldBaseTest extends TestCase
         $this->assertEquals('Tax Class', $result['title_singular_class']);
         $this->assertEquals('Tax Classes', $result['title_plural_class']);
         $this->assertEquals('tax class', $result['lower_title_class']);
-    }
-
-    //
-    // Tests
-    //
-
-    protected static function callProtectedMethod($object, $name, $params = [])
-    {
-        $className = get_class($object);
-        $class = new ReflectionClass($className);
-        $method = $class->getMethod($name);
-        $method->setAccessible(true);
-        return $method->invokeArgs($object, $params);
     }
 }

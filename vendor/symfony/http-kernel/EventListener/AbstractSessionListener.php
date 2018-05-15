@@ -11,7 +11,9 @@
 
 namespace Symfony\Component\HttpKernel\EventListener;
 
+use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -23,13 +25,6 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  */
 abstract class AbstractSessionListener implements EventSubscriberInterface
 {
-    public static function getSubscribedEvents()
-    {
-        return array(
-            KernelEvents::REQUEST => array('onKernelRequest', 128),
-        );
-    }
-
     public function onKernelRequest(GetResponseEvent $event)
     {
         if (!$event->isMasterRequest()) {
@@ -43,6 +38,33 @@ abstract class AbstractSessionListener implements EventSubscriberInterface
         }
 
         $request->setSession($session);
+    }
+
+    public function onKernelResponse(FilterResponseEvent $event)
+    {
+        if (!$event->isMasterRequest()) {
+            return;
+        }
+
+        if (!$session = $event->getRequest()->getSession()) {
+            return;
+        }
+
+        if ($session->isStarted() || ($session instanceof Session && $session->hasBeenStarted())) {
+            $event->getResponse()
+                ->setPrivate()
+                ->setMaxAge(0)
+                ->headers->addCacheControlDirective('must-revalidate');
+        }
+    }
+
+    public static function getSubscribedEvents()
+    {
+        return array(
+            KernelEvents::REQUEST => array('onKernelRequest', 128),
+            // low priority to come after regular response listeners, same as SaveSessionListener
+            KernelEvents::RESPONSE => array('onKernelResponse', -1000),
+        );
     }
 
     /**

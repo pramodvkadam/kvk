@@ -89,6 +89,19 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
     }
 
     /**
+     * Get the translation for a given key.
+     *
+     * @param  string  $key
+     * @param  array   $replace
+     * @param  string  $locale
+     * @return string|array|null
+     */
+    public function trans($key, array $replace = [], $locale = null)
+    {
+        return $this->get($key, $replace, $locale);
+    }
+
+    /**
      * Get the translation for the given key.
      *
      * @param  string  $key
@@ -123,144 +136,6 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
         }
 
         return $key;
-    }
-
-    /**
-     * Parse a key into namespace, group, and item.
-     *
-     * @param  string  $key
-     * @return array
-     */
-    public function parseKey($key)
-    {
-        $segments = parent::parseKey($key);
-
-        if (is_null($segments[0])) {
-            $segments[0] = '*';
-        }
-
-        return $segments;
-    }
-
-    /**
-     * Get the array of locales to be checked.
-     *
-     * @param  string|null  $locale
-     * @return array
-     */
-    protected function localeArray($locale)
-    {
-        return array_filter([$locale ?: $this->locale, $this->fallback]);
-    }
-
-    /**
-     * Retrieve a language line out the loaded array.
-     *
-     * @param  string  $namespace
-     * @param  string  $group
-     * @param  string  $locale
-     * @param  string  $item
-     * @param  array   $replace
-     * @return string|array|null
-     */
-    protected function getLine($namespace, $group, $locale, $item, array $replace)
-    {
-        $this->load($namespace, $group, $locale);
-
-        $line = Arr::get($this->loaded[$namespace][$group][$locale], $item);
-
-        if (is_string($line)) {
-            return $this->makeReplacements($line, $replace);
-        } elseif (is_array($line) && count($line) > 0) {
-            return $line;
-        }
-    }
-
-    /**
-     * Load the specified language group.
-     *
-     * @param  string  $namespace
-     * @param  string  $group
-     * @param  string  $locale
-     * @return void
-     */
-    public function load($namespace, $group, $locale)
-    {
-        if ($this->isLoaded($namespace, $group, $locale)) {
-            return;
-        }
-
-        // The loader is responsible for returning the array of language lines for the
-        // given namespace, group, and locale. We'll set the lines in this array of
-        // lines that have already been loaded so that we can easily access them.
-        $lines = $this->loader->load($locale, $group, $namespace);
-
-        $this->loaded[$namespace][$group][$locale] = $lines;
-    }
-
-    /**
-     * Determine if the given group has been loaded.
-     *
-     * @param  string  $namespace
-     * @param  string  $group
-     * @param  string  $locale
-     * @return bool
-     */
-    protected function isLoaded($namespace, $group, $locale)
-    {
-        return isset($this->loaded[$namespace][$group][$locale]);
-    }
-
-    /**
-     * Make the place-holder replacements on a line.
-     *
-     * @param  string  $line
-     * @param  array   $replace
-     * @return string
-     */
-    protected function makeReplacements($line, array $replace)
-    {
-        if (empty($replace)) {
-            return $line;
-        }
-
-        $replace = $this->sortReplacements($replace);
-
-        foreach ($replace as $key => $value) {
-            $line = str_replace(
-                [':'.$key, ':'.Str::upper($key), ':'.Str::ucfirst($key)],
-                [$value, Str::upper($value), Str::ucfirst($value)],
-                $line
-            );
-        }
-
-        return $line;
-    }
-
-    /**
-     * Sort the replacements array.
-     *
-     * @param  array  $replace
-     * @return array
-     */
-    protected function sortReplacements(array $replace)
-    {
-        return (new Collection($replace))->sortBy(function ($value, $key) {
-            return mb_strlen($key) * -1;
-        })->all();
-    }
-
-    /**
-     * Get the translation for a given key.
-     *
-     * @param  string  $key
-     * @param  array   $replace
-     * @param  string  $locale
-     * @return string|array|null
-     */
-    public function trans($key, array $replace = [], $locale = null)
-    {
-        return $this->get($key, $replace, $locale);
     }
 
     /**
@@ -351,28 +226,65 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
     }
 
     /**
-     * Get the message selector instance.
+     * Retrieve a language line out the loaded array.
      *
-     * @return \Illuminate\Translation\MessageSelector
+     * @param  string  $namespace
+     * @param  string  $group
+     * @param  string  $locale
+     * @param  string  $item
+     * @param  array   $replace
+     * @return string|array|null
      */
-    public function getSelector()
+    protected function getLine($namespace, $group, $locale, $item, array $replace)
     {
-        if (! isset($this->selector)) {
-            $this->selector = new MessageSelector;
-        }
+        $this->load($namespace, $group, $locale);
 
-        return $this->selector;
+        $line = Arr::get($this->loaded[$namespace][$group][$locale], $item);
+
+        if (is_string($line)) {
+            return $this->makeReplacements($line, $replace);
+        } elseif (is_array($line) && count($line) > 0) {
+            return $line;
+        }
     }
 
     /**
-     * Set the message selector instance.
+     * Make the place-holder replacements on a line.
      *
-     * @param  \Illuminate\Translation\MessageSelector  $selector
-     * @return void
+     * @param  string  $line
+     * @param  array   $replace
+     * @return string
      */
-    public function setSelector(MessageSelector $selector)
+    protected function makeReplacements($line, array $replace)
     {
-        $this->selector = $selector;
+        if (empty($replace)) {
+            return $line;
+        }
+
+        $replace = $this->sortReplacements($replace);
+
+        foreach ($replace as $key => $value) {
+            $line = str_replace(
+                [':'.$key, ':'.Str::upper($key), ':'.Str::ucfirst($key)],
+                [$value, Str::upper($value), Str::ucfirst($value)],
+                $line
+            );
+        }
+
+        return $line;
+    }
+
+    /**
+     * Sort the replacements array.
+     *
+     * @param  array  $replace
+     * @return array
+     */
+    protected function sortReplacements(array $replace)
+    {
+        return (new Collection($replace))->sortBy(function ($value, $key) {
+            return mb_strlen($key) * -1;
+        })->all();
     }
 
     /**
@@ -390,6 +302,41 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
 
             Arr::set($this->loaded, "$namespace.$group.$locale.$item", $value);
         }
+    }
+
+    /**
+     * Load the specified language group.
+     *
+     * @param  string  $namespace
+     * @param  string  $group
+     * @param  string  $locale
+     * @return void
+     */
+    public function load($namespace, $group, $locale)
+    {
+        if ($this->isLoaded($namespace, $group, $locale)) {
+            return;
+        }
+
+        // The loader is responsible for returning the array of language lines for the
+        // given namespace, group, and locale. We'll set the lines in this array of
+        // lines that have already been loaded so that we can easily access them.
+        $lines = $this->loader->load($locale, $group, $namespace);
+
+        $this->loaded[$namespace][$group][$locale] = $lines;
+    }
+
+    /**
+     * Determine if the given group has been loaded.
+     *
+     * @param  string  $namespace
+     * @param  string  $group
+     * @param  string  $locale
+     * @return bool
+     */
+    protected function isLoaded($namespace, $group, $locale)
+    {
+        return isset($this->loaded[$namespace][$group][$locale]);
     }
 
     /**
@@ -413,6 +360,59 @@ class Translator extends NamespacedItemResolver implements TranslatorContract
     public function addJsonPath($path)
     {
         $this->loader->addJsonPath($path);
+    }
+
+    /**
+     * Parse a key into namespace, group, and item.
+     *
+     * @param  string  $key
+     * @return array
+     */
+    public function parseKey($key)
+    {
+        $segments = parent::parseKey($key);
+
+        if (is_null($segments[0])) {
+            $segments[0] = '*';
+        }
+
+        return $segments;
+    }
+
+    /**
+     * Get the array of locales to be checked.
+     *
+     * @param  string|null  $locale
+     * @return array
+     */
+    protected function localeArray($locale)
+    {
+        return array_filter([$locale ?: $this->locale, $this->fallback]);
+    }
+
+    /**
+     * Get the message selector instance.
+     *
+     * @return \Illuminate\Translation\MessageSelector
+     */
+    public function getSelector()
+    {
+        if (! isset($this->selector)) {
+            $this->selector = new MessageSelector;
+        }
+
+        return $this->selector;
+    }
+
+    /**
+     * Set the message selector instance.
+     *
+     * @param  \Illuminate\Translation\MessageSelector  $selector
+     * @return void
+     */
+    public function setSelector(MessageSelector $selector)
+    {
+        $this->selector = $selector;
     }
 
     /**

@@ -74,18 +74,6 @@ class Swift_Mime_Headers_IdentificationHeader extends Swift_Mime_Headers_Abstrac
     }
 
     /**
-     * Set the ID used in the value of this header.
-     *
-     * @param string|array $id
-     *
-     * @throws Swift_RfcComplianceException
-     */
-    public function setId($id)
-    {
-        $this->setIds(is_array($id) ? $id : array($id));
-    }
-
-    /**
      * Get the model for the field body.
      *
      * This method returns an array of IDs
@@ -98,13 +86,29 @@ class Swift_Mime_Headers_IdentificationHeader extends Swift_Mime_Headers_Abstrac
     }
 
     /**
-     * Get the list of IDs used in this Header.
+     * Set the ID used in the value of this header.
      *
-     * @return string[]
+     * @param string|array $id
+     *
+     * @throws Swift_RfcComplianceException
      */
-    public function getIds()
+    public function setId($id)
     {
-        return $this->ids;
+        $this->setIds(is_array($id) ? $id : array($id));
+    }
+
+    /**
+     * Get the ID used in the value of this Header.
+     *
+     * If multiple IDs are set only the first is returned.
+     *
+     * @return string
+     */
+    public function getId()
+    {
+        if (count($this->ids) > 0) {
+            return $this->ids[0];
+        }
     }
 
     /**
@@ -128,17 +132,13 @@ class Swift_Mime_Headers_IdentificationHeader extends Swift_Mime_Headers_Abstrac
     }
 
     /**
-     * Get the ID used in the value of this Header.
+     * Get the list of IDs used in this Header.
      *
-     * If multiple IDs are set only the first is returned.
-     *
-     * @return string
+     * @return string[]
      */
-    public function getId()
+    public function getIds()
     {
-        if (count($this->ids) > 0) {
-            return $this->ids[0];
-        }
+        return $this->ids;
     }
 
     /**

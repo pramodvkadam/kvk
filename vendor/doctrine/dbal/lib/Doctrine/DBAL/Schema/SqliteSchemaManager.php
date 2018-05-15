@@ -83,31 +83,6 @@ class SqliteSchemaManager extends AbstractSchemaManager
     }
 
     /**
-     * @param \Doctrine\DBAL\Schema\ForeignKeyConstraint $foreignKey
-     * @param \Doctrine\DBAL\Schema\Table|string         $table
-     *
-     * @return \Doctrine\DBAL\Schema\TableDiff
-     *
-     * @throws \Doctrine\DBAL\DBALException
-     */
-    private function getTableDiffForAlterForeignKey(ForeignKeyConstraint $foreignKey, $table)
-    {
-        if ( ! $table instanceof Table) {
-            $tableDetails = $this->tryMethod('listTableDetails', $table);
-            if (false === $table) {
-                throw new DBALException(sprintf('Sqlite schema manager requires to modify foreign keys table definition "%s".', $table));
-            }
-
-            $table = $tableDetails;
-        }
-
-        $tableDiff = new TableDiff($table->getName());
-        $tableDiff->fromTable = $table;
-
-        return $tableDiff;
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function dropAndCreateForeignKey(ForeignKeyConstraint $foreignKey, $table)
@@ -170,55 +145,6 @@ class SqliteSchemaManager extends AbstractSchemaManager
         }
 
         return $this->_getPortableTableForeignKeysList($tableForeignKeys);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function _getPortableTableForeignKeysList($tableForeignKeys)
-    {
-        $list = array();
-        foreach ($tableForeignKeys as $value) {
-            $value = array_change_key_case($value, CASE_LOWER);
-            $name = $value['constraint_name'];
-            if ( ! isset($list[$name])) {
-                if ( ! isset($value['on_delete']) || $value['on_delete'] == "RESTRICT") {
-                    $value['on_delete'] = null;
-                }
-                if ( ! isset($value['on_update']) || $value['on_update'] == "RESTRICT") {
-                    $value['on_update'] = null;
-                }
-
-                $list[$name] = array(
-                    'name' => $name,
-                    'local' => array(),
-                    'foreign' => array(),
-                    'foreignTable' => $value['table'],
-                    'onDelete' => $value['on_delete'],
-                    'onUpdate' => $value['on_update'],
-                    'deferrable' => $value['deferrable'],
-                    'deferred'=> $value['deferred'],
-                );
-            }
-            $list[$name]['local'][] = $value['from'];
-            $list[$name]['foreign'][] = $value['to'];
-        }
-
-        $result = array();
-        foreach ($list as $constraint) {
-            $result[] = new ForeignKeyConstraint(
-                array_values($constraint['local']), $constraint['foreignTable'],
-                array_values($constraint['foreign']), $constraint['name'],
-                array(
-                    'onDelete' => $constraint['onDelete'],
-                    'onUpdate' => $constraint['onUpdate'],
-                    'deferrable' => $constraint['deferrable'],
-                    'deferred'=> $constraint['deferred'],
-                )
-            );
-        }
-
-        return $result;
     }
 
     /**
@@ -337,19 +263,6 @@ class SqliteSchemaManager extends AbstractSchemaManager
         return $list;
     }
 
-    private function parseColumnCollationFromSQL($column, $sql)
-    {
-        if (preg_match(
-            '{(?:'.preg_quote($column).'|'.preg_quote($this->_platform->quoteSingleIdentifier($column)).')
-                [^,(]+(?:\([^()]+\)[^,]*)?
-                (?:(?:DEFAULT|CHECK)\s*(?:\(.*?\))?[^,]*)*
-                COLLATE\s+["\']?([^\s,"\')]+)}isx', $sql, $match)) {
-            return $match[1];
-        }
-
-        return false;
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -429,5 +342,92 @@ class SqliteSchemaManager extends AbstractSchemaManager
     protected function _getPortableViewDefinition($view)
     {
         return new View($view['name'], $view['sql']);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function _getPortableTableForeignKeysList($tableForeignKeys)
+    {
+        $list = array();
+        foreach ($tableForeignKeys as $value) {
+            $value = array_change_key_case($value, CASE_LOWER);
+            $name = $value['constraint_name'];
+            if ( ! isset($list[$name])) {
+                if ( ! isset($value['on_delete']) || $value['on_delete'] == "RESTRICT") {
+                    $value['on_delete'] = null;
+                }
+                if ( ! isset($value['on_update']) || $value['on_update'] == "RESTRICT") {
+                    $value['on_update'] = null;
+                }
+
+                $list[$name] = array(
+                    'name' => $name,
+                    'local' => array(),
+                    'foreign' => array(),
+                    'foreignTable' => $value['table'],
+                    'onDelete' => $value['on_delete'],
+                    'onUpdate' => $value['on_update'],
+                    'deferrable' => $value['deferrable'],
+                    'deferred'=> $value['deferred'],
+                );
+            }
+            $list[$name]['local'][] = $value['from'];
+            $list[$name]['foreign'][] = $value['to'];
+        }
+
+        $result = array();
+        foreach ($list as $constraint) {
+            $result[] = new ForeignKeyConstraint(
+                array_values($constraint['local']), $constraint['foreignTable'],
+                array_values($constraint['foreign']), $constraint['name'],
+                array(
+                    'onDelete' => $constraint['onDelete'],
+                    'onUpdate' => $constraint['onUpdate'],
+                    'deferrable' => $constraint['deferrable'],
+                    'deferred'=> $constraint['deferred'],
+                )
+            );
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param \Doctrine\DBAL\Schema\ForeignKeyConstraint $foreignKey
+     * @param \Doctrine\DBAL\Schema\Table|string         $table
+     *
+     * @return \Doctrine\DBAL\Schema\TableDiff
+     *
+     * @throws \Doctrine\DBAL\DBALException
+     */
+    private function getTableDiffForAlterForeignKey(ForeignKeyConstraint $foreignKey, $table)
+    {
+        if ( ! $table instanceof Table) {
+            $tableDetails = $this->tryMethod('listTableDetails', $table);
+            if (false === $table) {
+                throw new DBALException(sprintf('Sqlite schema manager requires to modify foreign keys table definition "%s".', $table));
+            }
+
+            $table = $tableDetails;
+        }
+
+        $tableDiff = new TableDiff($table->getName());
+        $tableDiff->fromTable = $table;
+
+        return $tableDiff;
+    }
+
+    private function parseColumnCollationFromSQL($column, $sql)
+    {
+        if (preg_match(
+            '{(?:'.preg_quote($column).'|'.preg_quote($this->_platform->quoteSingleIdentifier($column)).')
+                [^,(]+(?:\([^()]+\)[^,]*)?
+                (?:(?:DEFAULT|CHECK)\s*(?:\(.*?\))?[^,]*)*
+                COLLATE\s+["\']?([^\s,"\')]+)}isx', $sql, $match)) {
+            return $match[1];
+        }
+
+        return false;
     }
 }

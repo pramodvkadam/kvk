@@ -4,6 +4,11 @@ class Swift_Transport_Esmtp_Auth_PlainAuthenticatorTest extends \SwiftMailerTest
 {
     private $agent;
 
+    protected function setUp()
+    {
+        $this->agent = $this->getMockery('Swift_Transport_SmtpAgent')->shouldIgnoreMissing();
+    }
+
     public function testKeywordIsPlain()
     {
         /* -- RFC 4616, 1.
@@ -12,11 +17,6 @@ class Swift_Transport_Esmtp_Auth_PlainAuthenticatorTest extends \SwiftMailerTest
 
         $login = $this->getAuthenticator();
         $this->assertEquals('PLAIN', $login->getAuthKeyword());
-    }
-
-    private function getAuthenticator()
-    {
-        return new Swift_Transport_Esmtp_Auth_PlainAuthenticator();
     }
 
     public function testSuccessfulAuthentication()
@@ -60,8 +60,8 @@ class Swift_Transport_Esmtp_Auth_PlainAuthenticatorTest extends \SwiftMailerTest
             );
     }
 
-    protected function setUp()
+    private function getAuthenticator()
     {
-        $this->agent = $this->getMockery('Swift_Transport_SmtpAgent')->shouldIgnoreMissing();
+        return new Swift_Transport_Esmtp_Auth_PlainAuthenticator();
     }
 }

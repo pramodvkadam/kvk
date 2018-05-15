@@ -32,18 +32,6 @@ class ProcessHelperTest extends TestCase
         $this->assertEquals($expected, $this->getOutput($output));
     }
 
-    private function getOutputStream($verbosity)
-    {
-        return new StreamOutput(fopen('php://memory', 'r+', false), $verbosity, false);
-    }
-
-    private function getOutput(StreamOutput $output)
-    {
-        rewind($output->getStream());
-
-        return stream_get_contents($output->getStream());
-    }
-
     public function testPassedCallbackIsExecuted()
     {
         $helper = new ProcessHelper();
@@ -114,5 +102,17 @@ EOT;
             array($successOutputProcessDebug, array('php', '-r', 'echo 42;'), StreamOutput::VERBOSITY_DEBUG, null),
             array($successOutputDebug, new Process('php -r "echo 42;"'), StreamOutput::VERBOSITY_DEBUG, null),
         );
+    }
+
+    private function getOutputStream($verbosity)
+    {
+        return new StreamOutput(fopen('php://memory', 'r+', false), $verbosity, false);
+    }
+
+    private function getOutput(StreamOutput $output)
+    {
+        rewind($output->getStream());
+
+        return stream_get_contents($output->getStream());
     }
 }

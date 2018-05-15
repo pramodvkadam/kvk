@@ -58,7 +58,7 @@ return [
             'port'      => 3306,
             'database'  => 'atma',
             'username'  => 'root',
-            'password'  => 'S2b3.nk!',
+            'password'  => '123456',
             'charset'   => 'utf8',
             'collation' => 'utf8_unicode_ci',
             'prefix'    => '',
@@ -67,7 +67,7 @@ return [
         'pgsql' => [
             'driver'   => 'pgsql',
             'host'     => 'localhost',
-            'port'     => '',
+            'port'     => 3306,
             'database' => 'database',
             'username' => 'root',
             'password' => '',

@@ -24,32 +24,6 @@ class DeferredBinding extends Model
     public $duplicateCache = false;
 
     /**
-     * Cancel all deferred bindings to this model.
-     */
-    public static function cancelDeferredActions($masterType, $sessionKey)
-    {
-        $records = self::where('master_type', $masterType)
-            ->where('session_key', $sessionKey)
-            ->get();
-
-        foreach ($records as $record) {
-            $record->deleteCancel();
-        }
-    }
-
-    /**
-     * Clean up orphan bindings.
-     */
-    public static function cleanUp($days = 5)
-    {
-        $records = self::where('created_at', '<',  Carbon::now()->subDays($days)->toDateTimeString())->get();
-
-        foreach ($records as $record) {
-            $record->deleteCancel();
-        }
-    }
-
-    /**
      * Prevents duplicates and conflicting binds.
      */
     public function beforeCreate()
@@ -86,12 +60,38 @@ class DeferredBinding extends Model
     }
 
     /**
+     * Cancel all deferred bindings to this model.
+     */
+    public static function cancelDeferredActions($masterType, $sessionKey)
+    {
+        $records = self::where('master_type', $masterType)
+            ->where('session_key', $sessionKey)
+            ->get();
+
+        foreach ($records as $record) {
+            $record->deleteCancel();
+        }
+    }
+
+    /**
      * Delete this binding and cancel is actions
      */
     public function deleteCancel()
     {
         $this->deleteSlaveRecord();
         $this->delete();
+    }
+
+    /**
+     * Clean up orphan bindings.
+     */
+    public static function cleanUp($days = 5)
+    {
+        $records = self::where('created_at', '<',  Carbon::now()->subDays($days)->toDateTimeString())->get();
+
+        foreach ($records as $record) {
+            $record->deleteCancel();
+        }
     }
 
     /**

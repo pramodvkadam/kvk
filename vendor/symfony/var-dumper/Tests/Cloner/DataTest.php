@@ -45,13 +45,6 @@ class DataTest extends TestCase
         $this->assertSame($values, $clonedValues);
     }
 
-    private function cloneVar($value)
-    {
-        $cloner = new VarCloner();
-
-        return $cloner->cloneVar($value);
-    }
-
     public function testObject()
     {
         $data = $this->cloneVar(new \Exception('foo'));
@@ -111,5 +104,12 @@ class DataTest extends TestCase
         $this->assertEquals(array($data[2]->getValue()), $data[2]->getValue(true));
 
         $this->assertSame('array (count=3)', (string) $data);
+    }
+
+    private function cloneVar($value)
+    {
+        $cloner = new VarCloner();
+
+        return $cloner->cloneVar($value);
     }
 }

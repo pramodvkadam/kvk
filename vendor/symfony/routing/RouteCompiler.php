@@ -231,6 +231,26 @@ class RouteCompiler implements RouteCompilerInterface
     }
 
     /**
+     * Determines the longest static prefix possible for a route.
+     *
+     * @return string The leading static part of a route's path
+     */
+    private static function determineStaticPrefix(Route $route, array $tokens)
+    {
+        if ('text' !== $tokens[0][0]) {
+            return ($route->hasDefault($tokens[0][3]) || '/' === $tokens[0][1]) ? '' : $tokens[0][1];
+        }
+
+        $prefix = $tokens[0][1];
+
+        if (isset($tokens[1][1]) && '/' !== $tokens[1][1] && false === $route->hasDefault($tokens[1][3])) {
+            $prefix .= $tokens[1][1];
+        }
+
+        return $prefix;
+    }
+
+    /**
      * Returns the next static character in the Route pattern that will serve as a separator.
      *
      * @param string $pattern The route pattern
@@ -292,25 +312,5 @@ class RouteCompiler implements RouteCompilerInterface
                 return $regexp;
             }
         }
-    }
-
-    /**
-     * Determines the longest static prefix possible for a route.
-     *
-     * @return string The leading static part of a route's path
-     */
-    private static function determineStaticPrefix(Route $route, array $tokens)
-    {
-        if ('text' !== $tokens[0][0]) {
-            return ($route->hasDefault($tokens[0][3]) || '/' === $tokens[0][1]) ? '' : $tokens[0][1];
-        }
-
-        $prefix = $tokens[0][1];
-
-        if (isset($tokens[1][1]) && '/' !== $tokens[1][1] && false === $route->hasDefault($tokens[1][3])) {
-            $prefix .= $tokens[1][1];
-        }
-
-        return $prefix;
     }
 }

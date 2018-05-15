@@ -99,6 +99,28 @@ class OCI8Connection implements Connection, ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
+    public function prepare($prepareString)
+    {
+        return new OCI8Statement($this->dbh, $prepareString, $this);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function query()
+    {
+        $args = func_get_args();
+        $sql = $args[0];
+        //$fetchMode = $args[1];
+        $stmt = $this->prepare($sql);
+        $stmt->execute();
+
+        return $stmt;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function quote($value, $type=\PDO::PARAM_STR)
     {
         if (is_int($value) || is_float($value)) {
@@ -123,14 +145,6 @@ class OCI8Connection implements Connection, ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function prepare($prepareString)
-    {
-        return new OCI8Statement($this->dbh, $prepareString, $this);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function lastInsertId($name = null)
     {
         if ($name === null) {
@@ -148,20 +162,6 @@ class OCI8Connection implements Connection, ServerInfoAwareConnection
         }
 
         return (int) $result['CURRVAL'];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function query()
-    {
-        $args = func_get_args();
-        $sql = $args[0];
-        //$fetchMode = $args[1];
-        $stmt = $this->prepare($sql);
-        $stmt->execute();
-
-        return $stmt;
     }
 
     /**
@@ -200,14 +200,6 @@ class OCI8Connection implements Connection, ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function errorInfo()
-    {
-        return oci_error($this->dbh);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function rollBack()
     {
         if (!oci_rollback($this->dbh)) {
@@ -229,5 +221,13 @@ class OCI8Connection implements Connection, ServerInfoAwareConnection
         }
 
         return $error;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function errorInfo()
+    {
+        return oci_error($this->dbh);
     }
 }

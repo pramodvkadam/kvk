@@ -4,7 +4,7 @@
 *
 * @license http://opensource.org/licenses/MIT
 * @link https://github.com/thephpleague/csv/
-* @version 8.2.2
+* @version 8.2.3
 * @package League.csv
 *
 * For the full copyright and license information, please view the LICENSE
@@ -47,6 +47,18 @@ class Reader extends AbstractCsv
     }
 
     /**
+     * Fetch the next row from a result set
+     *
+     * @param callable|null $callable a callable function to be applied to each Iterator item
+     *
+     * @return Iterator
+     */
+    public function fetch(callable $callable = null)
+    {
+        return $this->applyCallable($this->getQueryIterator(), $callable);
+    }
+
+    /**
      * Apply The callable function
      *
      * @param Iterator      $iterator
@@ -61,18 +73,6 @@ class Reader extends AbstractCsv
         }
 
         return $iterator;
-    }
-
-    /**
-     * Fetch the next row from a result set
-     *
-     * @param callable|null $callable a callable function to be applied to each Iterator item
-     *
-     * @return Iterator
-     */
-    public function fetch(callable $callable = null)
-    {
-        return $this->applyCallable($this->getQueryIterator(), $callable);
     }
 
     /**
@@ -294,6 +294,18 @@ class Reader extends AbstractCsv
     }
 
     /**
+     * Returns whether the submitted value can be used as string
+     *
+     * @param mixed $value
+     *
+     * @return bool
+     */
+    protected function isValidKey($value)
+    {
+        return is_scalar($value) || (is_object($value) && method_exists($value, '__toString'));
+    }
+
+    /**
      * Returns a single row from the CSV without filtering
      *
      * @param int $offset
@@ -304,10 +316,7 @@ class Reader extends AbstractCsv
      */
     protected function getRow($offset)
     {
-        $fileObj = $this->getIterator();
-        $iterator = new LimitIterator($fileObj, $offset, 1);
-        $iterator->rewind();
-        $row = $iterator->current();
+        $row = $this->seekRow($offset);
         if (empty($row)) {
             throw new InvalidArgumentException('the specified row does not exist or is empty');
         }
@@ -326,14 +335,28 @@ class Reader extends AbstractCsv
     }
 
     /**
-     * Returns whether the submitted value can be used as string
+     * Returns the row at a given offset
      *
-     * @param mixed $value
+     * @param int $offset
      *
-     * @return bool
+     * @return mixed
      */
-    protected function isValidKey($value)
+    protected function seekRow($offset)
     {
-        return is_scalar($value) || (is_object($value) && method_exists($value, '__toString'));
+        $stream = $this->getIterator();
+        $stream->rewind();
+        //Workaround for SplFileObject::seek bug in PHP7.2+ see https://bugs.php.net/bug.php?id=75917
+        if (PHP_VERSION_ID > 70200 && !$stream instanceof StreamIterator) {
+            while ($offset !== $stream->key() && $stream->valid()) {
+                $stream->next();
+            }
+
+            return $stream->current();
+        }
+
+        $iterator = new LimitIterator($stream, $offset, 1);
+        $iterator->rewind();
+
+        return $iterator->current();
     }
 }

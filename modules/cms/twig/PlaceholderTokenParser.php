@@ -48,6 +48,11 @@ class PlaceholderTokenParser extends Twig_TokenParser
         return new PlaceholderNode($name, $params, $body, $token->getLine(), $this->getTag());
     }
 
+    public function decidePlaceholderEnd(Twig_Token $token)
+    {
+        return $token->test('endplaceholder');
+    }
+
     protected function loadParams($stream)
     {
         $params = [];
@@ -89,10 +94,5 @@ class PlaceholderTokenParser extends Twig_TokenParser
     public function getTag()
     {
         return 'placeholder';
-    }
-
-    public function decidePlaceholderEnd(Twig_Token $token)
-    {
-        return $token->test('endplaceholder');
     }
 }

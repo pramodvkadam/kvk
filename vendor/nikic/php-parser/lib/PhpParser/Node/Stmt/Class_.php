@@ -17,19 +17,22 @@ class Class_ extends ClassLike
     const VISIBILITY_MODIFIER_MASK = 7; // 1 | 2 | 4
     /** @deprecated */
     const VISIBILITY_MODIFER_MASK = self::VISIBILITY_MODIFIER_MASK;
-    protected static $specialNames = array(
-        'self'   => true,
-        'parent' => true,
-        'static' => true,
-    );
+
     /** @var int Type */
     public $flags;
     /** @var null|Node\Name Name of extended class */
     public $extends;
     /** @var Node\Name[] Names of implemented interfaces */
     public $implements;
+
     /** @deprecated Use $flags instead */
     public $type;
+
+    protected static $specialNames = array(
+        'self'   => true,
+        'parent' => true,
+        'static' => true,
+    );
 
     /**
      * Constructs a class node.
@@ -51,6 +54,22 @@ class Class_ extends ClassLike
         $this->extends = isset($subNodes['extends']) ? $subNodes['extends'] : null;
         $this->implements = isset($subNodes['implements']) ? $subNodes['implements'] : array();
         $this->stmts = isset($subNodes['stmts']) ? $subNodes['stmts'] : array();
+    }
+
+    public function getSubNodeNames() {
+        return array('flags', 'name', 'extends', 'implements', 'stmts');
+    }
+
+    public function isAbstract() {
+        return (bool) ($this->flags & self::MODIFIER_ABSTRACT);
+    }
+
+    public function isFinal() {
+        return (bool) ($this->flags & self::MODIFIER_FINAL);
+    }
+
+    public function isAnonymous() {
+        return null === $this->name;
     }
 
     /**
@@ -76,21 +95,5 @@ class Class_ extends ClassLike
         if ($a & 48 && $b & 48) {
             throw new Error('Cannot use the final modifier on an abstract class member');
         }
-    }
-
-    public function getSubNodeNames() {
-        return array('flags', 'name', 'extends', 'implements', 'stmts');
-    }
-
-    public function isAbstract() {
-        return (bool) ($this->flags & self::MODIFIER_ABSTRACT);
-    }
-
-    public function isFinal() {
-        return (bool) ($this->flags & self::MODIFIER_FINAL);
-    }
-
-    public function isAnonymous() {
-        return null === $this->name;
     }
 }

@@ -37,203 +37,56 @@ class Grammar extends BaseGrammar
     ];
 
     /**
-     * Compile the random statement into SQL.
-     *
-     * @param  string  $seed
-     * @return string
-     */
-    public function compileRandom($seed)
-    {
-        return 'RANDOM()';
-    }
-
-    /**
-     * Compile an exists statement into SQL.
+     * Compile a select query into SQL.
      *
      * @param  \Illuminate\Database\Query\Builder  $query
      * @return string
      */
-    public function compileExists(Builder $query)
+    public function compileSelect(Builder $query)
     {
-        $select = $this->compileSelect($query);
+        // If the query does not have any columns set, we'll set the columns to the
+        // * character to just get all of the columns from the database. Then we
+        // can build the query and concatenate all the pieces together as one.
+        $original = $query->columns;
 
-        return "select exists({$select}) as {$this->wrap('exists')}";
-    }
-
-    /**
-     * Compile an insert and get ID statement into SQL.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array   $values
-     * @param  string  $sequence
-     * @return string
-     */
-    public function compileInsertGetId(Builder $query, $values, $sequence)
-    {
-        return $this->compileInsert($query, $values);
-    }
-
-    /**
-     * Compile an insert statement into SQL.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array  $values
-     * @return string
-     */
-    public function compileInsert(Builder $query, array $values)
-    {
-        // Essentially we will force every insert to be treated as a batch insert which
-        // simply makes creating the SQL easier for us since we can utilize the same
-        // basic routine regardless of an amount of records given to us to insert.
-        $table = $this->wrapTable($query->from);
-
-        if (! is_array(reset($values))) {
-            $values = [$values];
+        if (is_null($query->columns)) {
+            $query->columns = ['*'];
         }
 
-        $columns = $this->columnize(array_keys(reset($values)));
-
-        // We need to build a list of parameter place-holders of values that are bound
-        // to the query. Each insert should have the exact same amount of parameter
-        // bindings so we will loop through the record and parameterize them all.
-        $parameters = collect($values)->map(function ($record) {
-            return '('.$this->parameterize($record).')';
-        })->implode(', ');
-
-        return "insert into $table ($columns) values $parameters";
-    }
-
-    /**
-     * Compile an update statement into SQL.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array  $values
-     * @return string
-     */
-    public function compileUpdate(Builder $query, $values)
-    {
-        $table = $this->wrapTable($query->from);
-
-        // Each one of the columns in the update statements needs to be wrapped in the
-        // keyword identifiers, also a place-holder needs to be created for each of
-        // the values in the list of bindings so we can make the sets statements.
-        $columns = collect($values)->map(function ($value, $key) {
-            return $this->wrap($key).' = '.$this->parameter($value);
-        })->implode(', ');
-
-        // If the query has any "join" clauses, we will setup the joins on the builder
-        // and compile them so we can attach them to this update, as update queries
-        // can get join statements to attach to other tables when they're needed.
-        $joins = '';
-
-        if (isset($query->joins)) {
-            $joins = ' '.$this->compileJoins($query, $query->joins);
-        }
-
-        // Of course, update queries may also be constrained by where clauses so we'll
-        // need to compile the where clauses and attach it to the query so only the
-        // intended records are updated by the SQL statements we generate to run.
-        $wheres = $this->compileWheres($query);
-
-        return trim("update {$table}{$joins} set $columns $wheres");
-    }
-
-    /**
-     * Compile the "join" portions of the query.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array  $joins
-     * @return string
-     */
-    protected function compileJoins(Builder $query, $joins)
-    {
-        return collect($joins)->map(function ($join) use ($query) {
-            $table = $this->wrapTable($join->table);
-
-            return trim("{$join->type} join {$table} {$this->compileWheres($join)}");
-        })->implode(' ');
-    }
-
-    /**
-     * Prepare the bindings for an update statement.
-     *
-     * @param  array  $bindings
-     * @param  array  $values
-     * @return array
-     */
-    public function prepareBindingsForUpdate(array $bindings, array $values)
-    {
-        $cleanBindings = Arr::except($bindings, ['join', 'select']);
-
-        return array_values(
-            array_merge($bindings['join'], $values, Arr::flatten($cleanBindings))
+        // To compile the query, we'll spin through each component of the query and
+        // see if that component exists. If it does we'll just call the compiler
+        // function for the component which is responsible for making the SQL.
+        $sql = trim($this->concatenate(
+            $this->compileComponents($query))
         );
+
+        $query->columns = $original;
+
+        return $sql;
     }
 
     /**
-     * Compile a delete statement into SQL.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @return string
-     */
-    public function compileDelete(Builder $query)
-    {
-        $wheres = is_array($query->wheres) ? $this->compileWheres($query) : '';
-
-        return trim("delete from {$this->wrapTable($query->from)} $wheres");
-    }
-
-    /**
-     * Compile a truncate table statement into SQL.
+     * Compile the components necessary for a select clause.
      *
      * @param  \Illuminate\Database\Query\Builder  $query
      * @return array
      */
-    public function compileTruncate(Builder $query)
+    protected function compileComponents(Builder $query)
     {
-        return ['truncate '.$this->wrapTable($query->from) => []];
-    }
+        $sql = [];
 
-    /**
-     * Determine if the grammar supports savepoints.
-     *
-     * @return bool
-     */
-    public function supportsSavepoints()
-    {
-        return true;
-    }
+        foreach ($this->selectComponents as $component) {
+            // To compile the query, we'll spin through each component of the query and
+            // see if that component exists. If it does we'll just call the compiler
+            // function for the component which is responsible for making the SQL.
+            if (! is_null($query->$component)) {
+                $method = 'compile'.ucfirst($component);
 
-    /**
-     * Compile the SQL statement to define a savepoint.
-     *
-     * @param  string  $name
-     * @return string
-     */
-    public function compileSavepoint($name)
-    {
-        return 'SAVEPOINT '.$name;
-    }
+                $sql[$component] = $this->$method($query, $query->$component);
+            }
+        }
 
-    /**
-     * Compile the SQL statement to execute a savepoint rollback.
-     *
-     * @param  string  $name
-     * @return string
-     */
-    public function compileSavepointRollBack($name)
-    {
-        return 'ROLLBACK TO SAVEPOINT '.$name;
-    }
-
-    /**
-     * Get the grammar specific operators.
-     *
-     * @return array
-     */
-    public function getOperators()
-    {
-        return $this->operators;
+        return $sql;
     }
 
     /**
@@ -288,6 +141,74 @@ class Grammar extends BaseGrammar
     protected function compileFrom(Builder $query, $table)
     {
         return 'from '.$this->wrapTable($table);
+    }
+
+    /**
+     * Compile the "join" portions of the query.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  array  $joins
+     * @return string
+     */
+    protected function compileJoins(Builder $query, $joins)
+    {
+        return collect($joins)->map(function ($join) {
+            $table = $this->wrapTable($join->table);
+
+            return trim("{$join->type} join {$table} {$this->compileWheres($join)}");
+        })->implode(' ');
+    }
+
+    /**
+     * Compile the "where" portions of the query.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @return string
+     */
+    protected function compileWheres(Builder $query)
+    {
+        // Each type of where clauses has its own compiler function which is responsible
+        // for actually creating the where clauses SQL. This helps keep the code nice
+        // and maintainable since each clause has a very small method that it uses.
+        if (is_null($query->wheres)) {
+            return '';
+        }
+
+        // If we actually have some where clauses, we will strip off the first boolean
+        // operator, which is added by the query builders for convenience so we can
+        // avoid checking for the first clauses in each of the compilers methods.
+        if (count($sql = $this->compileWheresToArray($query)) > 0) {
+            return $this->concatenateWhereClauses($query, $sql);
+        }
+
+        return '';
+    }
+
+    /**
+     * Get an array of all the where clauses for the query.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @return array
+     */
+    protected function compileWheresToArray($query)
+    {
+        return collect($query->wheres)->map(function ($where) use ($query) {
+            return $where['boolean'].' '.$this->{"where{$where['type']}"}($query, $where);
+        })->all();
+    }
+
+    /**
+     * Format the where clause statements into one string.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  array  $sql
+     * @return string
+     */
+    protected function concatenateWhereClauses($query, $sql)
+    {
+        $conjunction = $query instanceof JoinClause ? 'on' : 'where';
+
+        return $conjunction.' '.$this->removeLeadingBoolean(implode(' ', $sql));
     }
 
     /**
@@ -361,72 +282,6 @@ class Grammar extends BaseGrammar
     }
 
     /**
-     * Compile a select query into SQL.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @return string
-     */
-    public function compileSelect(Builder $query)
-    {
-        // If the query does not have any columns set, we'll set the columns to the
-        // * character to just get all of the columns from the database. Then we
-        // can build the query and concatenate all the pieces together as one.
-        $original = $query->columns;
-
-        if (is_null($query->columns)) {
-            $query->columns = ['*'];
-        }
-
-        // To compile the query, we'll spin through each component of the query and
-        // see if that component exists. If it does we'll just call the compiler
-        // function for the component which is responsible for making the SQL.
-        $sql = trim($this->concatenate(
-            $this->compileComponents($query))
-        );
-
-        $query->columns = $original;
-
-        return $sql;
-    }
-
-    /**
-     * Concatenate an array of segments, removing empties.
-     *
-     * @param  array   $segments
-     * @return string
-     */
-    protected function concatenate($segments)
-    {
-        return implode(' ', array_filter($segments, function ($value) {
-            return (string) $value !== '';
-        }));
-    }
-
-    /**
-     * Compile the components necessary for a select clause.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @return array
-     */
-    protected function compileComponents(Builder $query)
-    {
-        $sql = [];
-
-        foreach ($this->selectComponents as $component) {
-            // To compile the query, we'll spin through each component of the query and
-            // see if that component exists. If it does we'll just call the compiler
-            // function for the component which is responsible for making the SQL.
-            if (! is_null($query->$component)) {
-                $method = 'compile'.ucfirst($component);
-
-                $sql[$component] = $this->$method($query, $query->$component);
-            }
-        }
-
-        return $sql;
-    }
-
-    /**
      * Compile a where not in sub-select clause.
      *
      * @param  \Illuminate\Database\Query\Builder  $query
@@ -489,21 +344,6 @@ class Grammar extends BaseGrammar
     }
 
     /**
-     * Compile a date based where clause.
-     *
-     * @param  string  $type
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array  $where
-     * @return string
-     */
-    protected function dateBasedWhere($type, Builder $query, $where)
-    {
-        $value = $this->parameter($where['value']);
-
-        return $type.'('.$this->wrap($where['column']).') '.$where['operator'].' '.$value;
-    }
-
-    /**
      * Compile a "where time" clause.
      *
      * @param  \Illuminate\Database\Query\Builder  $query
@@ -552,6 +392,21 @@ class Grammar extends BaseGrammar
     }
 
     /**
+     * Compile a date based where clause.
+     *
+     * @param  string  $type
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  array  $where
+     * @return string
+     */
+    protected function dateBasedWhere($type, Builder $query, $where)
+    {
+        $value = $this->parameter($where['value']);
+
+        return $type.'('.$this->wrap($where['column']).') '.$where['operator'].' '.$value;
+    }
+
+    /**
      * Compile a where clause comparing two columns..
      *
      * @param  \Illuminate\Database\Query\Builder  $query
@@ -578,69 +433,6 @@ class Grammar extends BaseGrammar
         $offset = $query instanceof JoinClause ? 3 : 6;
 
         return '('.substr($this->compileWheres($where['query']), $offset).')';
-    }
-
-    /**
-     * Compile the "where" portions of the query.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @return string
-     */
-    protected function compileWheres(Builder $query)
-    {
-        // Each type of where clauses has its own compiler function which is responsible
-        // for actually creating the where clauses SQL. This helps keep the code nice
-        // and maintainable since each clause has a very small method that it uses.
-        if (is_null($query->wheres)) {
-            return '';
-        }
-
-        // If we actually have some where clauses, we will strip off the first boolean
-        // operator, which is added by the query builders for convenience so we can
-        // avoid checking for the first clauses in each of the compilers methods.
-        if (count($sql = $this->compileWheresToArray($query)) > 0) {
-            return $this->concatenateWhereClauses($query, $sql);
-        }
-
-        return '';
-    }
-
-    /**
-     * Get an array of all the where clauses for the query.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @return array
-     */
-    protected function compileWheresToArray($query)
-    {
-        return collect($query->wheres)->map(function ($where) use ($query) {
-            return $where['boolean'].' '.$this->{"where{$where['type']}"}($query, $where);
-        })->all();
-    }
-
-    /**
-     * Format the where clause statements into one string.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array  $sql
-     * @return string
-     */
-    protected function concatenateWhereClauses($query, $sql)
-    {
-        $conjunction = $query instanceof JoinClause ? 'on' : 'where';
-
-        return $conjunction.' '.$this->removeLeadingBoolean(implode(' ', $sql));
-    }
-
-    /**
-     * Remove the leading boolean from a statement.
-     *
-     * @param  string  $value
-     * @return string
-     */
-    protected function removeLeadingBoolean($value)
-    {
-        return preg_replace('/and |or /i', '', $value, 1);
     }
 
     /**
@@ -741,6 +533,73 @@ class Grammar extends BaseGrammar
     }
 
     /**
+     * Compile the "order by" portions of the query.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  array  $orders
+     * @return string
+     */
+    protected function compileOrders(Builder $query, $orders)
+    {
+        if (! empty($orders)) {
+            return 'order by '.implode(', ', $this->compileOrdersToArray($query, $orders));
+        }
+
+        return '';
+    }
+
+    /**
+     * Compile the query orders to an array.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  array  $orders
+     * @return array
+     */
+    protected function compileOrdersToArray(Builder $query, $orders)
+    {
+        return array_map(function ($order) {
+            return ! isset($order['sql'])
+                        ? $this->wrap($order['column']).' '.$order['direction']
+                        : $order['sql'];
+        }, $orders);
+    }
+
+    /**
+     * Compile the random statement into SQL.
+     *
+     * @param  string  $seed
+     * @return string
+     */
+    public function compileRandom($seed)
+    {
+        return 'RANDOM()';
+    }
+
+    /**
+     * Compile the "limit" portions of the query.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  int  $limit
+     * @return string
+     */
+    protected function compileLimit(Builder $query, $limit)
+    {
+        return 'limit '.(int) $limit;
+    }
+
+    /**
+     * Compile the "offset" portions of the query.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  int  $offset
+     * @return string
+     */
+    protected function compileOffset(Builder $query, $offset)
+    {
+        return 'offset '.(int) $offset;
+    }
+
+    /**
      * Compile the "union" queries attached to the main query.
      *
      * @param  \Illuminate\Database\Query\Builder  $query
@@ -783,59 +642,145 @@ class Grammar extends BaseGrammar
     }
 
     /**
-     * Compile the "order by" portions of the query.
+     * Compile an exists statement into SQL.
      *
      * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array  $orders
      * @return string
      */
-    protected function compileOrders(Builder $query, $orders)
+    public function compileExists(Builder $query)
     {
-        if (! empty($orders)) {
-            return 'order by '.implode(', ', $this->compileOrdersToArray($query, $orders));
+        $select = $this->compileSelect($query);
+
+        return "select exists({$select}) as {$this->wrap('exists')}";
+    }
+
+    /**
+     * Compile an insert statement into SQL.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  array  $values
+     * @return string
+     */
+    public function compileInsert(Builder $query, array $values)
+    {
+        // Essentially we will force every insert to be treated as a batch insert which
+        // simply makes creating the SQL easier for us since we can utilize the same
+        // basic routine regardless of an amount of records given to us to insert.
+        $table = $this->wrapTable($query->from);
+
+        if (! is_array(reset($values))) {
+            $values = [$values];
         }
 
-        return '';
+        $columns = $this->columnize(array_keys(reset($values)));
+
+        // We need to build a list of parameter place-holders of values that are bound
+        // to the query. Each insert should have the exact same amount of parameter
+        // bindings so we will loop through the record and parameterize them all.
+        $parameters = collect($values)->map(function ($record) {
+            return '('.$this->parameterize($record).')';
+        })->implode(', ');
+
+        return "insert into $table ($columns) values $parameters";
     }
 
     /**
-     * Compile the query orders to an array.
+     * Compile an insert and get ID statement into SQL.
      *
      * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array  $orders
+     * @param  array   $values
+     * @param  string  $sequence
+     * @return string
+     */
+    public function compileInsertGetId(Builder $query, $values, $sequence)
+    {
+        return $this->compileInsert($query, $values);
+    }
+
+    /**
+     * Compile an update statement into SQL.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  array  $values
+     * @return string
+     */
+    public function compileUpdate(Builder $query, $values)
+    {
+        $table = $this->wrapTable($query->from);
+
+        // Each one of the columns in the update statements needs to be wrapped in the
+        // keyword identifiers, also a place-holder needs to be created for each of
+        // the values in the list of bindings so we can make the sets statements.
+        $columns = collect($values)->map(function ($value, $key) {
+            return $this->wrap($key).' = '.$this->parameter($value);
+        })->implode(', ');
+
+        // If the query has any "join" clauses, we will setup the joins on the builder
+        // and compile them so we can attach them to this update, as update queries
+        // can get join statements to attach to other tables when they're needed.
+        $joins = '';
+
+        if (isset($query->joins)) {
+            $joins = ' '.$this->compileJoins($query, $query->joins);
+        }
+
+        // Of course, update queries may also be constrained by where clauses so we'll
+        // need to compile the where clauses and attach it to the query so only the
+        // intended records are updated by the SQL statements we generate to run.
+        $wheres = $this->compileWheres($query);
+
+        return trim("update {$table}{$joins} set $columns $wheres");
+    }
+
+    /**
+     * Prepare the bindings for an update statement.
+     *
+     * @param  array  $bindings
+     * @param  array  $values
      * @return array
      */
-    protected function compileOrdersToArray(Builder $query, $orders)
+    public function prepareBindingsForUpdate(array $bindings, array $values)
     {
-        return array_map(function ($order) {
-            return ! isset($order['sql'])
-                        ? $this->wrap($order['column']).' '.$order['direction']
-                        : $order['sql'];
-        }, $orders);
+        $cleanBindings = Arr::except($bindings, ['join', 'select']);
+
+        return array_values(
+            array_merge($bindings['join'], $values, Arr::flatten($cleanBindings))
+        );
     }
 
     /**
-     * Compile the "limit" portions of the query.
+     * Compile a delete statement into SQL.
      *
      * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  int  $limit
      * @return string
      */
-    protected function compileLimit(Builder $query, $limit)
+    public function compileDelete(Builder $query)
     {
-        return 'limit '.(int) $limit;
+        $wheres = is_array($query->wheres) ? $this->compileWheres($query) : '';
+
+        return trim("delete from {$this->wrapTable($query->from)} $wheres");
     }
 
     /**
-     * Compile the "offset" portions of the query.
+     * Prepare the bindings for a delete statement.
+     *
+     * @param  array  $bindings
+     * @return array
+     */
+    public function prepareBindingsForDelete(array $bindings)
+    {
+        return Arr::flatten($bindings);
+    }
+
+    /**
+     * Compile a truncate table statement into SQL.
      *
      * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  int  $offset
-     * @return string
+     * @return array
      */
-    protected function compileOffset(Builder $query, $offset)
+    public function compileTruncate(Builder $query)
     {
-        return 'offset '.(int) $offset;
+        return ['truncate '.$this->wrapTable($query->from) => []];
     }
 
     /**
@@ -848,5 +793,71 @@ class Grammar extends BaseGrammar
     protected function compileLock(Builder $query, $value)
     {
         return is_string($value) ? $value : '';
+    }
+
+    /**
+     * Determine if the grammar supports savepoints.
+     *
+     * @return bool
+     */
+    public function supportsSavepoints()
+    {
+        return true;
+    }
+
+    /**
+     * Compile the SQL statement to define a savepoint.
+     *
+     * @param  string  $name
+     * @return string
+     */
+    public function compileSavepoint($name)
+    {
+        return 'SAVEPOINT '.$name;
+    }
+
+    /**
+     * Compile the SQL statement to execute a savepoint rollback.
+     *
+     * @param  string  $name
+     * @return string
+     */
+    public function compileSavepointRollBack($name)
+    {
+        return 'ROLLBACK TO SAVEPOINT '.$name;
+    }
+
+    /**
+     * Concatenate an array of segments, removing empties.
+     *
+     * @param  array   $segments
+     * @return string
+     */
+    protected function concatenate($segments)
+    {
+        return implode(' ', array_filter($segments, function ($value) {
+            return (string) $value !== '';
+        }));
+    }
+
+    /**
+     * Remove the leading boolean from a statement.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    protected function removeLeadingBoolean($value)
+    {
+        return preg_replace('/and |or /i', '', $value, 1);
+    }
+
+    /**
+     * Get the grammar specific operators.
+     *
+     * @return array
+     */
+    public function getOperators()
+    {
+        return $this->operators;
     }
 }

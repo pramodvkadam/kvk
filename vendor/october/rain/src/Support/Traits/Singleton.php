@@ -14,14 +14,6 @@ trait Singleton
     protected static $instance;
 
     /**
-     * Constructor.
-     */
-    final protected function __construct()
-    {
-        $this->init();
-    }
-
-    /**
      * Create a new instance of this singleton.
      */
     final public static function instance()
@@ -30,7 +22,7 @@ trait Singleton
             ? static::$instance
             : static::$instance = new static;
     }
-    
+
     /**
      * Forget this singleton's instance if it exists
      */
@@ -38,6 +30,19 @@ trait Singleton
     {
         static::$instance = null;
     }
+    
+    /**
+     * Constructor.
+     */
+    final protected function __construct()
+    {
+        $this->init();
+    }
+
+    /**
+     * Initialize the singleton free from constructor parameters.
+     */
+    protected function init() {}
 
     public function __clone()
     {
@@ -48,9 +53,4 @@ trait Singleton
     {
         trigger_error('Unserializing '.__CLASS__.' is not allowed.', E_USER_ERROR);
     }
-
-    /**
-     * Initialize the singleton free from constructor parameters.
-     */
-    protected function init() {}
 }

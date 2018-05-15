@@ -19,161 +19,22 @@ use File;
  */
 class LocalizationModel extends BaseModel
 {
+    public $strings;
+
+    public $language;
+
+    public $originalLanguage;
+
     protected static $fillable = [
         'strings',
         'language'
     ];
-    public $strings;
-    public $language;
-    public $originalLanguage;
+
     protected $validationRules = [
         'language' => ['required', 'regex:/^[a-z0-9\.\-]+$/i']
     ];
 
     protected $originalStringArray = [];
-
-    public static function initModel($pluginCode, $language)
-    {
-        $model = new self();
-        $model->setPluginCode($pluginCode);
-        $model->language = $language;
-
-        return $model;
-    }
-
-    public static function listPluginLanguages($pluginCodeObj)
-    {
-        $languagesDirectoryPath = $pluginCodeObj->toPluginDirectoryPath().'/lang';
-
-        $languagesDirectoryPath = File::symbolizePath($languagesDirectoryPath);
-
-        if (!File::isDirectory($languagesDirectoryPath)) {
-            return [];
-        }
-
-        $result = [];
-        foreach (new DirectoryIterator($languagesDirectoryPath) as $fileInfo) {
-            if (!$fileInfo->isDir() || $fileInfo->isDot()) {
-                continue;
-            }
-
-            $langFilePath = $fileInfo->getPathname().'/lang.php';
-
-            if (File::isFile($langFilePath)) {
-                $result[] = $fileInfo->getFilename();
-            }
-        }
-
-        return $result;
-    }
-
-    public static function getPluginRegistryData($pluginCode, $subtype)
-    {
-        $defaultLanguage = self::getDefaultLanguage();
-
-        $model = new self();
-        $model->setPluginCode($pluginCode);
-        $model->language = $defaultLanguage;
-
-        $filePath = $model->getFilePath();
-        if (!File::isFile($filePath)) {
-            return [];
-        }
-
-        $model->load($defaultLanguage);
-
-        $array = $model->getOriginalStringsArray();
-        $languagePrefix = strtolower($model->getPluginCodeObj()->toCode()).'::lang.';
-
-        if ($subtype !== 'sections') {
-            return self::convertToStringsArray($array, $languagePrefix);
-        }
-
-        return self::convertToSectionsArray($array);
-    }
-
-    public static function getDefaultLanguage()
-    {
-        $language = Config::get('app.locale');
-
-        if (!$language) {
-            throw new ApplicationException('The default language is not defined in the application configuration (app.locale).');
-        }
-
-        return $language;
-    }
-
-    public static function languageFileExists($pluginCode, $language)
-    {
-        $model = new self();
-        $model->setPluginCode($pluginCode);
-        $model->language = $language;
-
-        $filePath = $model->getFilePath();
-        return File::isFile($filePath);
-    }
-
-    public function deleteModel()
-    {
-        if ($this->isNewModel()) {
-            throw new ApplicationException('Cannot delete language file which is not saved yet.');
-        }
-
-        $filePath = File::symbolizePath($this->getFilePath());
-        if (File::isFile($filePath)) {
-            if (!@unlink($filePath)) {
-                throw new ApplicationException(Lang::get('rainlab.builder::lang.localization.error_delete_file'));
-            }
-        }
-    }
-
-    protected function getFilePath($language = null)
-    {
-        if ($language === null) {
-            $language = $this->language;
-        }
-
-        $language = trim($language);
-
-        if (!strlen($language)) {
-            throw new SystemException('The form model language is not set.');
-        }
-
-        if (!$this->validateLanguage($language)) {
-            throw new SystemException('Invalid language file name: '.$language);
-        }
-
-        $path = $this->getPluginCodeObj()->toPluginDirectoryPath().'/lang/'.$language.'/lang.php';
-        return File::symbolizePath($path);
-    }
-
-    protected function validateLanguage($language)
-    {
-        return preg_match('/^[a-z0-9\.\-]+$/i', $language);
-    }
-
-    public function initContent()
-    {
-        $templatePath = '$/rainlab/builder/classes/localizationmodel/templates/lang.php';
-        $templatePath = File::symbolizePath($templatePath);
-
-        $strings = include($templatePath);
-        $dumper = new YamlDumper();
-        $this->strings = $dumper->dump($strings, 20, 0, false, true);
-    }
-
-    public function copyStringsFrom($destinationText, $sourceLanguageCode)
-    {
-        $sourceLanguageModel = new self();
-        $sourceLanguageModel->setPluginCodeObj($this->getPluginCodeObj());
-        $sourceLanguageModel->load($sourceLanguageCode);
-
-        $srcArray = $sourceLanguageModel->getOriginalStringsArray();
-
-        $languageMixer = new LanguageMixer();
-
-        return $languageMixer->addStringsFromAnotherLanguage($destinationText, $srcArray);
-    }
 
     public function load($language)
     {
@@ -205,39 +66,116 @@ class LocalizationModel extends BaseModel
         else {
             $this->strings = '';
         }
-
+        
         $this->exists = true;
     }
 
-    protected function validateFileContents($path)
+    public static function initModel($pluginCode, $language)
     {
-        $fileContents = File::get($path);
+        $model = new self();
+        $model->setPluginCode($pluginCode);
+        $model->language = $language;
 
-        $stream = new PhpSourceStream($fileContents);
+        return $model;
+    }
 
-        $invalidTokens = [
-            T_CLASS,
-            T_FUNCTION,
-            T_INCLUDE,
-            T_INCLUDE_ONCE,
-            T_REQUIRE,
-            T_REQUIRE_ONCE,
-            T_EVAL,
-            T_ECHO,
-            T_GOTO,
-            T_HALT_COMPILER,
-            T_STRING // Unescaped strings - function names, etc.
-        ];
+    public function save()
+    {
+        $data = $this->modelToLanguageFile();
+        $this->validate();
 
-        while ($stream->forward()) {
-            $tokenCode = $stream->getCurrentCode();
+        $filePath = File::symbolizePath($this->getFilePath());
+        $isNew = $this->isNewModel();
 
-            if (in_array($tokenCode, $invalidTokens)) {
-                return false;
+        if (File::isFile($filePath)) {
+            if ($isNew || $this->originalLanguage != $this->language) {
+                throw new ValidationException(['fileName' => Lang::get('rainlab.builder::lang.common.error_file_exists', ['path'=>$this->language.'/'.basename($filePath)])]);
             }
         }
 
-        return true;
+        $fileDirectory = dirname($filePath);
+        if (!File::isDirectory($fileDirectory)) {
+            if (!File::makeDirectory($fileDirectory, 0777, true, true)) {
+                throw new ApplicationException(Lang::get('rainlab.builder::lang.common.error_make_dir', ['name'=>$fileDirectory]));
+            }
+        }
+
+        if (@File::put($filePath, $data) === false) {
+            throw new ApplicationException(Lang::get('rainlab.builder::lang.localization.save_error', ['name'=>$filePath]));
+        }
+
+        @File::chmod($filePath);
+
+        if (!$this->isNewModel() && strlen($this->originalLanguage) > 0 && $this->originalLanguage != $this->language) {
+            $this->originalFilePath = $this->getFilePath($this->originalLanguage);
+            @File::delete($this->originalFilePath);
+        }
+
+        $this->originalLanguage = $this->language;
+        $this->exists = true;
+    }
+
+    public function deleteModel()
+    {
+        if ($this->isNewModel()) {
+            throw new ApplicationException('Cannot delete language file which is not saved yet.');
+        }
+
+        $filePath = File::symbolizePath($this->getFilePath());
+        if (File::isFile($filePath)) {
+            if (!@unlink($filePath)) {
+                throw new ApplicationException(Lang::get('rainlab.builder::lang.localization.error_delete_file'));
+            }
+        }
+    }
+
+    public function initContent()
+    {
+        $templatePath = '$/rainlab/builder/classes/localizationmodel/templates/lang.php';
+        $templatePath = File::symbolizePath($templatePath);
+
+        $strings = include($templatePath);
+        $dumper = new YamlDumper();
+        $this->strings = $dumper->dump($strings, 20, 0, false, true);
+    }
+
+    public static function listPluginLanguages($pluginCodeObj)
+    {
+        $languagesDirectoryPath = $pluginCodeObj->toPluginDirectoryPath().'/lang';
+
+        $languagesDirectoryPath = File::symbolizePath($languagesDirectoryPath);
+
+        if (!File::isDirectory($languagesDirectoryPath)) {
+            return [];
+        }
+
+        $result = [];
+        foreach (new DirectoryIterator($languagesDirectoryPath) as $fileInfo) {
+            if (!$fileInfo->isDir() || $fileInfo->isDot()) {
+                continue;
+            }
+
+            $langFilePath = $fileInfo->getPathname().'/lang.php';
+
+            if (File::isFile($langFilePath)) {
+                $result[] = $fileInfo->getFilename();
+            }
+        }
+
+        return $result;
+    }
+
+    public function copyStringsFrom($destinationText, $sourceLanguageCode)
+    {
+        $sourceLanguageModel = new self();
+        $sourceLanguageModel->setPluginCodeObj($this->getPluginCodeObj());
+        $sourceLanguageModel->load($sourceLanguageCode);
+
+        $srcArray = $sourceLanguageModel->getOriginalStringsArray();
+
+        $languageMixer = new LanguageMixer();
+        
+        return $languageMixer->addStringsFromAnotherLanguage($destinationText, $srcArray);
     }
 
     public function getOriginalStringsArray()
@@ -284,6 +222,62 @@ class LocalizationModel extends BaseModel
         return $languagePrefix.$stringKey;
     }
 
+    public static function getDefaultLanguage()
+    {
+        $language = Config::get('app.locale');
+
+        if (!$language) {
+            throw new ApplicationException('The default language is not defined in the application configuration (app.locale).');
+        }
+
+        return $language;
+    }
+
+    public static function getPluginRegistryData($pluginCode, $subtype)
+    {
+        $defaultLanguage = self::getDefaultLanguage();
+
+        $model = new self();
+        $model->setPluginCode($pluginCode);
+        $model->language = $defaultLanguage;
+
+        $filePath = $model->getFilePath();
+        if (!File::isFile($filePath)) {
+            return [];
+        }
+
+        $model->load($defaultLanguage);
+
+        $array = $model->getOriginalStringsArray();
+        $languagePrefix = strtolower($model->getPluginCodeObj()->toCode()).'::lang.';
+
+        if ($subtype !== 'sections') {
+            return self::convertToStringsArray($array, $languagePrefix);
+        }
+
+        return self::convertToSectionsArray($array);
+    }
+
+    public static function languageFileExists($pluginCode, $language)
+    {
+        $model = new self();
+        $model->setPluginCode($pluginCode);
+        $model->language = $language;
+
+        $filePath = $model->getFilePath();
+        return File::isFile($filePath);
+    }
+
+    protected static function createStringSections(&$arr, $path, $value) {
+        $keys = explode('.', $path);
+
+        while ($key = array_shift($keys)) {
+            $arr = &$arr[$key];
+        }
+
+        $arr = $value;
+    }
+
     protected static function convertToStringsArray($stringsArray, $prefix, $currentKey = '')
     {
         $result = [];
@@ -320,71 +314,29 @@ class LocalizationModel extends BaseModel
         return $result;
     }
 
-    protected static function createStringSections(&$arr, $path, $value) {
-        $keys = explode('.', $path);
-
-        while ($key = array_shift($keys)) {
-            $arr = &$arr[$key];
-        }
-
-        $arr = $value;
+    protected function validateLanguage($language)
+    {
+        return preg_match('/^[a-z0-9\.\-]+$/i', $language);
     }
 
-    protected function checkKeyWritable($stringKey, $existingStrings, $languagePrefix)
+    protected function getFilePath($language = null)
     {
-        $sectionList = explode('.', $stringKey);
-
-        $lastElement = array_pop($sectionList);
-        while (strlen($lastElement)) {
-            if (count($sectionList) > 0) {
-                $fullKey = implode('.', $sectionList).'.'.$lastElement;
-            }
-            else {
-                $fullKey = $lastElement;
-            }
-
-            if (array_key_exists($languagePrefix.$fullKey, $existingStrings)) {
-                throw new ValidationException(['key' => Lang::get('rainlab.builder::lang.localization.string_key_is_a_string', ['key'=>$fullKey])]);
-            }
-
-            $lastElement = array_pop($sectionList);
-        }
-    }
-
-    public function save()
-    {
-        $data = $this->modelToLanguageFile();
-        $this->validate();
-
-        $filePath = File::symbolizePath($this->getFilePath());
-        $isNew = $this->isNewModel();
-
-        if (File::isFile($filePath)) {
-            if ($isNew || $this->originalLanguage != $this->language) {
-                throw new ValidationException(['fileName' => Lang::get('rainlab.builder::lang.common.error_file_exists', ['path'=>$this->language.'/'.basename($filePath)])]);
-            }
+        if ($language === null) {
+            $language = $this->language;
         }
 
-        $fileDirectory = dirname($filePath);
-        if (!File::isDirectory($fileDirectory)) {
-            if (!File::makeDirectory($fileDirectory, 0777, true, true)) {
-                throw new ApplicationException(Lang::get('rainlab.builder::lang.common.error_make_dir', ['name'=>$fileDirectory]));
-            }
+        $language = trim($language);
+
+        if (!strlen($language)) {
+            throw new SystemException('The form model language is not set.');
         }
 
-        if (@File::put($filePath, $data) === false) {
-            throw new ApplicationException(Lang::get('rainlab.builder::lang.localization.save_error', ['name'=>$filePath]));
+        if (!$this->validateLanguage($language)) {
+            throw new SystemException('Invalid language file name: '.$language);
         }
 
-        @File::chmod($filePath);
-
-        if (!$this->isNewModel() && strlen($this->originalLanguage) > 0 && $this->originalLanguage != $this->language) {
-            $this->originalFilePath = $this->getFilePath($this->originalLanguage);
-            @File::delete($this->originalFilePath);
-        }
-
-        $this->originalLanguage = $this->language;
-        $this->exists = true;
+        $path = $this->getPluginCodeObj()->toPluginDirectoryPath().'/lang/'.$language.'/lang.php';
+        return File::symbolizePath($path);
     }
 
     protected function modelToLanguageFile()
@@ -409,10 +361,41 @@ class LocalizationModel extends BaseModel
             $phpData = preg_replace('/^\)\Z/m', ']', $phpData);
 
             return "<?php return ".$phpData.";";
-        }
+        } 
         catch (Exception $ex) {
             throw new ApplicationException(sprintf('Cannot parse the YAML content: %s', $ex->getMessage()));
         }
+    }
+
+    protected function validateFileContents($path)
+    {
+        $fileContents = File::get($path);
+
+        $stream = new PhpSourceStream($fileContents);
+
+        $invalidTokens = [
+            T_CLASS,
+            T_FUNCTION,
+            T_INCLUDE,
+            T_INCLUDE_ONCE,
+            T_REQUIRE,
+            T_REQUIRE_ONCE,
+            T_EVAL,
+            T_ECHO,
+            T_GOTO,
+            T_HALT_COMPILER,
+            T_STRING // Unescaped strings - function names, etc.
+        ];
+
+        while ($stream->forward()) {
+            $tokenCode = $stream->getCurrentCode();
+
+            if (in_array($tokenCode, $invalidTokens)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     protected function getSanitizedPHPStrings($strings)
@@ -424,9 +407,30 @@ class LocalizationModel extends BaseModel
 
             // In YAML single quotes are escaped with two single quotes
             // http://yaml.org/spec/current.html#id2534365
-            $item = str_replace("''", "'", $item);
+            $item = str_replace("''", "'", $item); 
         });
 
         return $strings;
+    }
+
+    protected function checkKeyWritable($stringKey, $existingStrings, $languagePrefix)
+    {
+        $sectionList = explode('.', $stringKey);
+
+        $lastElement = array_pop($sectionList);
+        while (strlen($lastElement)) {
+            if (count($sectionList) > 0) {
+                $fullKey = implode('.', $sectionList).'.'.$lastElement;
+            }
+            else {
+                $fullKey = $lastElement;
+            }
+
+            if (array_key_exists($languagePrefix.$fullKey, $existingStrings)) {
+                throw new ValidationException(['key' => Lang::get('rainlab.builder::lang.localization.string_key_is_a_string', ['key'=>$fullKey])]);
+            }
+
+            $lastElement = array_pop($sectionList);
+        }
     }
 }

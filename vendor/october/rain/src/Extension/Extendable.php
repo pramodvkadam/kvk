@@ -31,16 +31,6 @@ class Extendable
         $this->extendableConstruct();
     }
 
-    public static function __callStatic($name, $params)
-    {
-        return self::extendableCallStatic($name, $params);
-    }
-
-    public static function extend(callable $callback)
-    {
-        self::extendableExtendCallback($callback);
-    }
-
     public function __get($name)
     {
         return $this->extendableGet($name);
@@ -54,5 +44,15 @@ class Extendable
     public function __call($name, $params)
     {
         return $this->extendableCall($name, $params);
+    }
+
+    public static function __callStatic($name, $params)
+    {
+        return self::extendableCallStatic($name, $params);
+    }
+
+    public static function extend(callable $callback)
+    {
+        self::extendableExtendCallback($callback);
     }
 }

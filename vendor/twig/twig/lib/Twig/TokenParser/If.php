@@ -65,11 +65,6 @@ final class Twig_TokenParser_If extends Twig_TokenParser
         return new Twig_Node_If(new Twig_Node($tests), $else, $lineno, $this->getTag());
     }
 
-    public function getTag()
-    {
-        return 'if';
-    }
-
     public function decideIfFork(Twig_Token $token)
     {
         return $token->test(array('elseif', 'else', 'endif'));
@@ -78,6 +73,11 @@ final class Twig_TokenParser_If extends Twig_TokenParser
     public function decideIfEnd(Twig_Token $token)
     {
         return $token->test(array('endif'));
+    }
+
+    public function getTag()
+    {
+        return 'if';
     }
 }
 

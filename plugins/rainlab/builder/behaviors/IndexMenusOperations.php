@@ -40,11 +40,6 @@ class IndexMenusOperations extends IndexOperationsBehaviorBase
         return $result;
     }
 
-    protected function getTabId($pluginCode)
-    {
-        return 'menus-'.$pluginCode;
-    }
-
     public function onMenusSave()
     {
         $pluginCodeObj = new PluginCode(Request::input('plugin_code'));
@@ -63,6 +58,11 @@ class IndexMenusOperations extends IndexOperationsBehaviorBase
         ];
 
         return $result;
+    }
+
+    protected function getTabId($pluginCode)
+    {
+        return 'menus-'.$pluginCode;
     }
 
     protected function loadOrCreateBaseModel($pluginCode, $options = [])

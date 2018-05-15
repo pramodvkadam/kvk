@@ -24,13 +24,10 @@ use ApplicationException;
 class CmsCompoundObject extends CmsObject
 {
     /**
-     * @var array|null Cache for component properties.
-     */
-    protected static $objectComponentPropertyMap = null;
-    /**
      * @var array Initialized components defined in the template file.
      */
     public $components = [];
+
     /**
      * @var array INI settings defined in the template file. Not to be confused
      * with the attribute called settings. In this array, components are bumped
@@ -39,11 +36,13 @@ class CmsCompoundObject extends CmsObject
     public $settings = [
         'components' => []
     ];
+
     /**
      * @var array Contains the view bag properties.
      * This property is used by the page editor internally.
      */
     public $viewBag = [];
+
     /**
      * @var array The attributes that are mass assignable.
      */
@@ -52,6 +51,7 @@ class CmsCompoundObject extends CmsObject
         'settings',
         'code'
     ];
+
     /**
      * The methods that should be returned from the collection of all objects.
      *
@@ -64,25 +64,21 @@ class CmsCompoundObject extends CmsObject
         'whereComponent',
         'withComponent'
     ];
+
     /**
      * @var bool Model supports code and settings sections.
      */
     protected $isCompoundObject = true;
+
+    /**
+     * @var array|null Cache for component properties.
+     */
+    protected static $objectComponentPropertyMap = null;
+
     /**
      * @var mixed Cache store for the getViewBag method.
      */
     protected $viewBagCache = false;
-
-    /**
-     * Clears the object cache.
-     * @param \Cms\Classes\Theme $theme Specifies a parent theme.
-     * @return void
-     */
-    public static function clearCache($theme)
-    {
-        $key = md5($theme->getPath()).'component-properties';
-        Cache::forget($key);
-    }
 
     /**
      * Triggered after the object is loaded.
@@ -96,30 +92,23 @@ class CmsCompoundObject extends CmsObject
     }
 
     /**
-     * Parse component sections.
-     * Replace the multiple component sections with a single "components"
-     * element in the $settings property.
+     * Triggered when the model is saved.
      * @return void
      */
-    protected function parseComponentSettings()
+    public function beforeSave()
     {
-        $this->settings = $this->getSettingsAttribute();
+        $this->checkSafeMode();
+    }
 
-        $manager = ComponentManager::instance();
-        $components = [];
-        foreach ($this->settings as $setting => $value) {
-            if (!is_array($value)) {
-                continue;
-            }
-
-            $settingParts = explode(' ', $setting);
-            $settingName = $settingParts[0];
-
-            $components[$setting] = $value;
-            unset($this->settings[$setting]);
-        }
-
-        $this->settings['components'] = $components;
+    /**
+     * Create a new Collection instance.
+     *
+     * @param  array  $models
+     * @return \October\Rain\Halcyon\Collection
+     */
+    public function newCollection(array $models = [])
+    {
+        return new CmsObjectCollection($models);
     }
 
     /**
@@ -148,18 +137,20 @@ class CmsCompoundObject extends CmsObject
     }
 
     /**
-     * Copies view bag properties to the view bag array.
-     * This is required for the back-end editors.
+     * This method checks if safe mode is enabled by config, and the code
+     * attribute is modified and populated. If so an exception is thrown.
      * @return void
      */
-    protected function fillViewBagArray()
+    protected function checkSafeMode()
     {
-        $viewBag = $this->getViewBag();
-        foreach ($viewBag->getProperties() as $name => $value) {
-            $this->viewBag[$name] = $value;
+        $safeMode = Config::get('cms.enableSafeMode', null);
+        if ($safeMode === null) {
+            $safeMode = !Config::get('app.debug', false);
         }
 
-        $this->fireEvent('cmsObject.fillViewBagArray');
+        if ($safeMode && $this->isDirty('code') && strlen(trim($this->code))) {
+            throw new ApplicationException(Lang::get('cms::lang.cms_object.safe_mode_enabled'));
+        }
     }
 
     //
@@ -167,27 +158,52 @@ class CmsCompoundObject extends CmsObject
     //
 
     /**
-     * Returns the configured view bag component.
-     * This method is used only in the back-end and for internal system needs when
-     * the standard way to access components is not an option.
-     * @return \Cms\Components\ViewBag Returns the view bag component instance.
+     * Runs components defined in the settings
+     * Process halts if a component returns a value
+     * @return void
      */
-    public function getViewBag()
+    public function runComponents()
     {
-        if ($this->viewBagCache !== false) {
-            return $this->viewBagCache;
+        foreach ($this->components as $component) {
+            if ($event = $component->fireEvent('component.beforeRun', [], true)) {
+                return $event;
+            }
+
+            if ($result = $component->onRun()) {
+                return $result;
+            }
+
+            if ($event = $component->fireEvent('component.run', [], true)) {
+                return $event;
+            }
+        }
+    }
+
+    /**
+     * Parse component sections.
+     * Replace the multiple component sections with a single "components"
+     * element in the $settings property.
+     * @return void
+     */
+    protected function parseComponentSettings()
+    {
+        $this->settings = $this->getSettingsAttribute();
+
+        $manager = ComponentManager::instance();
+        $components = [];
+        foreach ($this->settings as $setting => $value) {
+            if (!is_array($value)) {
+                continue;
+            }
+
+            $settingParts = explode(' ', $setting);
+            $settingName = $settingParts[0];
+
+            $components[$setting] = $value;
+            unset($this->settings[$setting]);
         }
 
-        $componentName = 'viewBag';
-
-        if (!isset($this->settings['components'][$componentName])) {
-            $viewBag = new ViewBag(null, []);
-            $viewBag->name = $componentName;
-
-            return $this->viewBagCache = $viewBag;
-        }
-
-        return $this->viewBagCache = $this->getComponent($componentName);
+        $this->settings['components'] = $components;
     }
 
     /**
@@ -248,69 +264,6 @@ class CmsCompoundObject extends CmsObject
     }
 
     /**
-     * Triggered when the model is saved.
-     * @return void
-     */
-    public function beforeSave()
-    {
-        $this->checkSafeMode();
-    }
-
-    /**
-     * This method checks if safe mode is enabled by config, and the code
-     * attribute is modified and populated. If so an exception is thrown.
-     * @return void
-     */
-    protected function checkSafeMode()
-    {
-        $safeMode = Config::get('cms.enableSafeMode', null);
-        if ($safeMode === null) {
-            $safeMode = !Config::get('app.debug', false);
-        }
-
-        if ($safeMode && $this->isDirty('code') && strlen(trim($this->code))) {
-            throw new ApplicationException(Lang::get('cms::lang.cms_object.safe_mode_enabled'));
-        }
-    }
-
-    /**
-     * Create a new Collection instance.
-     *
-     * @param  array  $models
-     * @return \October\Rain\Halcyon\Collection
-     */
-    public function newCollection(array $models = [])
-    {
-        return new CmsObjectCollection($models);
-    }
-
-    //
-    // View Bag
-    //
-
-    /**
-     * Runs components defined in the settings
-     * Process halts if a component returns a value
-     * @return void
-     */
-    public function runComponents()
-    {
-        foreach ($this->components as $component) {
-            if ($event = $component->fireEvent('component.beforeRun', [], true)) {
-                return $event;
-            }
-
-            if ($result = $component->onRun()) {
-                return $result;
-            }
-
-            if ($event = $component->fireEvent('component.run', [], true)) {
-                return $event;
-            }
-        }
-    }
-
-    /**
      * Returns component property names and values.
      * This method implements caching and can be used in the run-time on the front-end.
      * @param string $componentName Specifies the component name.
@@ -348,7 +301,7 @@ class CmsCompoundObject extends CmsObject
         else {
             foreach ($this->settings['components'] as $name => $settings) {
                 $nameParts = explode(' ', $name);
-                if (count($nameParts > 1)) {
+                if (count($nameParts) > 1) {
                     $name = trim($nameParts[0]);
                 }
 
@@ -376,6 +329,60 @@ class CmsCompoundObject extends CmsObject
         }
 
         return [];
+    }
+
+    /**
+     * Clears the object cache.
+     * @param \Cms\Classes\Theme $theme Specifies a parent theme.
+     * @return void
+     */
+    public static function clearCache($theme)
+    {
+        $key = md5($theme->getPath()).'component-properties';
+        Cache::forget($key);
+    }
+
+    //
+    // View Bag
+    //
+
+    /**
+     * Returns the configured view bag component.
+     * This method is used only in the back-end and for internal system needs when
+     * the standard way to access components is not an option.
+     * @return \Cms\Components\ViewBag Returns the view bag component instance.
+     */
+    public function getViewBag()
+    {
+        if ($this->viewBagCache !== false) {
+            return $this->viewBagCache;
+        }
+
+        $componentName = 'viewBag';
+
+        if (!isset($this->settings['components'][$componentName])) {
+            $viewBag = new ViewBag(null, []);
+            $viewBag->name = $componentName;
+
+            return $this->viewBagCache = $viewBag;
+        }
+
+        return $this->viewBagCache = $this->getComponent($componentName);
+    }
+
+    /**
+     * Copies view bag properties to the view bag array.
+     * This is required for the back-end editors.
+     * @return void
+     */
+    protected function fillViewBagArray()
+    {
+        $viewBag = $this->getViewBag();
+        foreach ($viewBag->getProperties() as $name => $value) {
+            $this->viewBag[$name] = $value;
+        }
+
+        $this->fireEvent('cmsObject.fillViewBagArray');
     }
 
     //

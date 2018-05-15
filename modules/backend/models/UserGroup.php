@@ -11,12 +11,19 @@ use October\Rain\Auth\Models\Group as GroupBase;
 class UserGroup extends GroupBase
 {
     const CODE_OWNERS = 'owners';
+
+    /**
+     * @var string The database table used by the model.
+     */
+    protected $table = 'backend_user_groups';
+
     /**
      * @var array Validation rules
      */
     public $rules = [
         'name' => 'required|between:2,128|unique:backend_user_groups',
     ];
+
     /**
      * @var array Relations
      */
@@ -24,10 +31,6 @@ class UserGroup extends GroupBase
         'users' => [User::class, 'table' => 'backend_users_groups'],
         'users_count' => [User::class, 'table' => 'backend_users_groups', 'count' => true]
     ];
-    /**
-     * @var string The database table used by the model.
-     */
-    protected $table = 'backend_user_groups';
 
     public function afterCreate()
     {

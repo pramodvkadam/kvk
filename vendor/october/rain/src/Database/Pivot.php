@@ -66,23 +66,16 @@ class Pivot extends Model
     }
 
     /**
-     * Determine if the pivot model has timestamp attributes.
+     * Set the keys for a save update query.
      *
-     * @return bool
+     * @param  \Illuminate\Database\Eloquent\Builder
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function hasTimestampAttributes()
+    protected function setKeysForSaveQuery(BuilderBase $query)
     {
-        return array_key_exists($this->getCreatedAtColumn(), $this->attributes);
-    }
+        $query->where($this->foreignKey, $this->getAttribute($this->foreignKey));
 
-    /**
-     * Get the name of the "created at" column.
-     *
-     * @return string
-     */
-    public function getCreatedAtColumn()
-    {
-        return $this->parent->getCreatedAtColumn();
+        return $query->where($this->otherKey, $this->getAttribute($this->otherKey));
     }
 
     /**
@@ -146,6 +139,26 @@ class Pivot extends Model
     }
 
     /**
+     * Determine if the pivot model has timestamp attributes.
+     *
+     * @return bool
+     */
+    public function hasTimestampAttributes()
+    {
+        return array_key_exists($this->getCreatedAtColumn(), $this->attributes);
+    }
+
+    /**
+     * Get the name of the "created at" column.
+     *
+     * @return string
+     */
+    public function getCreatedAtColumn()
+    {
+        return $this->parent->getCreatedAtColumn();
+    }
+
+    /**
      * Get the name of the "updated at" column.
      *
      * @return string
@@ -153,18 +166,5 @@ class Pivot extends Model
     public function getUpdatedAtColumn()
     {
         return $this->parent->getUpdatedAtColumn();
-    }
-
-    /**
-     * Set the keys for a save update query.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    protected function setKeysForSaveQuery(BuilderBase $query)
-    {
-        $query->where($this->foreignKey, $this->getAttribute($this->foreignKey));
-
-        return $query->where($this->otherKey, $this->getAttribute($this->otherKey));
     }
 }

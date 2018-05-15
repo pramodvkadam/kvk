@@ -81,6 +81,31 @@ class HttpKernel implements HttpKernelInterface, TerminableInterface
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function terminate(Request $request, Response $response)
+    {
+        $this->dispatcher->dispatch(KernelEvents::TERMINATE, new PostResponseEvent($this, $request, $response));
+    }
+
+    /**
+     * @internal
+     */
+    public function terminateWithException(\Exception $exception, Request $request = null)
+    {
+        if (!$request = $request ?: $this->requestStack->getMasterRequest()) {
+            throw $exception;
+        }
+
+        $response = $this->handleException($exception, $request, self::MASTER_REQUEST);
+
+        $response->sendHeaders();
+        $response->sendContent();
+
+        $this->terminate($request, $response);
+    }
+
+    /**
      * Handles a request to convert it to a response.
      *
      * Exceptions are not caught.
@@ -123,7 +148,7 @@ class HttpKernel implements HttpKernelInterface, TerminableInterface
         $arguments = $event->getArguments();
 
         // call controller
-        $response = call_user_func_array($controller, $arguments);
+        $response = \call_user_func_array($controller, $arguments);
 
         // view
         if (!$response instanceof Response) {
@@ -186,6 +211,58 @@ class HttpKernel implements HttpKernelInterface, TerminableInterface
         $this->requestStack->pop();
     }
 
+    /**
+     * Handles an exception by trying to convert it to a Response.
+     *
+     * @param \Exception $e       An \Exception instance
+     * @param Request    $request A Request instance
+     * @param int        $type    The type of the request
+     *
+     * @return Response A Response instance
+     *
+     * @throws \Exception
+     */
+    private function handleException(\Exception $e, $request, $type)
+    {
+        $event = new GetResponseForExceptionEvent($this, $request, $type, $e);
+        $this->dispatcher->dispatch(KernelEvents::EXCEPTION, $event);
+
+        // a listener might have replaced the exception
+        $e = $event->getException();
+
+        if (!$event->hasResponse()) {
+            $this->finishRequest($request, $type);
+
+            throw $e;
+        }
+
+        $response = $event->getResponse();
+
+        // the developer asked for a specific status code
+        if ($response->headers->has('X-Status-Code')) {
+            @trigger_error(sprintf('Using the X-Status-Code header is deprecated since Symfony 3.3 and will be removed in 4.0. Use %s::allowCustomResponseCode() instead.', GetResponseForExceptionEvent::class), E_USER_DEPRECATED);
+
+            $response->setStatusCode($response->headers->get('X-Status-Code'));
+
+            $response->headers->remove('X-Status-Code');
+        } elseif (!$event->isAllowingCustomResponseCode() && !$response->isClientError() && !$response->isServerError() && !$response->isRedirect()) {
+            // ensure that we actually have an error response
+            if ($e instanceof HttpExceptionInterface) {
+                // keep the HTTP status code and headers
+                $response->setStatusCode($e->getStatusCode());
+                $response->headers->add($e->getHeaders());
+            } else {
+                $response->setStatusCode(500);
+            }
+        }
+
+        try {
+            return $this->filterResponse($response, $request, $type);
+        } catch (\Exception $e) {
+            return $response;
+        }
+    }
+
     private function varToString($var)
     {
         if (is_object($var)) {
@@ -218,84 +295,5 @@ class HttpKernel implements HttpKernelInterface, TerminableInterface
         }
 
         return (string) $var;
-    }
-
-    /**
-     * Handles an exception by trying to convert it to a Response.
-     *
-     * @param \Exception $e       An \Exception instance
-     * @param Request    $request A Request instance
-     * @param int        $type    The type of the request
-     *
-     * @return Response A Response instance
-     *
-     * @throws \Exception
-     */
-    private function handleException(\Exception $e, $request, $type)
-    {
-        $event = new GetResponseForExceptionEvent($this, $request, $type, $e);
-        $this->dispatcher->dispatch(KernelEvents::EXCEPTION, $event);
-
-        // a listener might have replaced the exception
-        $e = $event->getException();
-
-        if (!$event->hasResponse()) {
-            $this->finishRequest($request, $type);
-
-            throw $e;
-        }
-
-        $response = $event->getResponse();
-
-        // the developer asked for a specific status code
-        if ($response->headers->has('X-Status-Code')) {
-            @trigger_error(sprintf('Using the X-Status-Code header is deprecated since version 3.3 and will be removed in 4.0. Use %s::allowCustomResponseCode() instead.', GetResponseForExceptionEvent::class), E_USER_DEPRECATED);
-
-            $response->setStatusCode($response->headers->get('X-Status-Code'));
-
-            $response->headers->remove('X-Status-Code');
-        } elseif (!$event->isAllowingCustomResponseCode() && !$response->isClientError() && !$response->isServerError() && !$response->isRedirect()) {
-            // ensure that we actually have an error response
-            if ($e instanceof HttpExceptionInterface) {
-                // keep the HTTP status code and headers
-                $response->setStatusCode($e->getStatusCode());
-                $response->headers->add($e->getHeaders());
-            } else {
-                $response->setStatusCode(500);
-            }
-        }
-
-        try {
-            return $this->filterResponse($response, $request, $type);
-        } catch (\Exception $e) {
-            return $response;
-        }
-    }
-
-    /**
-     * @throws \LogicException If the request stack is empty
-     *
-     * @internal
-     */
-    public function terminateWithException(\Exception $exception)
-    {
-        if (!$request = $this->requestStack->getMasterRequest()) {
-            throw new \LogicException('Request stack is empty', 0, $exception);
-        }
-
-        $response = $this->handleException($exception, $request, self::MASTER_REQUEST);
-
-        $response->sendHeaders();
-        $response->sendContent();
-
-        $this->terminate($request, $response);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function terminate(Request $request, Response $response)
-    {
-        $this->dispatcher->dispatch(KernelEvents::TERMINATE, new PostResponseEvent($this, $request, $response));
     }
 }

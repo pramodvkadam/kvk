@@ -20,6 +20,38 @@ use Exception;
 class Files extends Controller
 {
     /**
+     * Output file, or fall back on the 404 page
+     */
+    public function get($code = null)
+    {
+        try {
+            echo $this->findFileObject($code)->output();
+            exit;
+        }
+        catch (Exception $ex) {}
+
+        return App::make('Cms\Classes\Controller')->setStatusCode(404)->run('/404');
+    }
+
+    /**
+     * Output thumbnail, or fall back on the 404 page
+     */
+    public function thumb($code = null, $width = 100, $height = 100, $mode = 'auto', $extension = 'auto')
+    {
+        try {
+            echo $this->findFileObject($code)->outputThumb(
+                $width,
+                $height,
+                compact('mode', 'extension')
+            );
+            exit;
+        }
+        catch (Exception $ex) {}
+
+        return App::make('Cms\Classes\Controller')->setStatusCode(404)->run('/404');
+    }
+
+    /**
      * Returns the URL for downloading a system file.
      * @param $file System\Models\File
      * @return string
@@ -43,17 +75,18 @@ class Files extends Controller
     }
 
     /**
-     * Output file, or fall back on the 404 page
+     * Returns a unique code used for masking the file identifier.
+     * @param $file System\Models\File
+     * @return string
      */
-    public function get($code = null)
+    public static function getUniqueCode($file)
     {
-        try {
-            echo $this->findFileObject($code)->output();
-            exit;
+        if (!$file) {
+            return null;
         }
-        catch (Exception $ex) {}
 
-        return App::make('Cms\Classes\Controller')->setStatusCode(404)->run('/404');
+        $hash = md5($file->file_name . '!' . $file->disk_name);
+        return base64_encode($file->id . '!' . $hash);
     }
 
     /**
@@ -84,38 +117,5 @@ class Files extends Controller
         }
 
         return $file;
-    }
-
-    /**
-     * Returns a unique code used for masking the file identifier.
-     * @param $file System\Models\File
-     * @return string
-     */
-    public static function getUniqueCode($file)
-    {
-        if (!$file) {
-            return null;
-        }
-
-        $hash = md5($file->file_name . '!' . $file->disk_name);
-        return base64_encode($file->id . '!' . $hash);
-    }
-
-    /**
-     * Output thumbnail, or fall back on the 404 page
-     */
-    public function thumb($code = null, $width = 100, $height = 100, $mode = 'auto', $extension = 'auto')
-    {
-        try {
-            echo $this->findFileObject($code)->outputThumb(
-                $width,
-                $height,
-                compact('mode', 'extension')
-            );
-            exit;
-        }
-        catch (Exception $ex) {}
-
-        return App::make('Cms\Classes\Controller')->setStatusCode(404)->run('/404');
     }
 }

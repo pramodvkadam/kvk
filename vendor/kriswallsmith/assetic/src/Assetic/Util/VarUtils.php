@@ -18,10 +18,6 @@ namespace Assetic\Util;
  */
 abstract class VarUtils
 {
-    final private function __construct()
-    {
-    }
-
     /**
      * Resolves variable placeholders.
      *
@@ -80,5 +76,9 @@ abstract class VarUtils
         }
 
         return $combinations;
+    }
+
+    final private function __construct()
+    {
     }
 }

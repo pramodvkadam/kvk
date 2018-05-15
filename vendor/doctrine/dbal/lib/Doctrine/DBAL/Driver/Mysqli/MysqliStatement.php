@@ -242,6 +242,99 @@ class MysqliStatement implements \IteratorAggregate, Statement
     }
 
     /**
+     * @return boolean|array
+     */
+    private function _fetch()
+    {
+        $ret = $this->_stmt->fetch();
+
+        if (true === $ret) {
+            $values = array();
+            foreach ($this->_rowBindedValues as $v) {
+                $values[] = $v;
+            }
+
+            return $values;
+        }
+
+        return $ret;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function fetch($fetchMode = null)
+    {
+        // do not try fetching from the statement if it's not expected to contain result
+        // in order to prevent exceptional situation
+        if (!$this->result) {
+            return false;
+        }
+
+        $values = $this->_fetch();
+        if (null === $values) {
+            return false;
+        }
+
+        if (false === $values) {
+            throw new MysqliException($this->_stmt->error, $this->_stmt->sqlstate, $this->_stmt->errno);
+        }
+
+        $fetchMode = $fetchMode ?: $this->_defaultFetchMode;
+
+        switch ($fetchMode) {
+            case PDO::FETCH_NUM:
+                return $values;
+
+            case PDO::FETCH_ASSOC:
+                return array_combine($this->_columnNames, $values);
+
+            case PDO::FETCH_BOTH:
+                $ret = array_combine($this->_columnNames, $values);
+                $ret += $values;
+
+                return $ret;
+
+            default:
+                throw new MysqliException("Unknown fetch type '{$fetchMode}'");
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function fetchAll($fetchMode = null)
+    {
+        $fetchMode = $fetchMode ?: $this->_defaultFetchMode;
+
+        $rows = array();
+        if (PDO::FETCH_COLUMN == $fetchMode) {
+            while (($row = $this->fetchColumn()) !== false) {
+                $rows[] = $row;
+            }
+        } else {
+            while (($row = $this->fetch($fetchMode)) !== false) {
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function fetchColumn($columnIndex = 0)
+    {
+        $row = $this->fetch(PDO::FETCH_NUM);
+        if (false === $row) {
+            return false;
+        }
+
+        return isset($row[$columnIndex]) ? $row[$columnIndex] : null;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function errorCode()
@@ -306,98 +399,5 @@ class MysqliStatement implements \IteratorAggregate, Statement
         $data = $this->fetchAll();
 
         return new \ArrayIterator($data);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function fetchAll($fetchMode = null)
-    {
-        $fetchMode = $fetchMode ?: $this->_defaultFetchMode;
-
-        $rows = array();
-        if (PDO::FETCH_COLUMN == $fetchMode) {
-            while (($row = $this->fetchColumn()) !== false) {
-                $rows[] = $row;
-            }
-        } else {
-            while (($row = $this->fetch($fetchMode)) !== false) {
-                $rows[] = $row;
-            }
-        }
-
-        return $rows;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function fetchColumn($columnIndex = 0)
-    {
-        $row = $this->fetch(PDO::FETCH_NUM);
-        if (false === $row) {
-            return false;
-        }
-
-        return isset($row[$columnIndex]) ? $row[$columnIndex] : null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function fetch($fetchMode = null)
-    {
-        // do not try fetching from the statement if it's not expected to contain result
-        // in order to prevent exceptional situation
-        if (!$this->result) {
-            return false;
-        }
-
-        $values = $this->_fetch();
-        if (null === $values) {
-            return false;
-        }
-
-        if (false === $values) {
-            throw new MysqliException($this->_stmt->error, $this->_stmt->sqlstate, $this->_stmt->errno);
-        }
-
-        $fetchMode = $fetchMode ?: $this->_defaultFetchMode;
-
-        switch ($fetchMode) {
-            case PDO::FETCH_NUM:
-                return $values;
-
-            case PDO::FETCH_ASSOC:
-                return array_combine($this->_columnNames, $values);
-
-            case PDO::FETCH_BOTH:
-                $ret = array_combine($this->_columnNames, $values);
-                $ret += $values;
-
-                return $ret;
-
-            default:
-                throw new MysqliException("Unknown fetch type '{$fetchMode}'");
-        }
-    }
-
-    /**
-     * @return boolean|array
-     */
-    private function _fetch()
-    {
-        $ret = $this->_stmt->fetch();
-
-        if (true === $ret) {
-            $values = array();
-            foreach ($this->_rowBindedValues as $v) {
-                $values[] = $v;
-            }
-
-            return $values;
-        }
-
-        return $ret;
     }
 }

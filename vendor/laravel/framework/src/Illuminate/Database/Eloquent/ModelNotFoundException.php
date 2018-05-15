@@ -22,16 +22,6 @@ class ModelNotFoundException extends RuntimeException
     protected $ids;
 
     /**
-     * Get the affected Eloquent model.
-     *
-     * @return string
-     */
-    public function getModel()
-    {
-        return $this->model;
-    }
-
-    /**
      * Set the affected Eloquent model and instance ids.
      *
      * @param  string  $model
@@ -52,6 +42,16 @@ class ModelNotFoundException extends RuntimeException
         }
 
         return $this;
+    }
+
+    /**
+     * Get the affected Eloquent model.
+     *
+     * @return string
+     */
+    public function getModel()
+    {
+        return $this->model;
     }
 
     /**

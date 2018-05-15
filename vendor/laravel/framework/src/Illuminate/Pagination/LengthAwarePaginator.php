@@ -112,6 +112,16 @@ class LengthAwarePaginator extends AbstractPaginator implements Arrayable, Array
     }
 
     /**
+     * Get the total number of items being paginated.
+     *
+     * @return int
+     */
+    public function total()
+    {
+        return $this->total;
+    }
+
+    /**
      * Determine if there are more items in the data source.
      *
      * @return bool
@@ -122,6 +132,18 @@ class LengthAwarePaginator extends AbstractPaginator implements Arrayable, Array
     }
 
     /**
+     * Get the URL for the next page.
+     *
+     * @return string|null
+     */
+    public function nextPageUrl()
+    {
+        if ($this->lastPage() > $this->currentPage()) {
+            return $this->url($this->currentPage() + 1);
+        }
+    }
+
+    /**
      * Get the last page.
      *
      * @return int
@@ -129,27 +151,6 @@ class LengthAwarePaginator extends AbstractPaginator implements Arrayable, Array
     public function lastPage()
     {
         return $this->lastPage;
-    }
-
-    /**
-     * Convert the object to its JSON representation.
-     *
-     * @param  int  $options
-     * @return string
-     */
-    public function toJson($options = 0)
-    {
-        return json_encode($this->jsonSerialize(), $options);
-    }
-
-    /**
-     * Convert the object into something JSON serializable.
-     *
-     * @return array
-     */
-    public function jsonSerialize()
-    {
-        return $this->toArray();
     }
 
     /**
@@ -176,24 +177,23 @@ class LengthAwarePaginator extends AbstractPaginator implements Arrayable, Array
     }
 
     /**
-     * Get the URL for the next page.
+     * Convert the object into something JSON serializable.
      *
-     * @return string|null
+     * @return array
      */
-    public function nextPageUrl()
+    public function jsonSerialize()
     {
-        if ($this->lastPage() > $this->currentPage()) {
-            return $this->url($this->currentPage() + 1);
-        }
+        return $this->toArray();
     }
 
     /**
-     * Get the total number of items being paginated.
+     * Convert the object to its JSON representation.
      *
-     * @return int
+     * @param  int  $options
+     * @return string
      */
-    public function total()
+    public function toJson($options = 0)
     {
-        return $this->total;
+        return json_encode($this->jsonSerialize(), $options);
     }
 }

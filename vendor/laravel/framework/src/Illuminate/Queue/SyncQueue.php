@@ -23,33 +23,6 @@ class SyncQueue extends Queue implements QueueContract
     }
 
     /**
-     * Push a raw payload onto the queue.
-     *
-     * @param  string  $payload
-     * @param  string  $queue
-     * @param  array   $options
-     * @return mixed
-     */
-    public function pushRaw($payload, $queue = null, array $options = [])
-    {
-        //
-    }
-
-    /**
-     * Push a new job onto the queue after a delay.
-     *
-     * @param  \DateTimeInterface|\DateInterval|int  $delay
-     * @param  string  $job
-     * @param  mixed   $data
-     * @param  string  $queue
-     * @return mixed
-     */
-    public function later($delay, $job, $data = '', $queue = null)
-    {
-        return $this->push($job, $data, $queue);
-    }
-
-    /**
      * Push a new job onto the queue.
      *
      * @param  string  $job
@@ -117,6 +90,20 @@ class SyncQueue extends Queue implements QueueContract
     }
 
     /**
+     * Raise the exception occurred queue job event.
+     *
+     * @param  \Illuminate\Contracts\Queue\Job  $job
+     * @param  \Exception  $e
+     * @return void
+     */
+    protected function raiseExceptionOccurredJobEvent(Job $job, $e)
+    {
+        if ($this->container->bound('events')) {
+            $this->container['events']->dispatch(new Events\JobExceptionOccurred($this->connectionName, $job, $e));
+        }
+    }
+
+    /**
      * Handle an exception that occurred while processing a job.
      *
      * @param  \Illuminate\Queue\Jobs\Job  $queueJob
@@ -135,17 +122,30 @@ class SyncQueue extends Queue implements QueueContract
     }
 
     /**
-     * Raise the exception occurred queue job event.
+     * Push a raw payload onto the queue.
      *
-     * @param  \Illuminate\Contracts\Queue\Job  $job
-     * @param  \Exception  $e
-     * @return void
+     * @param  string  $payload
+     * @param  string  $queue
+     * @param  array   $options
+     * @return mixed
      */
-    protected function raiseExceptionOccurredJobEvent(Job $job, $e)
+    public function pushRaw($payload, $queue = null, array $options = [])
     {
-        if ($this->container->bound('events')) {
-            $this->container['events']->dispatch(new Events\JobExceptionOccurred($this->connectionName, $job, $e));
-        }
+        //
+    }
+
+    /**
+     * Push a new job onto the queue after a delay.
+     *
+     * @param  \DateTimeInterface|\DateInterval|int  $delay
+     * @param  string  $job
+     * @param  mixed   $data
+     * @param  string  $queue
+     * @return mixed
+     */
+    public function later($delay, $job, $data = '', $queue = null)
+    {
+        return $this->push($job, $data, $queue);
     }
 
     /**
