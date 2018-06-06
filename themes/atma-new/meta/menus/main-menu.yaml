@@ -186,9 +186,13 @@ items:
             isExternal: '0'
     -
         title: gallary
+        nesting: ''
         type: cms-page
+        url: ''
         code: ''
         reference: gallary
+        cmsPage: ''
+        replace: ''
         viewBag:
             isHidden: '0'
             cssClass: ''
@@ -215,6 +219,28 @@ items:
         reference: contact
         cmsPage: ''
         replace: ''
+        viewBag:
+            isHidden: '0'
+            cssClass: ''
+            isExternal: '0'
+    -
+        title: news
+        nesting: ''
+        type: cms-page
+        url: ''
+        code: ''
+        reference: news
+        cmsPage: ''
+        replace: ''
+        viewBag:
+            isHidden: '0'
+            cssClass: ''
+            isExternal: '0'
+    -
+        title: videos
+        type: cms-page
+        code: ''
+        reference: videos
         viewBag:
             isHidden: '0'
             cssClass: ''

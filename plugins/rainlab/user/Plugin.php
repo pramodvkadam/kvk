@@ -7,6 +7,7 @@ use Backend;
 use System\Classes\PluginBase;
 use System\Classes\SettingsManager;
 use Illuminate\Foundation\AliasLoader;
+use RainLab\User\Classes\UserRedirector;
 use RainLab\User\Models\MailBlocker;
 use RainLab\Notify\Classes\Notifier;
 
@@ -37,6 +38,21 @@ class Plugin extends PluginBase
             return \RainLab\User\Classes\AuthManager::instance();
         });
 
+        App::singleton('redirect', function ($app) {
+            // overrides with our own extended version of Redirector to support 
+            // seperate url.intended session variable for frontend
+            $redirector = new UserRedirector($app['url']);
+
+            // If the session is set on the application instance, we'll inject it into
+            // the redirector instance. This allows the redirect responses to allow
+            // for the quite convenient "with" methods that flash to the session.
+            if (isset($app['session.store'])) {
+                $redirector->setSession($app['session.store']);
+            }
+
+            return $redirector;
+        });
+
         /*
          * Apply user-based mail blocking
          */
@@ -48,23 +64,6 @@ class Plugin extends PluginBase
          * Compatability with RainLab.Notify
          */
         $this->bindNotificationEvents();
-    }
-
-    protected function bindNotificationEvents()
-    {
-        if (!class_exists(Notifier::class)) {
-            return;
-        }
-
-        Notifier::bindEvents([
-            'rainlab.user.activate' => \RainLab\User\NotifyRules\UserActivatedEvent::class
-        ]);
-
-        Notifier::instance()->registerCallback(function($manager) {
-            $manager->registerGlobalParams([
-                'user' => Auth::getUser()
-            ]);
-        });
     }
 
     public function registerComponents()
@@ -157,5 +156,23 @@ class Plugin extends PluginBase
                 \RainLab\User\NotifyRules\UserAttributeCondition::class
             ],
         ];
+    }
+
+    protected function bindNotificationEvents()
+    {
+        if (!class_exists(Notifier::class)) {
+            return;
+        }
+
+        Notifier::bindEvents([
+            'rainlab.user.activate' => \RainLab\User\NotifyRules\UserActivatedEvent::class,
+            'rainlab.user.register' => \RainLab\User\NotifyRules\UserRegisteredEvent::class
+        ]);
+
+        Notifier::instance()->registerCallback(function($manager) {
+            $manager->registerGlobalParams([
+                'user' => Auth::getUser()
+            ]);
+        });
     }
 }

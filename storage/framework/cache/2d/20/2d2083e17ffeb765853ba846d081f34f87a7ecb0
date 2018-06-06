@@ -1,0 +1,88 @@
+1528308799a:1:{s:8:"news.htm";a:10:{s:8:"fileName";s:8:"news.htm";s:7:"content";s:1543:"title = "news"
+url = "/news"
+layout = "default"
+is_hidden = 0
+
+[photoAlbum]
+slug = "news"
+photoPage = "news"
+thumbMode = "auto"
+thumbWidth = 640
+thumbHeight = 480
+photosOnPage = 12
+==
+{% set album = photoAlbum.album %}
+
+
+
+<div class="album-photos row">
+    {% for photo in album.photos %}
+        <div class="photo col-xs-12 col-sm-6 col-md-4 col-lg-3">
+            <a href="{{ photo.url }}"><img
+                    data-src="{{ photo.thumb }}"
+                    src="{{ photo.thumb }}"
+                    alt="{{ photo.title }}"
+                    title="{{ photo.title }}"
+                    style="max-width: 100%" />
+            </a>
+            <a href="{{ photo.url }}"><strong>{{ photo.title }}</strong></a>
+        </div>
+    {% else %}
+        <div class="col-xs-12 no-data">Album doesn't have any photos yet</div>
+    {% endfor %}
+</div>
+
+{% if photoAlbum.lastPage > 1 %}
+<ul class="pagination">
+    {% if photoAlbum.currentPage > 1 %}
+    <li><a href="{{ this.page.baseFileName|page }}?page={{ photoAlbum.currentPage-1 }}">&larr; Prev</a></li>
+    {% endif %}
+
+    {% for page in 1..photoAlbum.lastPage %}
+    <li class="{{ photoAlbum.currentPage == page ? 'active' : null }}">
+        <a href="{{ this.page.baseFileName|page }}?page={{ page }}">{{ page }}</a>
+    </li>
+    {% endfor %}
+
+    {% if photoAlbum.lastPage > photoAlbum.currentPage %}
+    <li><a href="{{ this.page.baseFileName|page }}?page={{ photoAlbum.currentPage+1 }}">Next &rarr;</a></li>
+    {% endif %}
+</ul>
+{% endif %}";s:5:"mtime";i:1528306008;s:6:"markup";s:1359:"{% set album = photoAlbum.album %}
+
+
+
+<div class="album-photos row">
+    {% for photo in album.photos %}
+        <div class="photo col-xs-12 col-sm-6 col-md-4 col-lg-3">
+            <a href="{{ photo.url }}"><img
+                    data-src="{{ photo.thumb }}"
+                    src="{{ photo.thumb }}"
+                    alt="{{ photo.title }}"
+                    title="{{ photo.title }}"
+                    style="max-width: 100%" />
+            </a>
+            <a href="{{ photo.url }}"><strong>{{ photo.title }}</strong></a>
+        </div>
+    {% else %}
+        <div class="col-xs-12 no-data">Album doesn't have any photos yet</div>
+    {% endfor %}
+</div>
+
+{% if photoAlbum.lastPage > 1 %}
+<ul class="pagination">
+    {% if photoAlbum.currentPage > 1 %}
+    <li><a href="{{ this.page.baseFileName|page }}?page={{ photoAlbum.currentPage-1 }}">&larr; Prev</a></li>
+    {% endif %}
+
+    {% for page in 1..photoAlbum.lastPage %}
+    <li class="{{ photoAlbum.currentPage == page ? 'active' : null }}">
+        <a href="{{ this.page.baseFileName|page }}?page={{ page }}">{{ page }}</a>
+    </li>
+    {% endfor %}
+
+    {% if photoAlbum.lastPage > photoAlbum.currentPage %}
+    <li><a href="{{ this.page.baseFileName|page }}?page={{ photoAlbum.currentPage+1 }}">Next &rarr;</a></li>
+    {% endif %}
+</ul>
+{% endif %}";s:4:"code";N;s:5:"title";s:4:"news";s:3:"url";s:5:"/news";s:6:"layout";s:7:"default";s:9:"is_hidden";s:1:"0";s:10:"photoAlbum";a:6:{s:4:"slug";s:4:"news";s:9:"photoPage";s:4:"news";s:9:"thumbMode";s:4:"auto";s:10:"thumbWidth";s:3:"640";s:11:"thumbHeight";s:3:"480";s:12:"photosOnPage";s:2:"12";}}}

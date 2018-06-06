@@ -62,6 +62,17 @@ class Account extends ComponentBase
     }
 
     /**
+     * Executed when this component is initialized
+     */
+    public function prepareVars()
+    {
+        $this->page['user'] = $this->user();
+        $this->page['canRegister'] = $this->canRegister();
+        $this->page['loginAttribute'] = $this->loginAttribute();
+        $this->page['loginAttributeLabel'] = $this->loginAttributeLabel();
+    }
+
+    /**
      * Executed when this component is bound to a page or layout.
      */
     public function onRun()
@@ -83,101 +94,9 @@ class Account extends ComponentBase
         $this->prepareVars();
     }
 
-    /**
-     * Checks if the force secure property is enabled and if so
-     * returns a redirect object.
-     * @return mixed
-     */
-    protected function redirectForceSecure()
-    {
-        if (
-            Request::secure() ||
-            Request::ajax() ||
-            !$this->property('forceSecure')
-        ) {
-            return;
-        }
-
-        return Redirect::secure(Request::path());
-    }
-
     //
     // Properties
     //
-
-    /**
-     * Looks for the activation code from the URL parameter. If nothing
-     * is found, the GET parameter 'activate' is used instead.
-     * @return string
-     */
-    public function activationCode()
-    {
-        $routeParameter = $this->property('paramCode');
-
-        if ($code = $this->param($routeParameter)) {
-            return $code;
-        }
-
-        return get('activate');
-    }
-
-    /**
-     * Activate the user
-     * @param  string $code Activation code
-     */
-    public function onActivate($code = null)
-    {
-        try {
-            $code = post('code', $code);
-
-            $errorFields = ['code' => Lang::get(/*Invalid activation code supplied.*/'rainlab.user::lang.account.invalid_activation_code')];
-
-            /*
-             * Break up the code parts
-             */
-            $parts = explode('!', $code);
-            if (count($parts) != 2) {
-                throw new ValidationException($errorFields);
-            }
-
-            list($userId, $code) = $parts;
-
-            if (!strlen(trim($userId)) || !strlen(trim($code))) {
-                throw new ValidationException($errorFields);
-            }
-
-            if (!$user = Auth::findUserById($userId)) {
-                throw new ValidationException($errorFields);
-            }
-
-            if (!$user->attemptActivation($code)) {
-                throw new ValidationException($errorFields);
-            }
-
-            Flash::success(Lang::get(/*Successfully activated your account.*/'rainlab.user::lang.account.success_activation'));
-
-            /*
-             * Sign in the user
-             */
-            Auth::login($user);
-
-        }
-        catch (Exception $ex) {
-            if (Request::ajax()) throw $ex;
-            else Flash::error($ex->getMessage());
-        }
-    }
-
-    /**
-     * Executed when this component is initialized
-     */
-    public function prepareVars()
-    {
-        $this->page['user'] = $this->user();
-        $this->page['canRegister'] = $this->canRegister();
-        $this->page['loginAttribute'] = $this->loginAttribute();
-        $this->page['loginAttributeLabel'] = $this->loginAttributeLabel();
-    }
 
     /**
      * Returns the logged in user, if available
@@ -199,10 +118,6 @@ class Account extends ComponentBase
         return UserSettings::get('allow_registration', true);
     }
 
-    //
-    // AJAX
-    //
-
     /**
      * Returns the login model attribute.
      */
@@ -221,6 +136,26 @@ class Account extends ComponentBase
             : /*Username*/'rainlab.user::lang.login.attribute_username'
         );
     }
+
+    /**
+     * Looks for the activation code from the URL parameter. If nothing
+     * is found, the GET parameter 'activate' is used instead.
+     * @return string
+     */
+    public function activationCode()
+    {
+        $routeParameter = $this->property('paramCode');
+
+        if ($code = $this->param($routeParameter)) {
+            return $code;
+        }
+
+        return get('activate');
+    }
+
+    //
+    // AJAX
+    //
 
     /**
      * Sign in the user
@@ -275,28 +210,6 @@ class Account extends ComponentBase
         catch (Exception $ex) {
             if (Request::ajax()) throw $ex;
             else Flash::error($ex->getMessage());
-        }
-    }
-
-    /**
-     * Redirect to the intended page after successful update, sign in or registration.
-     * The URL can come from the "redirect" property or the "redirect" postback value.
-     * @return mixed
-     */
-    protected function makeRedirection($intended = false)
-    {
-        $method = $intended ? 'intended' : 'to';
-
-        $property = $this->property('redirect');
-
-        if (strlen($property) && !$property) {
-            return;
-        }
-
-        $redirectUrl = $this->pageUrl($property) ?: $property;
-
-        if ($redirectUrl = post('redirect', $redirectUrl)) {
-            return Redirect::$method($redirectUrl);
         }
     }
 
@@ -364,13 +277,9 @@ class Account extends ComponentBase
             /*
              * Redirect to the intended page after successful sign in
              */
-            $redirectUrl = $this->pageUrl($this->property('redirect'))
-                ?: $this->property('redirect');
-
-            if ($redirectUrl = post('redirect', $redirectUrl)) {
-                return Redirect::intended($redirectUrl);
+            if ($redirect = $this->makeRedirection(true)) {
+                return $redirect;
             }
-
         }
         catch (Exception $ex) {
             if (Request::ajax()) throw $ex;
@@ -379,53 +288,50 @@ class Account extends ComponentBase
     }
 
     /**
-     * Sends the activation email to a user
-     * @param  User $user
-     * @return void
+     * Activate the user
+     * @param  string $code Activation code
      */
-    protected function sendActivationEmail($user)
+    public function onActivate($code = null)
     {
-        $code = implode('!', [$user->id, $user->getActivationCode()]);
+        try {
+            $code = post('code', $code);
 
-        $link = $this->makeActivationUrl($code);
+            $errorFields = ['code' => Lang::get(/*Invalid activation code supplied.*/'rainlab.user::lang.account.invalid_activation_code')];
 
-        $data = [
-            'name' => $user->name,
-            'link' => $link,
-            'code' => $code
-        ];
+            /*
+             * Break up the code parts
+             */
+            $parts = explode('!', $code);
+            if (count($parts) != 2) {
+                throw new ValidationException($errorFields);
+            }
 
-        Mail::send('rainlab.user::mail.activate', $data, function($message) use ($user) {
-            $message->to($user->email, $user->name);
-        });
-    }
+            list($userId, $code) = $parts;
 
-    //
-    // Helpers
-    //
+            if (!strlen(trim($userId)) || !strlen(trim($code))) {
+                throw new ValidationException($errorFields);
+            }
 
-    /**
-     * Returns a link used to activate the user account.
-     * @return string
-     */
-    protected function makeActivationUrl($code)
-    {
-        $params = [
-            $this->property('paramCode') => $code
-        ];
+            if (!$user = Auth::findUserById($userId)) {
+                throw new ValidationException($errorFields);
+            }
 
-        if ($pageName = $this->property('activationPage')) {
-            $url = $this->pageUrl($pageName, $params);
+            if (!$user->attemptActivation($code)) {
+                throw new ValidationException($errorFields);
+            }
+
+            Flash::success(Lang::get(/*Successfully activated your account.*/'rainlab.user::lang.account.success_activation'));
+
+            /*
+             * Sign in the user
+             */
+            Auth::login($user);
+
         }
-        else {
-            $url = $this->currentPageUrl($params);
+        catch (Exception $ex) {
+            if (Request::ajax()) throw $ex;
+            else Flash::error($ex->getMessage());
         }
-
-        if (strpos($url, $code) === false) {
-            $url .= '?activate=' . $code;
-        }
-
-        return $url;
     }
 
     /**
@@ -519,5 +425,95 @@ class Account extends ComponentBase
         if ($redirect = $this->makeRedirection()) {
             return $redirect;
         }
+    }
+
+    //
+    // Helpers
+    //
+
+    /**
+     * Returns a link used to activate the user account.
+     * @return string
+     */
+    protected function makeActivationUrl($code)
+    {
+        $params = [
+            $this->property('paramCode') => $code
+        ];
+
+        if ($pageName = $this->property('activationPage')) {
+            $url = $this->pageUrl($pageName, $params);
+        }
+        else {
+            $url = $this->currentPageUrl($params);
+        }
+
+        if (strpos($url, $code) === false) {
+            $url .= '?activate=' . $code;
+        }
+
+        return $url;
+    }
+
+    /**
+     * Sends the activation email to a user
+     * @param  User $user
+     * @return void
+     */
+    protected function sendActivationEmail($user)
+    {
+        $code = implode('!', [$user->id, $user->getActivationCode()]);
+
+        $link = $this->makeActivationUrl($code);
+
+        $data = [
+            'name' => $user->name,
+            'link' => $link,
+            'code' => $code
+        ];
+
+        Mail::send('rainlab.user::mail.activate', $data, function($message) use ($user) {
+            $message->to($user->email, $user->name);
+        });
+    }
+
+    /**
+     * Redirect to the intended page after successful update, sign in or registration.
+     * The URL can come from the "redirect" property or the "redirect" postback value.
+     * @return mixed
+     */
+    protected function makeRedirection($intended = false)
+    {
+        $method = $intended ? 'intended' : 'to';
+
+        $property = $this->property('redirect');
+
+        if (strlen($property) && !$property) {
+            return;
+        }
+
+        $redirectUrl = $this->pageUrl($property) ?: $property;
+
+        if ($redirectUrl = post('redirect', $redirectUrl)) {
+            return Redirect::$method($redirectUrl);
+        }
+    }
+
+    /**
+     * Checks if the force secure property is enabled and if so
+     * returns a redirect object.
+     * @return mixed
+     */
+    protected function redirectForceSecure()
+    {
+        if (
+            Request::secure() ||
+            Request::ajax() ||
+            !$this->property('forceSecure')
+        ) {
+            return;
+        }
+
+        return Redirect::secure(Request::path());
     }
 }

@@ -1,0 +1,16 @@
+1528309051a:1:{s:10:"footer.htm";a:7:{s:8:"fileName";s:10:"footer.htm";s:7:"content";s:287:"[staticMenu footerMenu]
+code = "footer-menu"
+
+[viewBag]
+==
+<footer class="py-4 bg-dark">
+      <div class="container">
+        <p class="m-0 text-center text-white">Copyright &copy; 2017 Krishi Vigyan Kendra Narayangaon</p>
+      </div>
+      <!-- /.container -->
+    </footer>";s:5:"mtime";i:1526350370;s:6:"markup";s:223:"<footer class="py-4 bg-dark">
+      <div class="container">
+        <p class="m-0 text-center text-white">Copyright &copy; 2017 Krishi Vigyan Kendra Narayangaon</p>
+      </div>
+      <!-- /.container -->
+    </footer>";s:4:"code";N;s:21:"staticMenu footerMenu";a:1:{s:4:"code";s:11:"footer-menu";}s:7:"viewBag";a:0:{}}}

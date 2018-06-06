@@ -5,45 +5,13 @@ description = "Gallary"
 meta_title = "Photo gallary of Krishi Vigyan Kendra"
 is_hidden = 0
 
-[galleryId]
-idGallery = 1
-lang = "Gallery"
-jqueryinject = "yes"
-thumbnail = "true"
-caption = "true"
-desc = "true"
-counter = "true"
-controls = "true"
-preload = 1
-mode = "lg-slide"
-speed = 600
-loop = "true"
-auto = "false"
-pause = 2000
-escKey = "true"
-height = 70
-width = 100
-resizer = "auto"
-
-[gallerySlug]
-slug = "{{ name }}"
-lang = "{{ Gallary }}"
-jqueryinject = "yes"
-thumbnail = "true"
-caption = "true"
-desc = "true"
-counter = "true"
-controls = "true"
-preload = 1
-mode = "lg-slide"
-speed = 600
-loop = "true"
-auto = "false"
-pause = 2000
-escKey = "true"
-height = 70
-width = 100
-resizer = "auto"
+[photoAlbum]
+slug = "gallary"
+photoPage = "gallary"
+thumbMode = "auto"
+thumbWidth = 640
+thumbHeight = 480
+photosOnPage = 12
 ==
 <?php
 function onStart()
@@ -54,4 +22,40 @@ function onStart()
 }
 ?>
 ==
-{% component 'galleryId' %}
+{% set album = photoAlbum.album %}
+
+
+<div class="album-photos row">
+    {% for photo in album.photos %}
+        <div class="photo col-xs-12 col-sm-6 col-md-4 col-lg-3">
+            <a href="{{ photo.url }}"><img
+                    data-src="{{ photo.thumb }}"
+                    src="{{ photo.thumb }}"
+                    alt="{{ photo.title }}"
+                    title="{{ photo.title }}"
+                    style="max-width: 100%" />
+            </a>
+            <a href="{{ photo.url }}"><strong>{{ photo.title }}</strong></a>
+        </div>
+    {% else %}
+        <div class="col-xs-12 no-data">Album doesn't have any photos yet</div>
+    {% endfor %}
+</div>
+
+{% if photoAlbum.lastPage > 1 %}
+<ul class="pagination">
+    {% if photoAlbum.currentPage > 1 %}
+    <li><a href="{{ this.page.baseFileName|page }}?page={{ photoAlbum.currentPage-1 }}">&larr; Prev</a></li>
+    {% endif %}
+
+    {% for page in 1..photoAlbum.lastPage %}
+    <li class="{{ photoAlbum.currentPage == page ? 'active' : null }}">
+        <a href="{{ this.page.baseFileName|page }}?page={{ page }}">{{ page }}</a>
+    </li>
+    {% endfor %}
+
+    {% if photoAlbum.lastPage > photoAlbum.currentPage %}
+    <li><a href="{{ this.page.baseFileName|page }}?page={{ photoAlbum.currentPage+1 }}">Next &rarr;</a></li>
+    {% endif %}
+</ul>
+{% endif %}
