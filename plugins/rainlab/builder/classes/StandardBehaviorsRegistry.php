@@ -26,6 +26,164 @@ class StandardBehaviorsRegistry
         $this->registerReorderBehavior();
     }
 
+    protected function registerFormBehavior()
+    {
+        $properties = [
+            'name' => [
+                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_name'),
+                'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_name_description'),
+                'type' => 'string',
+                'validation' => [
+                    'required' => [
+                        'message' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_name_required')
+                    ]
+                ],
+            ],
+            'modelClass' => [
+                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_model_class'),
+                'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_model_class_description'),
+                'placeholder' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_model_class_placeholder'),
+                'type' => 'dropdown',
+                'fillFrom' => 'model-classes',
+                'validation' => [
+                    'required' => [
+                        'message' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_model_class_required')
+                    ]
+                ],
+            ],
+            'form' => [
+                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_file'),
+                'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_file_description'),
+                'placeholder' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_placeholder'),
+                'type' => 'autocomplete',
+                'fillFrom' => 'model-forms',
+                'subtypeFrom' => 'modelClass',
+                'depends' => ['modelClass'],
+                'validation' => [
+                    'required' => [
+                        'message' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_file_required')
+                    ]
+                ],
+            ],
+            'defaultRedirect' => [
+                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_default_redirect'),
+                'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_default_redirect_description'),
+                'type' => 'autocomplete',
+                'fillFrom' => 'controller-urls',
+                'ignoreIfEmpty' => true
+            ],
+            'create' => [
+                'type' => 'object',
+                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_create'),
+                'ignoreIfEmpty' => true,
+                'properties' => [
+                    [
+                        'property' => 'title',
+                        'type' => 'builderLocalization',
+                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_page_title'),
+                        'ignoreIfEmpty' => true
+                    ],
+                    [
+                        'property' => 'redirect',
+                        'type' => 'autocomplete',
+                        'fillFrom' => 'controller-urls',
+                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect'),
+                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_description'),
+                        'ignoreIfEmpty' => true
+                    ],
+                    [
+                        'property' => 'redirectClose',
+                        'type' => 'autocomplete',
+                        'fillFrom' => 'controller-urls',
+                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_close'),
+                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_close_description'),
+                        'ignoreIfEmpty' => true
+                    ],
+                    [
+                        'property' => 'flashSave',
+                        'type' => 'builderLocalization',
+                        'ignoreIfEmpty' => true,
+                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_save'),
+                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_save_description'),
+                    ]
+                ]
+            ],
+            'update' => [
+                'type' => 'object',
+                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_update'),
+                'ignoreIfEmpty' => true,
+                'properties' => [
+                    [
+                        'property' => 'title',
+                        'type' => 'builderLocalization',
+                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_page_title'),
+                        'ignoreIfEmpty' => true
+                    ],
+                    [
+                        'property' => 'redirect',
+                        'type' => 'autocomplete',
+                        'fillFrom' => 'controller-urls',
+                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect'),
+                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_description'),
+                        'ignoreIfEmpty' => true
+                    ],
+                    [
+                        'property' => 'redirectClose',
+                        'type' => 'autocomplete',
+                        'fillFrom' => 'controller-urls',
+                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_close'),
+                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_close_description'),
+                        'ignoreIfEmpty' => true
+                    ],
+                    [
+                        'property' => 'flashSave',
+                        'type' => 'builderLocalization',
+                        'ignoreIfEmpty' => true,
+                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_save'),
+                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_save_description'),
+                    ],
+                    [
+                        'property' => 'flashDelete',
+                        'type' => 'builderLocalization',
+                        'ignoreIfEmpty' => true,
+                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_delete'),
+                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_delete_description'),
+                    ]
+                ]
+            ],
+            'preview' => [
+                'type' => 'object',
+                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_preview'),
+                'ignoreIfEmpty' => true,
+                'properties' => [
+                    [
+                        'property' => 'title',
+                        'type' => 'builderLocalization',
+                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_page_title'),
+                        'ignoreIfEmpty' => true
+                    ]
+                ]
+            ]
+        ];
+
+        $templates = [
+            '$/rainlab/builder/classes/standardbehaviorsregistry/formcontroller/templates/create.htm.tpl',
+            '$/rainlab/builder/classes/standardbehaviorsregistry/formcontroller/templates/update.htm.tpl',
+            '$/rainlab/builder/classes/standardbehaviorsregistry/formcontroller/templates/preview.htm.tpl'
+        ];
+
+        $this->behaviorLibrary->registerBehavior(
+            'Backend\Behaviors\FormController',
+            'rainlab.builder::lang.controller.behavior_form_controller',
+            'rainlab.builder::lang.controller.behavior_form_controller_description',
+            $properties,
+            'formConfig',
+            null,
+            'config_form.yaml',
+            $templates
+        );
+    }
+
     protected function registerListBehavior()
     {
         $properties = [
@@ -195,164 +353,6 @@ class StandardBehaviorsRegistry
             'listConfig',
             null,
             'config_list.yaml',
-            $templates
-        );
-    }
-
-    protected function registerFormBehavior()
-    {
-        $properties = [
-            'name' => [
-                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_name'),
-                'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_name_description'),
-                'type' => 'string',
-                'validation' => [
-                    'required' => [
-                        'message' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_name_required')
-                    ]
-                ],
-            ],
-            'modelClass' => [
-                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_model_class'),
-                'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_model_class_description'),
-                'placeholder' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_model_class_placeholder'),
-                'type' => 'dropdown',
-                'fillFrom' => 'model-classes',
-                'validation' => [
-                    'required' => [
-                        'message' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_model_class_required')
-                    ]
-                ],
-            ],
-            'form' => [
-                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_file'),
-                'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_file_description'),
-                'placeholder' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_placeholder'),
-                'type' => 'autocomplete',
-                'fillFrom' => 'model-forms',
-                'subtypeFrom' => 'modelClass',
-                'depends' => ['modelClass'],
-                'validation' => [
-                    'required' => [
-                        'message' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_file_required')
-                    ]
-                ],
-            ],
-            'defaultRedirect' => [
-                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_default_redirect'),
-                'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_default_redirect_description'),
-                'type' => 'autocomplete',
-                'fillFrom' => 'controller-urls',
-                'ignoreIfEmpty' => true
-            ],
-            'create' => [
-                'type' => 'object',
-                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_create'),
-                'ignoreIfEmpty' => true,
-                'properties' => [
-                    [
-                        'property' => 'title',
-                        'type' => 'builderLocalization',
-                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_page_title'),
-                        'ignoreIfEmpty' => true
-                    ],
-                    [
-                        'property' => 'redirect',
-                        'type' => 'autocomplete',
-                        'fillFrom' => 'controller-urls',
-                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect'),
-                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_description'),
-                        'ignoreIfEmpty' => true
-                    ],
-                    [
-                        'property' => 'redirectClose',
-                        'type' => 'autocomplete',
-                        'fillFrom' => 'controller-urls',
-                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_close'),
-                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_close_description'),
-                        'ignoreIfEmpty' => true
-                    ],
-                    [
-                        'property' => 'flashSave',
-                        'type' => 'builderLocalization',
-                        'ignoreIfEmpty' => true,
-                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_save'),
-                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_save_description'),
-                    ]
-                ]
-            ],
-            'update' => [
-                'type' => 'object',
-                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_update'),
-                'ignoreIfEmpty' => true,
-                'properties' => [
-                    [
-                        'property' => 'title',
-                        'type' => 'builderLocalization',
-                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_page_title'),
-                        'ignoreIfEmpty' => true
-                    ],
-                    [
-                        'property' => 'redirect',
-                        'type' => 'autocomplete',
-                        'fillFrom' => 'controller-urls',
-                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect'),
-                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_description'),
-                        'ignoreIfEmpty' => true
-                    ],
-                    [
-                        'property' => 'redirectClose',
-                        'type' => 'autocomplete',
-                        'fillFrom' => 'controller-urls',
-                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_close'),
-                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_redirect_close_description'),
-                        'ignoreIfEmpty' => true
-                    ],
-                    [
-                        'property' => 'flashSave',
-                        'type' => 'builderLocalization',
-                        'ignoreIfEmpty' => true,
-                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_save'),
-                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_save_description'),
-                    ],
-                    [
-                        'property' => 'flashDelete',
-                        'type' => 'builderLocalization',
-                        'ignoreIfEmpty' => true,
-                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_delete'),
-                        'description' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_flash_delete_description'),
-                    ]
-                ]
-            ],
-            'preview' => [
-                'type' => 'object',
-                'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_preview'),
-                'ignoreIfEmpty' => true,
-                'properties' => [
-                    [
-                        'property' => 'title',
-                        'type' => 'builderLocalization',
-                        'title' => Lang::get('rainlab.builder::lang.controller.property_behavior_form_page_title'),
-                        'ignoreIfEmpty' => true
-                    ]
-                ]
-            ]
-        ];
-
-        $templates = [
-            '$/rainlab/builder/classes/standardbehaviorsregistry/formcontroller/templates/create.htm.tpl',
-            '$/rainlab/builder/classes/standardbehaviorsregistry/formcontroller/templates/update.htm.tpl',
-            '$/rainlab/builder/classes/standardbehaviorsregistry/formcontroller/templates/preview.htm.tpl'
-        ];
-
-        $this->behaviorLibrary->registerBehavior(
-            'Backend\Behaviors\FormController',
-            'rainlab.builder::lang.controller.behavior_form_controller',
-            'rainlab.builder::lang.controller.behavior_form_controller_description',
-            $properties,
-            'formConfig',
-            null,
-            'config_form.yaml',
             $templates
         );
     }

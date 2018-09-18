@@ -111,58 +111,49 @@ class Connection implements DriverConnection
      * @var \Doctrine\DBAL\Query\Expression\ExpressionBuilder
      */
     protected $_expr;
-    /**
-     * The schema manager.
-     *
-     * @var \Doctrine\DBAL\Schema\AbstractSchemaManager
-     */
-    protected $_schemaManager;
-    /**
-     * The used DBAL driver.
-     *
-     * @var \Doctrine\DBAL\Driver
-     */
-    protected $_driver;
-    /**
-     * @var integer
-     */
-    protected $defaultFetchMode = PDO::FETCH_ASSOC;
+
     /**
      * Whether or not a connection has been established.
      *
      * @var boolean
      */
     private $_isConnected = false;
+
     /**
      * The current auto-commit mode of this connection.
      *
      * @var boolean
      */
     private $autoCommit = true;
+
     /**
      * The transaction nesting level.
      *
      * @var integer
      */
     private $_transactionNestingLevel = 0;
+
     /**
      * The currently active transaction isolation level.
      *
      * @var integer
      */
     private $_transactionIsolationLevel;
+
     /**
      * If nested transactions should use savepoints.
      *
      * @var boolean
      */
     private $_nestTransactionsWithSavepoints = false;
+
     /**
      * The parameters used during creation of the Connection instance.
      *
      * @var array
      */
     private $_params = array();
+
     /**
      * The DatabasePlatform object that provides information about the
      * database platform used by the connection.
@@ -170,12 +161,32 @@ class Connection implements DriverConnection
      * @var \Doctrine\DBAL\Platforms\AbstractPlatform
      */
     private $platform;
+
+    /**
+     * The schema manager.
+     *
+     * @var \Doctrine\DBAL\Schema\AbstractSchemaManager
+     */
+    protected $_schemaManager;
+
+    /**
+     * The used DBAL driver.
+     *
+     * @var \Doctrine\DBAL\Driver
+     */
+    protected $_driver;
+
     /**
      * Flag that indicates whether the current transaction is marked for rollback only.
      *
      * @var boolean
      */
     private $_isRollbackOnly = false;
+
+    /**
+     * @var integer
+     */
+    protected $defaultFetchMode = PDO::FETCH_ASSOC;
 
     /**
      * Initializes a new instance of the Connection class.
@@ -307,6 +318,20 @@ class Connection implements DriverConnection
     }
 
     /**
+     * Gets the DatabasePlatform for the connection.
+     *
+     * @return \Doctrine\DBAL\Platforms\AbstractPlatform
+     */
+    public function getDatabasePlatform()
+    {
+        if (null == $this->platform) {
+            $this->detectDatabasePlatform();
+        }
+
+        return $this->platform;
+    }
+
+    /**
      * Gets the ExpressionBuilder for the connection.
      *
      * @return \Doctrine\DBAL\Query\Expression\ExpressionBuilder
@@ -314,113 +339,6 @@ class Connection implements DriverConnection
     public function getExpressionBuilder()
     {
         return $this->_expr;
-    }
-
-    /**
-     * Returns the current auto-commit mode for this connection.
-     *
-     * @return boolean True if auto-commit mode is currently enabled for this connection, false otherwise.
-     *
-     * @see    setAutoCommit
-     */
-    public function isAutoCommit()
-    {
-        return true === $this->autoCommit;
-    }
-
-    /**
-     * Sets auto-commit mode for this connection.
-     *
-     * If a connection is in auto-commit mode, then all its SQL statements will be executed and committed as individual
-     * transactions. Otherwise, its SQL statements are grouped into transactions that are terminated by a call to either
-     * the method commit or the method rollback. By default, new connections are in auto-commit mode.
-     *
-     * NOTE: If this method is called during a transaction and the auto-commit mode is changed, the transaction is
-     * committed. If this method is called and the auto-commit mode is not changed, the call is a no-op.
-     *
-     * @param boolean $autoCommit True to enable auto-commit mode; false to disable it.
-     *
-     * @see   isAutoCommit
-     */
-    public function setAutoCommit($autoCommit)
-    {
-        $autoCommit = (boolean) $autoCommit;
-
-        // Mode not changed, no-op.
-        if ($autoCommit === $this->autoCommit) {
-            return;
-        }
-
-        $this->autoCommit = $autoCommit;
-
-        // Commit all currently active transactions if any when switching auto-commit mode.
-        if (true === $this->_isConnected && 0 !== $this->_transactionNestingLevel) {
-            $this->commitAll();
-        }
-    }
-
-    /**
-     * Commits all current nesting transactions.
-     */
-    private function commitAll()
-    {
-        while (0 !== $this->_transactionNestingLevel) {
-            if (false === $this->autoCommit && 1 === $this->_transactionNestingLevel) {
-                // When in no auto-commit mode, the last nesting commit immediately starts a new transaction.
-                // Therefore we need to do the final commit here and then leave to avoid an infinite loop.
-                $this->commit();
-
-                return;
-            }
-
-            $this->commit();
-        }
-    }
-
-    /**
-     * Commits the current transaction.
-     *
-     * @return void
-     *
-     * @throws \Doctrine\DBAL\ConnectionException If the commit failed due to no active transaction or
-     *                                            because the transaction was marked for rollback only.
-     */
-    public function commit()
-    {
-        if ($this->_transactionNestingLevel == 0) {
-            throw ConnectionException::noActiveTransaction();
-        }
-        if ($this->_isRollbackOnly) {
-            throw ConnectionException::commitFailedRollbackOnly();
-        }
-
-        $this->connect();
-
-        $logger = $this->_config->getSQLLogger();
-
-        if ($this->_transactionNestingLevel == 1) {
-            if ($logger) {
-                $logger->startQuery('"COMMIT"');
-            }
-            $this->_conn->commit();
-            if ($logger) {
-                $logger->stopQuery();
-            }
-        } elseif ($this->_nestTransactionsWithSavepoints) {
-            if ($logger) {
-                $logger->startQuery('"RELEASE SAVEPOINT"');
-            }
-            $this->releaseSavepoint($this->_getNestedTransactionSavePointName());
-            if ($logger) {
-                $logger->stopQuery();
-            }
-        }
-
-        --$this->_transactionNestingLevel;
-
-        if (false === $this->autoCommit && 0 === $this->_transactionNestingLevel) {
-            $this->beginTransaction();
-        }
     }
 
     /**
@@ -523,97 +441,45 @@ class Connection implements DriverConnection
     }
 
     /**
-     * Starts a transaction by suspending auto-commit mode.
+     * Returns the current auto-commit mode for this connection.
      *
-     * @return void
+     * @return boolean True if auto-commit mode is currently enabled for this connection, false otherwise.
+     *
+     * @see    setAutoCommit
      */
-    public function beginTransaction()
+    public function isAutoCommit()
     {
-        $this->connect();
-
-        ++$this->_transactionNestingLevel;
-
-        $logger = $this->_config->getSQLLogger();
-
-        if ($this->_transactionNestingLevel == 1) {
-            if ($logger) {
-                $logger->startQuery('"START TRANSACTION"');
-            }
-            $this->_conn->beginTransaction();
-            if ($logger) {
-                $logger->stopQuery();
-            }
-        } elseif ($this->_nestTransactionsWithSavepoints) {
-            if ($logger) {
-                $logger->startQuery('"SAVEPOINT"');
-            }
-            $this->createSavepoint($this->_getNestedTransactionSavePointName());
-            if ($logger) {
-                $logger->stopQuery();
-            }
-        }
+        return true === $this->autoCommit;
     }
 
     /**
-     * Creates a new savepoint.
+     * Sets auto-commit mode for this connection.
      *
-     * @param string $savepoint The name of the savepoint to create.
+     * If a connection is in auto-commit mode, then all its SQL statements will be executed and committed as individual
+     * transactions. Otherwise, its SQL statements are grouped into transactions that are terminated by a call to either
+     * the method commit or the method rollback. By default, new connections are in auto-commit mode.
      *
-     * @return void
+     * NOTE: If this method is called during a transaction and the auto-commit mode is changed, the transaction is
+     * committed. If this method is called and the auto-commit mode is not changed, the call is a no-op.
      *
-     * @throws \Doctrine\DBAL\ConnectionException
+     * @param boolean $autoCommit True to enable auto-commit mode; false to disable it.
+     *
+     * @see   isAutoCommit
      */
-    public function createSavepoint($savepoint)
+    public function setAutoCommit($autoCommit)
     {
-        if ( ! $this->getDatabasePlatform()->supportsSavepoints()) {
-            throw ConnectionException::savepointsNotSupported();
+        $autoCommit = (boolean) $autoCommit;
+
+        // Mode not changed, no-op.
+        if ($autoCommit === $this->autoCommit) {
+            return;
         }
 
-        $this->_conn->exec($this->platform->createSavePoint($savepoint));
-    }
+        $this->autoCommit = $autoCommit;
 
-    /**
-     * Gets the DatabasePlatform for the connection.
-     *
-     * @return \Doctrine\DBAL\Platforms\AbstractPlatform
-     */
-    public function getDatabasePlatform()
-    {
-        if (null == $this->platform) {
-            $this->detectDatabasePlatform();
-        }
-
-        return $this->platform;
-    }
-
-    /**
-     * Returns the savepoint name to use for nested transactions are false if they are not supported
-     * "savepointFormat" parameter is not set
-     *
-     * @return mixed A string with the savepoint name or false.
-     */
-    protected function _getNestedTransactionSavePointName()
-    {
-        return 'DOCTRINE2_SAVEPOINT_'.$this->_transactionNestingLevel;
-    }
-
-    /**
-     * Releases the given savepoint.
-     *
-     * @param string $savepoint The name of the savepoint to release.
-     *
-     * @return void
-     *
-     * @throws \Doctrine\DBAL\ConnectionException
-     */
-    public function releaseSavepoint($savepoint)
-    {
-        if ( ! $this->getDatabasePlatform()->supportsSavepoints()) {
-            throw ConnectionException::savepointsNotSupported();
-        }
-
-        if ($this->platform->supportsReleaseSavepoints()) {
-            $this->_conn->exec($this->platform->releaseSavePoint($savepoint));
+        // Commit all currently active transactions if any when switching auto-commit mode.
+        if (true === $this->_isConnected && 0 !== $this->_transactionNestingLevel) {
+            $this->commitAll();
         }
     }
 
@@ -642,216 +508,6 @@ class Connection implements DriverConnection
     public function fetchAssoc($statement, array $params = array(), array $types = array())
     {
         return $this->executeQuery($statement, $params, $types)->fetch(PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * Executes an, optionally parametrized, SQL query.
-     *
-     * If the query is parametrized, a prepared statement is used.
-     * If an SQLLogger is configured, the execution is logged.
-     *
-     * @param string                                      $query  The SQL query to execute.
-     * @param array                                       $params The parameters to bind to the query, if any.
-     * @param array                                       $types  The types the previous parameters are in.
-     * @param \Doctrine\DBAL\Cache\QueryCacheProfile|null $qcp    The query cache profile, optional.
-     *
-     * @return \Doctrine\DBAL\Driver\Statement The executed statement.
-     *
-     * @throws \Doctrine\DBAL\DBALException
-     */
-    public function executeQuery($query, array $params = array(), $types = array(), QueryCacheProfile $qcp = null)
-    {
-        if ($qcp !== null) {
-            return $this->executeCacheQuery($query, $params, $types, $qcp);
-        }
-
-        $this->connect();
-
-        $logger = $this->_config->getSQLLogger();
-        if ($logger) {
-            $logger->startQuery($query, $params, $types);
-        }
-
-        try {
-            if ($params) {
-                list($query, $params, $types) = SQLParserUtils::expandListParameters($query, $params, $types);
-
-                $stmt = $this->_conn->prepare($query);
-                if ($types) {
-                    $this->_bindTypedValues($stmt, $params, $types);
-                    $stmt->execute();
-                } else {
-                    $stmt->execute($params);
-                }
-            } else {
-                $stmt = $this->_conn->query($query);
-            }
-        } catch (\Exception $ex) {
-            throw DBALException::driverExceptionDuringQuery($this->_driver, $ex, $query, $this->resolveParams($params, $types));
-        }
-
-        $stmt->setFetchMode($this->defaultFetchMode);
-
-        if ($logger) {
-            $logger->stopQuery();
-        }
-
-        return $stmt;
-    }
-
-    /**
-     * Executes a caching query.
-     *
-     * @param string                                 $query  The SQL query to execute.
-     * @param array                                  $params The parameters to bind to the query, if any.
-     * @param array                                  $types  The types the previous parameters are in.
-     * @param \Doctrine\DBAL\Cache\QueryCacheProfile $qcp    The query cache profile.
-     *
-     * @return \Doctrine\DBAL\Driver\ResultStatement
-     *
-     * @throws \Doctrine\DBAL\Cache\CacheException
-     */
-    public function executeCacheQuery($query, $params, $types, QueryCacheProfile $qcp)
-    {
-        $resultCache = $qcp->getResultCacheDriver() ?: $this->_config->getResultCacheImpl();
-        if ( ! $resultCache) {
-            throw CacheException::noResultDriverConfigured();
-        }
-
-        list($cacheKey, $realKey) = $qcp->generateCacheKeys($query, $params, $types);
-
-        // fetch the row pointers entry
-        if ($data = $resultCache->fetch($cacheKey)) {
-            // is the real key part of this row pointers map or is the cache only pointing to other cache keys?
-            if (isset($data[$realKey])) {
-                $stmt = new ArrayStatement($data[$realKey]);
-            } elseif (array_key_exists($realKey, $data)) {
-                $stmt = new ArrayStatement(array());
-            }
-        }
-
-        if (!isset($stmt)) {
-            $stmt = new ResultCacheStatement($this->executeQuery($query, $params, $types), $resultCache, $cacheKey, $realKey, $qcp->getLifetime());
-        }
-
-        $stmt->setFetchMode($this->defaultFetchMode);
-
-        return $stmt;
-    }
-
-    /**
-     * Binds a set of parameters, some or all of which are typed with a PDO binding type
-     * or DBAL mapping type, to a given statement.
-     *
-     * @param \Doctrine\DBAL\Driver\Statement $stmt   The statement to bind the values to.
-     * @param array                           $params The map/list of named/positional parameters.
-     * @param array                           $types  The parameter types (PDO binding types or DBAL mapping types).
-     *
-     * @return void
-     *
-     * @internal Duck-typing used on the $stmt parameter to support driver statements as well as
-     *           raw PDOStatement instances.
-     */
-    private function _bindTypedValues($stmt, array $params, array $types)
-    {
-        // Check whether parameters are positional or named. Mixing is not allowed, just like in PDO.
-        if (is_int(key($params))) {
-            // Positional parameters
-            $typeOffset = array_key_exists(0, $types) ? -1 : 0;
-            $bindIndex = 1;
-            foreach ($params as $value) {
-                $typeIndex = $bindIndex + $typeOffset;
-                if (isset($types[$typeIndex])) {
-                    $type = $types[$typeIndex];
-                    list($value, $bindingType) = $this->getBindingInfo($value, $type);
-                    $stmt->bindValue($bindIndex, $value, $bindingType);
-                } else {
-                    $stmt->bindValue($bindIndex, $value);
-                }
-                ++$bindIndex;
-            }
-        } else {
-            // Named parameters
-            foreach ($params as $name => $value) {
-                if (isset($types[$name])) {
-                    $type = $types[$name];
-                    list($value, $bindingType) = $this->getBindingInfo($value, $type);
-                    $stmt->bindValue($name, $value, $bindingType);
-                } else {
-                    $stmt->bindValue($name, $value);
-                }
-            }
-        }
-    }
-
-    /**
-     * Gets the binding type of a given type. The given type can be a PDO or DBAL mapping type.
-     *
-     * @param mixed $value The value to bind.
-     * @param mixed $type  The type to bind (PDO or DBAL).
-     *
-     * @return array [0] => the (escaped) value, [1] => the binding type.
-     */
-    private function getBindingInfo($value, $type)
-    {
-        if (is_string($type)) {
-            $type = Type::getType($type);
-        }
-        if ($type instanceof Type) {
-            $value = $type->convertToDatabaseValue($value, $this->getDatabasePlatform());
-            $bindingType = $type->getBindingType();
-        } else {
-            $bindingType = $type; // PDO::PARAM_* constants
-        }
-
-        return array($value, $bindingType);
-    }
-
-    /**
-     * Resolves the parameters to a format which can be displayed.
-     *
-     * @internal This is a purely internal method. If you rely on this method, you are advised to
-     *           copy/paste the code as this method may change, or be removed without prior notice.
-     *
-     * @param array $params
-     * @param array $types
-     *
-     * @return array
-     */
-    public function resolveParams(array $params, array $types)
-    {
-        $resolvedParams = array();
-
-        // Check whether parameters are positional or named. Mixing is not allowed, just like in PDO.
-        if (is_int(key($params))) {
-            // Positional parameters
-            $typeOffset = array_key_exists(0, $types) ? -1 : 0;
-            $bindIndex = 1;
-            foreach ($params as $value) {
-                $typeIndex = $bindIndex + $typeOffset;
-                if (isset($types[$typeIndex])) {
-                    $type = $types[$typeIndex];
-                    list($value,) = $this->getBindingInfo($value, $type);
-                    $resolvedParams[$bindIndex] = $value;
-                } else {
-                    $resolvedParams[$bindIndex] = $value;
-                }
-                ++$bindIndex;
-            }
-        } else {
-            // Named parameters
-            foreach ($params as $name => $value) {
-                if (isset($types[$name])) {
-                    $type = $types[$name];
-                    list($value,) = $this->getBindingInfo($value, $type);
-                    $resolvedParams[$name] = $value;
-                } else {
-                    $resolvedParams[$name] = $value;
-                }
-            }
-        }
-
-        return $resolvedParams;
     }
 
     /**
@@ -939,76 +595,6 @@ class Connection implements DriverConnection
             $paramValues,
             is_string(key($types)) ? $this->extractTypeValues($columnList, $types) : $types
         );
-    }
-
-    /**
-     * Executes an SQL INSERT/UPDATE/DELETE query with the given parameters
-     * and returns the number of affected rows.
-     *
-     * This method supports PDO binding types as well as DBAL mapping types.
-     *
-     * @param string $query  The SQL query.
-     * @param array  $params The query parameters.
-     * @param array  $types  The parameter types.
-     *
-     * @return integer The number of affected rows.
-     *
-     * @throws \Doctrine\DBAL\DBALException
-     */
-    public function executeUpdate($query, array $params = array(), array $types = array())
-    {
-        $this->connect();
-
-        $logger = $this->_config->getSQLLogger();
-        if ($logger) {
-            $logger->startQuery($query, $params, $types);
-        }
-
-        try {
-            if ($params) {
-                list($query, $params, $types) = SQLParserUtils::expandListParameters($query, $params, $types);
-
-                $stmt = $this->_conn->prepare($query);
-                if ($types) {
-                    $this->_bindTypedValues($stmt, $params, $types);
-                    $stmt->execute();
-                } else {
-                    $stmt->execute($params);
-                }
-                $result = $stmt->rowCount();
-            } else {
-                $result = $this->_conn->exec($query);
-            }
-        } catch (\Exception $ex) {
-            throw DBALException::driverExceptionDuringQuery($this->_driver, $ex, $query, $this->resolveParams($params, $types));
-        }
-
-        if ($logger) {
-            $logger->stopQuery();
-        }
-
-        return $result;
-    }
-
-    /**
-     * Extract ordered type list from an ordered column list and type map.
-     *
-     * @param array $columnList
-     * @param array $types
-     *
-     * @return array
-     */
-    private function extractTypeValues(array $columnList, array $types)
-    {
-        $typeValues = array();
-
-        foreach ($columnList as $columnIndex => $columnName) {
-            $typeValues[] = isset($types[$columnName])
-                ? $types[$columnName]
-                : \PDO::PARAM_STR;
-        }
-
-        return $typeValues;
     }
 
     /**
@@ -1130,6 +716,27 @@ class Connection implements DriverConnection
     }
 
     /**
+     * Extract ordered type list from an ordered column list and type map.
+     *
+     * @param array $columnList
+     * @param array $types
+     *
+     * @return array
+     */
+    private function extractTypeValues(array $columnList, array $types)
+    {
+        $typeValues = array();
+
+        foreach ($columnList as $columnIndex => $columnName) {
+            $typeValues[] = isset($types[$columnName])
+                ? $types[$columnName]
+                : \PDO::PARAM_STR;
+        }
+
+        return $typeValues;
+    }
+
+    /**
      * Quotes a string so it can be safely used as a table or column name, even if
      * it is a reserved name.
      *
@@ -1203,6 +810,101 @@ class Connection implements DriverConnection
     }
 
     /**
+     * Executes an, optionally parametrized, SQL query.
+     *
+     * If the query is parametrized, a prepared statement is used.
+     * If an SQLLogger is configured, the execution is logged.
+     *
+     * @param string                                      $query  The SQL query to execute.
+     * @param array                                       $params The parameters to bind to the query, if any.
+     * @param array                                       $types  The types the previous parameters are in.
+     * @param \Doctrine\DBAL\Cache\QueryCacheProfile|null $qcp    The query cache profile, optional.
+     *
+     * @return \Doctrine\DBAL\Driver\Statement The executed statement.
+     *
+     * @throws \Doctrine\DBAL\DBALException
+     */
+    public function executeQuery($query, array $params = array(), $types = array(), QueryCacheProfile $qcp = null)
+    {
+        if ($qcp !== null) {
+            return $this->executeCacheQuery($query, $params, $types, $qcp);
+        }
+
+        $this->connect();
+
+        $logger = $this->_config->getSQLLogger();
+        if ($logger) {
+            $logger->startQuery($query, $params, $types);
+        }
+
+        try {
+            if ($params) {
+                list($query, $params, $types) = SQLParserUtils::expandListParameters($query, $params, $types);
+
+                $stmt = $this->_conn->prepare($query);
+                if ($types) {
+                    $this->_bindTypedValues($stmt, $params, $types);
+                    $stmt->execute();
+                } else {
+                    $stmt->execute($params);
+                }
+            } else {
+                $stmt = $this->_conn->query($query);
+            }
+        } catch (\Exception $ex) {
+            throw DBALException::driverExceptionDuringQuery($this->_driver, $ex, $query, $this->resolveParams($params, $types));
+        }
+
+        $stmt->setFetchMode($this->defaultFetchMode);
+
+        if ($logger) {
+            $logger->stopQuery();
+        }
+
+        return $stmt;
+    }
+
+    /**
+     * Executes a caching query.
+     *
+     * @param string                                 $query  The SQL query to execute.
+     * @param array                                  $params The parameters to bind to the query, if any.
+     * @param array                                  $types  The types the previous parameters are in.
+     * @param \Doctrine\DBAL\Cache\QueryCacheProfile $qcp    The query cache profile.
+     *
+     * @return \Doctrine\DBAL\Driver\ResultStatement
+     *
+     * @throws \Doctrine\DBAL\Cache\CacheException
+     */
+    public function executeCacheQuery($query, $params, $types, QueryCacheProfile $qcp)
+    {
+        $resultCache = $qcp->getResultCacheDriver() ?: $this->_config->getResultCacheImpl();
+        if ( ! $resultCache) {
+            throw CacheException::noResultDriverConfigured();
+        }
+
+        list($cacheKey, $realKey) = $qcp->generateCacheKeys($query, $params, $types);
+
+        // fetch the row pointers entry
+        if ($data = $resultCache->fetch($cacheKey)) {
+            // is the real key part of this row pointers map or is the cache only pointing to other cache keys?
+            if (isset($data[$realKey])) {
+                $stmt = new ArrayStatement($data[$realKey]);
+            } elseif (array_key_exists($realKey, $data)) {
+                $stmt = new ArrayStatement(array());
+            }
+        }
+
+        if (!isset($stmt)) {
+            $stmt = new ResultCacheStatement($this->executeQuery($query, $params, $types), $resultCache, $cacheKey, $realKey, $qcp->getLifetime());
+        }
+
+        $stmt->setFetchMode($this->defaultFetchMode);
+
+        return $stmt;
+    }
+
+    /**
      * Executes an, optionally parametrized, SQL query and returns the result,
      * applying a given projection/transformation function on each row of the result.
      *
@@ -1224,6 +926,98 @@ class Connection implements DriverConnection
         }
 
         $stmt->closeCursor();
+
+        return $result;
+    }
+
+    /**
+     * Executes an SQL statement, returning a result set as a Statement object.
+     *
+     * @return \Doctrine\DBAL\Driver\Statement
+     *
+     * @throws \Doctrine\DBAL\DBALException
+     */
+    public function query()
+    {
+        $this->connect();
+
+        $args = func_get_args();
+
+        $logger = $this->_config->getSQLLogger();
+        if ($logger) {
+            $logger->startQuery($args[0]);
+        }
+
+        try {
+            switch (func_num_args()) {
+                case 1:
+                    $statement = $this->_conn->query($args[0]);
+                    break;
+                case 2:
+                    $statement = $this->_conn->query($args[0], $args[1]);
+                    break;
+                default:
+                    $statement = call_user_func_array(array($this->_conn, 'query'), $args);
+                    break;
+            }
+        } catch (\Exception $ex) {
+            throw DBALException::driverExceptionDuringQuery($this->_driver, $ex, $args[0]);
+        }
+
+        $statement->setFetchMode($this->defaultFetchMode);
+
+        if ($logger) {
+            $logger->stopQuery();
+        }
+
+        return $statement;
+    }
+
+    /**
+     * Executes an SQL INSERT/UPDATE/DELETE query with the given parameters
+     * and returns the number of affected rows.
+     *
+     * This method supports PDO binding types as well as DBAL mapping types.
+     *
+     * @param string $query  The SQL query.
+     * @param array  $params The query parameters.
+     * @param array  $types  The parameter types.
+     *
+     * @return integer The number of affected rows.
+     *
+     * @throws \Doctrine\DBAL\DBALException
+     */
+    public function executeUpdate($query, array $params = array(), array $types = array())
+    {
+        $this->connect();
+
+        $logger = $this->_config->getSQLLogger();
+        if ($logger) {
+            $logger->startQuery($query, $params, $types);
+        }
+
+        try {
+            if ($params) {
+                list($query, $params, $types) = SQLParserUtils::expandListParameters($query, $params, $types);
+
+                $stmt = $this->_conn->prepare($query);
+                if ($types) {
+                    $this->_bindTypedValues($stmt, $params, $types);
+                    $stmt->execute();
+                } else {
+                    $stmt->execute($params);
+                }
+                $result = $stmt->rowCount();
+            } else {
+                $result = $this->_conn->exec($query);
+            }
+        } catch (\Exception $ex) {
+            throw DBALException::driverExceptionDuringQuery($this->_driver, $ex, $query, $this->resolveParams($params, $types));
+        }
+
+        if ($logger) {
+            $logger->stopQuery();
+        }
 
         return $result;
     }
@@ -1339,6 +1133,145 @@ class Connection implements DriverConnection
     }
 
     /**
+     * Sets if nested transactions should use savepoints.
+     *
+     * @param boolean $nestTransactionsWithSavepoints
+     *
+     * @return void
+     *
+     * @throws \Doctrine\DBAL\ConnectionException
+     */
+    public function setNestTransactionsWithSavepoints($nestTransactionsWithSavepoints)
+    {
+        if ($this->_transactionNestingLevel > 0) {
+            throw ConnectionException::mayNotAlterNestedTransactionWithSavepointsInTransaction();
+        }
+
+        if ( ! $this->getDatabasePlatform()->supportsSavepoints()) {
+            throw ConnectionException::savepointsNotSupported();
+        }
+
+        $this->_nestTransactionsWithSavepoints = (bool) $nestTransactionsWithSavepoints;
+    }
+
+    /**
+     * Gets if nested transactions should use savepoints.
+     *
+     * @return boolean
+     */
+    public function getNestTransactionsWithSavepoints()
+    {
+        return $this->_nestTransactionsWithSavepoints;
+    }
+
+    /**
+     * Returns the savepoint name to use for nested transactions are false if they are not supported
+     * "savepointFormat" parameter is not set
+     *
+     * @return mixed A string with the savepoint name or false.
+     */
+    protected function _getNestedTransactionSavePointName()
+    {
+        return 'DOCTRINE2_SAVEPOINT_'.$this->_transactionNestingLevel;
+    }
+
+    /**
+     * Starts a transaction by suspending auto-commit mode.
+     *
+     * @return void
+     */
+    public function beginTransaction()
+    {
+        $this->connect();
+
+        ++$this->_transactionNestingLevel;
+
+        $logger = $this->_config->getSQLLogger();
+
+        if ($this->_transactionNestingLevel == 1) {
+            if ($logger) {
+                $logger->startQuery('"START TRANSACTION"');
+            }
+            $this->_conn->beginTransaction();
+            if ($logger) {
+                $logger->stopQuery();
+            }
+        } elseif ($this->_nestTransactionsWithSavepoints) {
+            if ($logger) {
+                $logger->startQuery('"SAVEPOINT"');
+            }
+            $this->createSavepoint($this->_getNestedTransactionSavePointName());
+            if ($logger) {
+                $logger->stopQuery();
+            }
+        }
+    }
+
+    /**
+     * Commits the current transaction.
+     *
+     * @return void
+     *
+     * @throws \Doctrine\DBAL\ConnectionException If the commit failed due to no active transaction or
+     *                                            because the transaction was marked for rollback only.
+     */
+    public function commit()
+    {
+        if ($this->_transactionNestingLevel == 0) {
+            throw ConnectionException::noActiveTransaction();
+        }
+        if ($this->_isRollbackOnly) {
+            throw ConnectionException::commitFailedRollbackOnly();
+        }
+
+        $this->connect();
+
+        $logger = $this->_config->getSQLLogger();
+
+        if ($this->_transactionNestingLevel == 1) {
+            if ($logger) {
+                $logger->startQuery('"COMMIT"');
+            }
+            $this->_conn->commit();
+            if ($logger) {
+                $logger->stopQuery();
+            }
+        } elseif ($this->_nestTransactionsWithSavepoints) {
+            if ($logger) {
+                $logger->startQuery('"RELEASE SAVEPOINT"');
+            }
+            $this->releaseSavepoint($this->_getNestedTransactionSavePointName());
+            if ($logger) {
+                $logger->stopQuery();
+            }
+        }
+
+        --$this->_transactionNestingLevel;
+
+        if (false === $this->autoCommit && 0 === $this->_transactionNestingLevel) {
+            $this->beginTransaction();
+        }
+    }
+
+    /**
+     * Commits all current nesting transactions.
+     */
+    private function commitAll()
+    {
+        while (0 !== $this->_transactionNestingLevel) {
+            if (false === $this->autoCommit && 1 === $this->_transactionNestingLevel) {
+                // When in no auto-commit mode, the last nesting commit immediately starts a new transaction.
+                // Therefore we need to do the final commit here and then leave to avoid an infinite loop.
+                $this->commit();
+
+                return;
+            }
+
+            $this->commit();
+        }
+    }
+
+    /**
      * Cancels any database changes done during the current transaction.
      *
      * This method can be listened with onPreTransactionRollback and onTransactionRollback
@@ -1386,6 +1319,44 @@ class Connection implements DriverConnection
     }
 
     /**
+     * Creates a new savepoint.
+     *
+     * @param string $savepoint The name of the savepoint to create.
+     *
+     * @return void
+     *
+     * @throws \Doctrine\DBAL\ConnectionException
+     */
+    public function createSavepoint($savepoint)
+    {
+        if ( ! $this->getDatabasePlatform()->supportsSavepoints()) {
+            throw ConnectionException::savepointsNotSupported();
+        }
+
+        $this->_conn->exec($this->platform->createSavePoint($savepoint));
+    }
+
+    /**
+     * Releases the given savepoint.
+     *
+     * @param string $savepoint The name of the savepoint to release.
+     *
+     * @return void
+     *
+     * @throws \Doctrine\DBAL\ConnectionException
+     */
+    public function releaseSavepoint($savepoint)
+    {
+        if ( ! $this->getDatabasePlatform()->supportsSavepoints()) {
+            throw ConnectionException::savepointsNotSupported();
+        }
+
+        if ($this->platform->supportsReleaseSavepoints()) {
+            $this->_conn->exec($this->platform->releaseSavePoint($savepoint));
+        }
+    }
+
+    /**
      * Rolls back to the given savepoint.
      *
      * @param string $savepoint The name of the savepoint to rollback to.
@@ -1401,38 +1372,6 @@ class Connection implements DriverConnection
         }
 
         $this->_conn->exec($this->platform->rollbackSavePoint($savepoint));
-    }
-
-    /**
-     * Gets if nested transactions should use savepoints.
-     *
-     * @return boolean
-     */
-    public function getNestTransactionsWithSavepoints()
-    {
-        return $this->_nestTransactionsWithSavepoints;
-    }
-
-    /**
-     * Sets if nested transactions should use savepoints.
-     *
-     * @param boolean $nestTransactionsWithSavepoints
-     *
-     * @return void
-     *
-     * @throws \Doctrine\DBAL\ConnectionException
-     */
-    public function setNestTransactionsWithSavepoints($nestTransactionsWithSavepoints)
-    {
-        if ($this->_transactionNestingLevel > 0) {
-            throw ConnectionException::mayNotAlterNestedTransactionWithSavepointsInTransaction();
-        }
-
-        if ( ! $this->getDatabasePlatform()->supportsSavepoints()) {
-            throw ConnectionException::savepointsNotSupported();
-        }
-
-        $this->_nestTransactionsWithSavepoints = (bool) $nestTransactionsWithSavepoints;
     }
 
     /**
@@ -1523,6 +1462,121 @@ class Connection implements DriverConnection
     }
 
     /**
+     * Binds a set of parameters, some or all of which are typed with a PDO binding type
+     * or DBAL mapping type, to a given statement.
+     *
+     * @param \Doctrine\DBAL\Driver\Statement $stmt   The statement to bind the values to.
+     * @param array                           $params The map/list of named/positional parameters.
+     * @param array                           $types  The parameter types (PDO binding types or DBAL mapping types).
+     *
+     * @return void
+     *
+     * @internal Duck-typing used on the $stmt parameter to support driver statements as well as
+     *           raw PDOStatement instances.
+     */
+    private function _bindTypedValues($stmt, array $params, array $types)
+    {
+        // Check whether parameters are positional or named. Mixing is not allowed, just like in PDO.
+        if (is_int(key($params))) {
+            // Positional parameters
+            $typeOffset = array_key_exists(0, $types) ? -1 : 0;
+            $bindIndex = 1;
+            foreach ($params as $value) {
+                $typeIndex = $bindIndex + $typeOffset;
+                if (isset($types[$typeIndex])) {
+                    $type = $types[$typeIndex];
+                    list($value, $bindingType) = $this->getBindingInfo($value, $type);
+                    $stmt->bindValue($bindIndex, $value, $bindingType);
+                } else {
+                    $stmt->bindValue($bindIndex, $value);
+                }
+                ++$bindIndex;
+            }
+        } else {
+            // Named parameters
+            foreach ($params as $name => $value) {
+                if (isset($types[$name])) {
+                    $type = $types[$name];
+                    list($value, $bindingType) = $this->getBindingInfo($value, $type);
+                    $stmt->bindValue($name, $value, $bindingType);
+                } else {
+                    $stmt->bindValue($name, $value);
+                }
+            }
+        }
+    }
+
+    /**
+     * Gets the binding type of a given type. The given type can be a PDO or DBAL mapping type.
+     *
+     * @param mixed $value The value to bind.
+     * @param mixed $type  The type to bind (PDO or DBAL).
+     *
+     * @return array [0] => the (escaped) value, [1] => the binding type.
+     */
+    private function getBindingInfo($value, $type)
+    {
+        if (is_string($type)) {
+            $type = Type::getType($type);
+        }
+        if ($type instanceof Type) {
+            $value = $type->convertToDatabaseValue($value, $this->getDatabasePlatform());
+            $bindingType = $type->getBindingType();
+        } else {
+            $bindingType = $type; // PDO::PARAM_* constants
+        }
+
+        return array($value, $bindingType);
+    }
+
+    /**
+     * Resolves the parameters to a format which can be displayed.
+     *
+     * @internal This is a purely internal method. If you rely on this method, you are advised to
+     *           copy/paste the code as this method may change, or be removed without prior notice.
+     *
+     * @param array $params
+     * @param array $types
+     *
+     * @return array
+     */
+    public function resolveParams(array $params, array $types)
+    {
+        $resolvedParams = array();
+
+        // Check whether parameters are positional or named. Mixing is not allowed, just like in PDO.
+        if (is_int(key($params))) {
+            // Positional parameters
+            $typeOffset = array_key_exists(0, $types) ? -1 : 0;
+            $bindIndex = 1;
+            foreach ($params as $value) {
+                $typeIndex = $bindIndex + $typeOffset;
+                if (isset($types[$typeIndex])) {
+                    $type = $types[$typeIndex];
+                    list($value,) = $this->getBindingInfo($value, $type);
+                    $resolvedParams[$bindIndex] = $value;
+                } else {
+                    $resolvedParams[$bindIndex] = $value;
+                }
+                ++$bindIndex;
+            }
+        } else {
+            // Named parameters
+            foreach ($params as $name => $value) {
+                if (isset($types[$name])) {
+                    $type = $types[$name];
+                    list($value,) = $this->getBindingInfo($value, $type);
+                    $resolvedParams[$name] = $value;
+                } else {
+                    $resolvedParams[$name] = $value;
+                }
+            }
+        }
+
+        return $resolvedParams;
+    }
+
+    /**
      * Creates a new instance of a SQL query builder.
      *
      * @return \Doctrine\DBAL\Query\QueryBuilder
@@ -1568,48 +1622,5 @@ class Connection implements DriverConnection
         } catch (DBALException $e) {
             return false;
         }
-    }
-
-    /**
-     * Executes an SQL statement, returning a result set as a Statement object.
-     *
-     * @return \Doctrine\DBAL\Driver\Statement
-     *
-     * @throws \Doctrine\DBAL\DBALException
-     */
-    public function query()
-    {
-        $this->connect();
-
-        $args = func_get_args();
-
-        $logger = $this->_config->getSQLLogger();
-        if ($logger) {
-            $logger->startQuery($args[0]);
-        }
-
-        try {
-            switch (func_num_args()) {
-                case 1:
-                    $statement = $this->_conn->query($args[0]);
-                    break;
-                case 2:
-                    $statement = $this->_conn->query($args[0], $args[1]);
-                    break;
-                default:
-                    $statement = call_user_func_array(array($this->_conn, 'query'), $args);
-                    break;
-            }
-        } catch (\Exception $ex) {
-            throw DBALException::driverExceptionDuringQuery($this->_driver, $ex, $args[0]);
-        }
-
-        $statement->setFetchMode($this->defaultFetchMode);
-
-        if ($logger) {
-            $logger->stopQuery();
-        }
-
-        return $statement;
     }
 }

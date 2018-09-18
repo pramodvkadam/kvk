@@ -31,6 +31,14 @@ class TimeType extends Type
     /**
      * {@inheritdoc}
      */
+    public function getName()
+    {
+        return Type::TIME;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getSQLDeclaration(array $fieldDeclaration, AbstractPlatform $platform)
     {
         return $platform->getTimeTypeDeclarationSQL($fieldDeclaration);
@@ -60,13 +68,5 @@ class TimeType extends Type
         }
 
         return $val;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getName()
-    {
-        return Type::TIME;
     }
 }

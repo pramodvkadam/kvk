@@ -2,7 +2,7 @@
 /**
  * SCSSPHP
  *
- * @copyright 2012-2017 Leaf Corcoran
+ * @copyright 2012-2018 Leaf Corcoran
  *
  * @license http://opensource.org/licenses/MIT MIT
  *
@@ -31,7 +31,7 @@ class Number extends Node implements \ArrayAccess
     /**
      * @var integer
      */
-    static public $precision = 5;
+    static public $precision = 10;
 
     /**
      * @see http://www.w3.org/TR/2012/WD-css3-values-20120308/
@@ -121,16 +121,6 @@ class Number extends Node implements \ArrayAccess
     }
 
     /**
-     * Returns true if the number is unitless
-     *
-     * @return boolean
-     */
-    public function unitless()
-    {
-        return ! array_sum($this->units);
-    }
-
-    /**
      * Normalize number
      *
      * @return \Leafo\ScssPhp\Node\Number
@@ -143,30 +133,6 @@ class Number extends Node implements \ArrayAccess
         $this->normalizeUnits($dimension, $units, 'in');
 
         return new Number($dimension, $units);
-    }
-
-    /**
-     * Normalize units
-     *
-     * @param integer|float $dimension
-     * @param array         $units
-     * @param string        $baseUnit
-     */
-    private function normalizeUnits(&$dimension, &$units, $baseUnit = 'in')
-    {
-        $dimension = $this->dimension;
-        $units     = [];
-
-        foreach ($this->units as $unit => $exp) {
-            if (isset(static::$unitTable[$baseUnit][$unit])) {
-                $factor = pow(static::$unitTable[$baseUnit][$unit], $exp);
-
-                $unit = $baseUnit;
-                $dimension /= $factor;
-            }
-
-            $units[$unit] = $exp + (isset($units[$unit]) ? $units[$unit] : 0);
-        }
     }
 
     /**
@@ -256,11 +222,38 @@ class Number extends Node implements \ArrayAccess
     }
 
     /**
-     * {@inheritdoc}
+     * Returns true if the number is unitless
+     *
+     * @return boolean
      */
-    public function __toString()
+    public function unitless()
     {
-        return $this->output();
+        return ! array_sum($this->units);
+    }
+
+    /**
+     * Returns unit(s) as the product of numerator units divided by the product of denominator units
+     *
+     * @return string
+     */
+    public function unitStr()
+    {
+        $numerators   = [];
+        $denominators = [];
+
+        foreach ($this->units as $unit => $unitSize) {
+            if ($unitSize > 0) {
+                $numerators = array_pad($numerators, count($numerators) + $unitSize, $unit);
+                continue;
+            }
+
+            if ($unitSize < 0) {
+                $denominators = array_pad($denominators, count($denominators) + $unitSize, $unit);
+                continue;
+            }
+        }
+
+        return implode('*', $numerators) . (count($denominators) ? '/' . implode('*', $denominators) : '');
     }
 
     /**
@@ -298,32 +291,40 @@ class Number extends Node implements \ArrayAccess
 
         reset($units);
         $unit = key($units);
+        $dimension = number_format($dimension, static::$precision, '.', '');
 
-        return (string) $dimension . $unit;
+        return (static::$precision ? rtrim(rtrim($dimension, '0'), '.') : $dimension) . $unit;
     }
 
     /**
-     * Returns unit(s) as the product of numerator units divided by the product of denominator units
-     *
-     * @return string
+     * {@inheritdoc}
      */
-    public function unitStr()
+    public function __toString()
     {
-        $numerators   = [];
-        $denominators = [];
+        return $this->output();
+    }
 
-        foreach ($this->units as $unit => $unitSize) {
-            if ($unitSize > 0) {
-                $numerators = array_pad($numerators, count($numerators) + $unitSize, $unit);
-                continue;
+    /**
+     * Normalize units
+     *
+     * @param integer|float $dimension
+     * @param array         $units
+     * @param string        $baseUnit
+     */
+    private function normalizeUnits(&$dimension, &$units, $baseUnit = 'in')
+    {
+        $dimension = $this->dimension;
+        $units     = [];
+
+        foreach ($this->units as $unit => $exp) {
+            if (isset(static::$unitTable[$baseUnit][$unit])) {
+                $factor = pow(static::$unitTable[$baseUnit][$unit], $exp);
+
+                $unit = $baseUnit;
+                $dimension /= $factor;
             }
 
-            if ($unitSize < 0) {
-                $denominators = array_pad($denominators, count($denominators) + $unitSize, $unit);
-                continue;
-            }
+            $units[$unit] = $exp + (isset($units[$unit]) ? $units[$unit] : 0);
         }
-
-        return implode('*', $numerators) . (count($denominators) ? '/' . implode('*', $denominators) : '');
     }
 }

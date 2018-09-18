@@ -37,10 +37,6 @@ class Less_Tree_Unit extends Less_Tree{
 		}
 	}
 
-    public function __toString(){
-		return $this->toString();
-	}
-
     public function toString(){
 		$returnStr = implode('*',$this->numerator);
 		foreach($this->denominator as $d){
@@ -48,6 +44,11 @@ class Less_Tree_Unit extends Less_Tree{
 		}
 		return $returnStr;
 	}
+
+    public function __toString(){
+		return $this->toString();
+	}
+
 
 	/**
 	 * @param Less_Tree_Unit $other

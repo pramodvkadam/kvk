@@ -98,16 +98,6 @@ class StandardControlsRegistry
         );
     }
 
-    protected function getCheckboxTypeProperties()
-    {
-        return [
-            'default' =>  [
-                'title' => Lang::get('rainlab.builder::lang.form.property_checked_default_title'),
-                'type' => 'checkbox'
-            ]
-        ];
-    }
-
     protected function registerSwitchControl()
     {
         $this->controlLibrary->registerControl('switch',
@@ -132,24 +122,6 @@ class StandardControlsRegistry
             $this->controlLibrary->getStandardProperties(['stretch'], $properties),
             null
         );
-    }
-
-    protected function getFieldSizeProperties()
-    {
-        return [
-            'size' =>  [
-                'title' => Lang::get('rainlab.builder::lang.form.property_attributes_size'),
-                'type' => 'dropdown',
-                'options' => [
-                    'tiny' => Lang::get('rainlab.builder::lang.form.property_attributes_size_tiny'),
-                    'small' => Lang::get('rainlab.builder::lang.form.property_attributes_size_small'),
-                    'large' => Lang::get('rainlab.builder::lang.form.property_attributes_size_large'),
-                    'huge' => Lang::get('rainlab.builder::lang.form.property_attributes_size_huge'),
-                    'giant' => Lang::get('rainlab.builder::lang.form.property_attributes_size_giant')
-                ],
-                'sortOrder' => 51
-            ]
-        ];
     }
 
     protected function registerDropdownControl()
@@ -204,24 +176,6 @@ class StandardControlsRegistry
             $this->controlLibrary->getStandardProperties($this->getPartialIgnoreProperties(), $properties),
             null
         );
-    }
-
-    protected function getPartialIgnoreProperties()
-    {
-        return [
-            'stretch',
-            'default',
-            'placeholder',
-            'required',
-            'defaultFrom',
-            'dependsOn',
-            'preset',
-            'attributes',
-            'label',
-            'oc.commentPosition',
-            'oc.comment',
-            'disabled'
-        ];
     }
 
     protected function registerPartialControl()
@@ -328,6 +282,78 @@ class StandardControlsRegistry
             'rainlab.builder::lang.form.control_checkboxlist_description',
             ControlLibrary::GROUP_STANDARD,
             'icon-list',
+            $this->controlLibrary->getStandardProperties($ignoreProperties, $properties),
+            null
+        );
+    }
+
+    protected function getCheckboxTypeProperties()
+    {
+        return [
+            'default' =>  [
+                'title' => Lang::get('rainlab.builder::lang.form.property_checked_default_title'),
+                'type' => 'checkbox'
+            ]
+        ];
+    }
+
+    protected function getPartialIgnoreProperties()
+    {
+        return [
+            'stretch',
+            'default',
+            'placeholder',
+            'required',
+            'defaultFrom',
+            'dependsOn',
+            'preset',
+            'attributes',
+            'label',
+            'oc.commentPosition',
+            'oc.comment',
+            'disabled'
+        ];
+    }
+
+    protected function registerRepeaterWidget()
+    {
+        $properties = [
+            'prompt' =>  [
+                'title' => Lang::get('rainlab.builder::lang.form.property_prompt'),
+                'description' => Lang::get('rainlab.builder::lang.form.property_prompt_description'),
+                'type' => 'string',
+                'ignoreIfEmpty' => true,
+                'default' => Lang::get('rainlab.builder::lang.form.property_prompt_default'),
+                'sortOrder' => 81
+            ],
+            'form' => [
+                'type' => 'control-container'
+            ],
+            'maxItems' =>  [
+                'title' => Lang::get('rainlab.builder::lang.form.property_max_items'),
+                'description' => Lang::get('rainlab.builder::lang.form.property_max_items_description'),
+                'type' => 'string',
+                'ignoreIfEmpty' => true,
+                'sortOrder' => 82
+            ],
+        ];
+
+        $ignoreProperties = [
+            'stretch',
+            'placeholder',
+            'default',
+            'required',
+            'defaultFrom',
+            'dependsOn',
+            'preset',
+            'attributes'
+        ];
+
+        $this->controlLibrary->registerControl('repeater',
+            'rainlab.builder::lang.form.control_repeater',
+            'rainlab.builder::lang.form.control_repeater_description',
+            ControlLibrary::GROUP_WIDGETS,
+            'icon-server',
             $this->controlLibrary->getStandardProperties($ignoreProperties, $properties),
             null
         );
@@ -654,6 +680,24 @@ class StandardControlsRegistry
             $this->controlLibrary->getStandardProperties([], $properties),
             null
         );
+    }
+
+    protected function getFieldSizeProperties()
+    {
+        return [
+            'size' =>  [
+                'title' => Lang::get('rainlab.builder::lang.form.property_attributes_size'),
+                'type' => 'dropdown',
+                'options' => [
+                    'tiny' => Lang::get('rainlab.builder::lang.form.property_attributes_size_tiny'),
+                    'small' => Lang::get('rainlab.builder::lang.form.property_attributes_size_small'),
+                    'large' => Lang::get('rainlab.builder::lang.form.property_attributes_size_large'),
+                    'huge' => Lang::get('rainlab.builder::lang.form.property_attributes_size_huge'),
+                    'giant' => Lang::get('rainlab.builder::lang.form.property_attributes_size_giant')
+                ],
+                'sortOrder' => 51
+            ]
+        ];
     }
 
     protected function registerMarkdownWidget()
@@ -1000,50 +1044,6 @@ class StandardControlsRegistry
             'rainlab.builder::lang.form.control_relation_description',
             ControlLibrary::GROUP_WIDGETS,
             'icon-code-fork',
-            $this->controlLibrary->getStandardProperties($ignoreProperties, $properties),
-            null
-        );
-    }
-
-    protected function registerRepeaterWidget()
-    {
-        $properties = [
-            'prompt' =>  [
-                'title' => Lang::get('rainlab.builder::lang.form.property_prompt'),
-                'description' => Lang::get('rainlab.builder::lang.form.property_prompt_description'),
-                'type' => 'string',
-                'ignoreIfEmpty' => true,
-                'default' => Lang::get('rainlab.builder::lang.form.property_prompt_default'),
-                'sortOrder' => 81
-            ],
-            'form' => [
-                'type' => 'control-container'
-            ],
-            'maxItems' =>  [
-                'title' => Lang::get('rainlab.builder::lang.form.property_max_items'),
-                'description' => Lang::get('rainlab.builder::lang.form.property_max_items_description'),
-                'type' => 'string',
-                'ignoreIfEmpty' => true,
-                'sortOrder' => 82
-            ],
-        ];
-
-        $ignoreProperties = [
-            'stretch',
-            'placeholder',
-            'default',
-            'required',
-            'defaultFrom',
-            'dependsOn',
-            'preset',
-            'attributes'
-        ];
-
-        $this->controlLibrary->registerControl('repeater',
-            'rainlab.builder::lang.form.control_repeater',
-            'rainlab.builder::lang.form.control_repeater_description',
-            ControlLibrary::GROUP_WIDGETS,
-            'icon-server',
             $this->controlLibrary->getStandardProperties($ignoreProperties, $properties),
             null
         );

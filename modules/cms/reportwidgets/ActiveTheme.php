@@ -35,16 +35,6 @@ class ActiveTheme extends ReportWidgetBase
         return $this->makePartial('widget');
     }
 
-    protected function loadData()
-    {
-        if (!$theme = Theme::getActiveTheme()) {
-            throw new ApplicationException(Lang::get('cms::lang.theme.not_found_name', ['name'=>Theme::getActiveThemeCode()]));
-        }
-
-        $this->vars['theme'] = $theme;
-        $this->vars['inMaintenance'] = MaintenanceSetting::get('is_enabled');
-    }
-
     public function defineProperties()
     {
         return [
@@ -64,5 +54,15 @@ class ActiveTheme extends ReportWidgetBase
     protected function loadAssets()
     {
         $this->addCss('css/activetheme.css', 'core');
+    }
+
+    protected function loadData()
+    {
+        if (!$theme = Theme::getActiveTheme()) {
+            throw new ApplicationException(Lang::get('cms::lang.theme.not_found_name', ['name'=>Theme::getActiveThemeCode()]));
+        }
+
+        $this->vars['theme'] = $theme;
+        $this->vars['inMaintenance'] = MaintenanceSetting::get('is_enabled');
     }
 }

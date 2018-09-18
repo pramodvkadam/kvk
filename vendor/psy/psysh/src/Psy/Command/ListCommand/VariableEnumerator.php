@@ -70,31 +70,6 @@ class VariableEnumerator extends Enumerator
     }
 
     /**
-     * Prepare formatted variable array.
-     *
-     * @param array $variables
-     *
-     * @return array
-     */
-    protected function prepareVariables(array $variables)
-    {
-        // My kingdom for a generator.
-        $ret = array();
-        foreach ($variables as $name => $val) {
-            if ($this->showItem($name)) {
-                $fname = '$' . $name;
-                $ret[$fname] = array(
-                    'name'  => $fname,
-                    'style' => in_array($name, self::$specialNames) ? self::IS_PRIVATE : self::IS_PUBLIC,
-                    'value' => $this->presentRef($val),
-                );
-            }
-        }
-
-        return $ret;
-    }
-
-    /**
      * Get scope variables.
      *
      * @param bool $showAll Include special variables (e.g. $_)
@@ -133,6 +108,31 @@ class VariableEnumerator extends Enumerator
             }
 
             $ret[$name] = $val;
+        }
+
+        return $ret;
+    }
+
+    /**
+     * Prepare formatted variable array.
+     *
+     * @param array $variables
+     *
+     * @return array
+     */
+    protected function prepareVariables(array $variables)
+    {
+        // My kingdom for a generator.
+        $ret = array();
+        foreach ($variables as $name => $val) {
+            if ($this->showItem($name)) {
+                $fname = '$' . $name;
+                $ret[$fname] = array(
+                    'name'  => $fname,
+                    'style' => in_array($name, self::$specialNames) ? self::IS_PRIVATE : self::IS_PUBLIC,
+                    'value' => $this->presentRef($val),
+                );
+            }
         }
 
         return $ret;

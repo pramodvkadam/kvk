@@ -117,17 +117,6 @@ EODUMP;
         $this->assertDumpMatchesFormat($xDump, $interval);
     }
 
-    private function createInterval($intervalSpec, $ms, $invert)
-    {
-        $interval = new \DateInterval($intervalSpec);
-        if (\PHP_VERSION_ID >= 70100 && isset($interval->f)) {
-            $interval->f = $ms;
-        }
-        $interval->invert = $invert;
-
-        return $interval;
-    }
-
     /**
      * @dataProvider provideIntervals
      */
@@ -422,5 +411,16 @@ EODUMP;
         }
 
         return $periods;
+    }
+
+    private function createInterval($intervalSpec, $ms, $invert)
+    {
+        $interval = new \DateInterval($intervalSpec);
+        if (\PHP_VERSION_ID >= 70100 && isset($interval->f)) {
+            $interval->f = $ms;
+        }
+        $interval->invert = $invert;
+
+        return $interval;
     }
 }

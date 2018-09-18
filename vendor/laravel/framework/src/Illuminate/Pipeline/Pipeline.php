@@ -103,6 +103,19 @@ class Pipeline implements PipelineContract
     }
 
     /**
+     * Get the final piece of the Closure onion.
+     *
+     * @param  \Closure  $destination
+     * @return \Closure
+     */
+    protected function prepareDestination(Closure $destination)
+    {
+        return function ($passable) use ($destination) {
+            return $destination($passable);
+        };
+    }
+
+    /**
      * Get a Closure that represents a slice of the application onion.
      *
      * @return \Closure
@@ -169,18 +182,5 @@ class Pipeline implements PipelineContract
         }
 
         return $this->container;
-    }
-
-    /**
-     * Get the final piece of the Closure onion.
-     *
-     * @param  \Closure  $destination
-     * @return \Closure
-     */
-    protected function prepareDestination(Closure $destination)
-    {
-        return function ($passable) use ($destination) {
-            return $destination($passable);
-        };
     }
 }

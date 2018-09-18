@@ -15,11 +15,6 @@ class Swift_ByteStream_ArrayByteStreamTest extends \PHPUnit\Framework\TestCase
             );
     }
 
-    private function createArrayStream($input)
-    {
-        return new Swift_ByteStream_ArrayByteStream($input);
-    }
-
     public function testReadingMultipleBytesFromBaseInput()
     {
         $input = array('a', 'b', 'c', 'd');
@@ -198,5 +193,10 @@ class Swift_ByteStream_ArrayByteStreamTest extends \PHPUnit\Framework\TestCase
         $bs->unbind($is2);
 
         $bs->write('y');
+    }
+
+    private function createArrayStream($input)
+    {
+        return new Swift_ByteStream_ArrayByteStream($input);
     }
 }

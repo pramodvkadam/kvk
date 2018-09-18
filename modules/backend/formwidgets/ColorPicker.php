@@ -87,19 +87,19 @@ class ColorPicker extends FormWidgetBase
     /**
      * @inheritDoc
      */
-    public function getSaveValue($value)
-    {
-        return strlen($value) ? $value : null;
-    }
-
-    /**
-     * @inheritDoc
-     */
     protected function loadAssets()
     {
         $this->addCss('vendor/spectrum/spectrum.css', 'core');
         $this->addJs('vendor/spectrum/spectrum.js', 'core');
         $this->addCss('css/colorpicker.css', 'core');
         $this->addJs('js/colorpicker.js', 'core');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSaveValue($value)
+    {
+        return strlen($value) ? $value : null;
     }
 }

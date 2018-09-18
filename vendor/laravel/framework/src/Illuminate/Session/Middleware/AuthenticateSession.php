@@ -61,23 +61,6 @@ class AuthenticateSession
     }
 
     /**
-     * Log the user out of the application.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return void
-     *
-     * @throws \Illuminate\Auth\AuthenticationException
-     */
-    protected function logout($request)
-    {
-        $this->auth->logout();
-
-        $request->session()->flush();
-
-        throw new AuthenticationException;
-    }
-
-    /**
      * Store the user's current password hash in the session.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -92,5 +75,22 @@ class AuthenticateSession
         $request->session()->put([
             'password_hash' => $request->user()->getAuthPassword(),
         ]);
+    }
+
+    /**
+     * Log the user out of the application.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return void
+     *
+     * @throws \Illuminate\Auth\AuthenticationException
+     */
+    protected function logout($request)
+    {
+        $this->auth->logout();
+
+        $request->session()->flush();
+
+        throw new AuthenticationException;
     }
 }

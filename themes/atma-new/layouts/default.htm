@@ -1,9 +1,5 @@
 description = "Default layout"
 
-[session]
-security = "all"
-redirect = "home"
-
 [staticMenu mainMenu]
 code = "main-menu"
 
@@ -30,11 +26,11 @@ default = 0
 <div class="container">
       <!-- Marketing Icons Section -->
       <div class="row">
-              <div class="col-lg-4 mb-4 left-block">   
+              <div class="col-lg-3 mb-4 left-block">   
                           {% partial "current-events-sidebar" %}
 
 </div>
- <div class="col-lg-8 mb-4">
+ <div class="col-lg-9 mb-4">
           <div class="right-block">
                               {% partial "title" %}
                         {% page %}
@@ -44,7 +40,7 @@ default = 0
       </div>
       
       </div>
-      
+      {% partial "footer" %}
         <!-- Scripts -->
         {% partial 'scripts' %}
     </body>

@@ -109,6 +109,21 @@ HELP
         throw new RuntimeException('Not enough arguments (missing: "value").');
     }
 
+    private function writeCodeContext(InputInterface $input, OutputInterface $output)
+    {
+        list($value, $reflector) = $this->getTargetAndReflector($input->getArgument('value'));
+
+        // Set some magic local variables
+        $this->setCommandScopeVariables($reflector);
+
+        try {
+            $output->page(CodeFormatter::format($reflector, $this->colorMode), ShellOutput::OUTPUT_RAW);
+        } catch (RuntimeException $e) {
+            $output->writeln(SignatureFormatter::format($reflector));
+            throw $e;
+        }
+    }
+
     private function writeExceptionContext(InputInterface $input, OutputInterface $output)
     {
         $exception = $this->context->getLastException();
@@ -204,13 +219,6 @@ HELP
         $output->write($this->getHighlighter()->getCodeSnippet($code, $line, 5, 5), ShellOutput::OUTPUT_RAW);
     }
 
-    private function extractEvalFileAndLine($file)
-    {
-        if (preg_match('/(.*)\\((\\d+)\\) : eval\\(\\)\'d code$/', $file, $matches)) {
-            return array($matches[1], $matches[2]);
-        }
-    }
-
     private function getHighlighter()
     {
         if (!$this->highlighter) {
@@ -255,18 +263,10 @@ HELP
         $this->context->setCommandScopeVariables($vars);
     }
 
-    private function writeCodeContext(InputInterface $input, OutputInterface $output)
+    private function extractEvalFileAndLine($file)
     {
-        list($value, $reflector) = $this->getTargetAndReflector($input->getArgument('value'));
-
-        // Set some magic local variables
-        $this->setCommandScopeVariables($reflector);
-
-        try {
-            $output->page(CodeFormatter::format($reflector, $this->colorMode), ShellOutput::OUTPUT_RAW);
-        } catch (RuntimeException $e) {
-            $output->writeln(SignatureFormatter::format($reflector));
-            throw $e;
+        if (preg_match('/(.*)\\((\\d+)\\) : eval\\(\\)\'d code$/', $file, $matches)) {
+            return array($matches[1], $matches[2]);
         }
     }
 }

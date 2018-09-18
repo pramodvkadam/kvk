@@ -16,8 +16,9 @@ class DatabaseTableList extends WidgetBase
     use \Backend\Traits\SearchableWidget;
     use \Backend\Traits\SelectableWidget;
 
-    public $noRecordsMessage = 'rainlab.builder::lang.database.no_records';
     protected $theme;
+
+    public $noRecordsMessage = 'rainlab.builder::lang.database.no_records';
 
     public function __construct($controller, $alias)
     {
@@ -36,15 +37,34 @@ class DatabaseTableList extends WidgetBase
         return $this->makePartial('body', $this->getRenderData());
     }
 
-    protected function getRenderData()
+    public function updateList()
     {
-        $activePluginVector = $this->controller->getBuilderActivePluginVector();
-
-        return [
-            'pluginVector'=>$activePluginVector,
-            'items'=>$this->getData($activePluginVector)
-        ];
+        return ['#'.$this->getId('database-table-list') => $this->makePartial('items', $this->getRenderData())];
     }
+
+    public function refreshActivePlugin()
+    {
+        return ['#'.$this->getId('body') => $this->makePartial('widget-contents', $this->getRenderData())];
+    }
+
+    /*
+     * Event handlers
+     */
+
+    public function onUpdate()
+    {
+        return $this->updateList();
+    }
+
+    public function onSearch()
+    {
+        $this->setSearchTerm(Input::get('search'));
+        return $this->updateList();
+    }
+
+    /*
+     * Methods for the internal use
+     */
 
     protected function getData($pluginVector)
     {
@@ -79,10 +99,6 @@ class DatabaseTableList extends WidgetBase
         return $tables;
     }
 
-    /*
-     * Event handlers
-     */
-
     protected function getTableList($pluginCode)
     {
         $result = DatabaseTableModel::listPluginTables($pluginCode);
@@ -90,28 +106,13 @@ class DatabaseTableList extends WidgetBase
         return $result;
     }
 
-    public function refreshActivePlugin()
+    protected function getRenderData()
     {
-        return ['#'.$this->getId('body') => $this->makePartial('widget-contents', $this->getRenderData())];
-    }
+        $activePluginVector = $this->controller->getBuilderActivePluginVector();
 
-    /*
-     * Methods for the internal use
-     */
-
-    public function onUpdate()
-    {
-        return $this->updateList();
-    }
-
-    public function updateList()
-    {
-        return ['#'.$this->getId('database-table-list') => $this->makePartial('items', $this->getRenderData())];
-    }
-
-    public function onSearch()
-    {
-        $this->setSearchTerm(Input::get('search'));
-        return $this->updateList();
+        return [
+            'pluginVector'=>$activePluginVector,
+            'items'=>$this->getData($activePluginVector)
+        ];
     }
 }

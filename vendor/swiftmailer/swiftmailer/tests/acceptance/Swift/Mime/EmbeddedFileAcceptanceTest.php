@@ -9,6 +9,27 @@ class Swift_Mime_EmbeddedFileAcceptanceTest extends \PHPUnit\Framework\TestCase
     private $headers;
     private $emailValidator;
 
+    protected function setUp()
+    {
+        $this->cache = new Swift_KeyCache_ArrayKeyCache(
+            new Swift_KeyCache_SimpleKeyCacheInputStream()
+            );
+        $factory = new Swift_CharacterReaderFactory_SimpleCharacterReaderFactory();
+        $this->contentEncoder = new Swift_Mime_ContentEncoder_Base64ContentEncoder();
+
+        $headerEncoder = new Swift_Mime_HeaderEncoder_QpHeaderEncoder(
+            new Swift_CharacterStream_ArrayCharacterStream($factory, 'utf-8')
+            );
+        $paramEncoder = new Swift_Encoder_Rfc2231Encoder(
+            new Swift_CharacterStream_ArrayCharacterStream($factory, 'utf-8')
+            );
+        $this->emailValidator = new EmailValidator();
+        $this->idGenerator = new Swift_Mime_IdGenerator('example.com');
+        $this->headers = new Swift_Mime_SimpleHeaderSet(
+            new Swift_Mime_SimpleHeaderFactory($headerEncoder, $paramEncoder, $this->emailValidator)
+            );
+    }
+
     public function testContentIdIsSetInHeader()
     {
         $file = $this->createEmbeddedFile();
@@ -21,18 +42,6 @@ class Swift_Mime_EmbeddedFileAcceptanceTest extends \PHPUnit\Framework\TestCase
             'Content-Disposition: inline'."\r\n",
             $file->toString()
             );
-    }
-
-    protected function createEmbeddedFile()
-    {
-        $entity = new Swift_Mime_EmbeddedFile(
-            $this->headers,
-            $this->contentEncoder,
-            $this->cache,
-            $this->idGenerator
-            );
-
-        return $entity;
     }
 
     public function testDispositionIsSetInHeader()
@@ -116,24 +125,15 @@ class Swift_Mime_EmbeddedFileAcceptanceTest extends \PHPUnit\Framework\TestCase
             );
     }
 
-    protected function setUp()
+    protected function createEmbeddedFile()
     {
-        $this->cache = new Swift_KeyCache_ArrayKeyCache(
-            new Swift_KeyCache_SimpleKeyCacheInputStream()
+        $entity = new Swift_Mime_EmbeddedFile(
+            $this->headers,
+            $this->contentEncoder,
+            $this->cache,
+            $this->idGenerator
             );
-        $factory = new Swift_CharacterReaderFactory_SimpleCharacterReaderFactory();
-        $this->contentEncoder = new Swift_Mime_ContentEncoder_Base64ContentEncoder();
 
-        $headerEncoder = new Swift_Mime_HeaderEncoder_QpHeaderEncoder(
-            new Swift_CharacterStream_ArrayCharacterStream($factory, 'utf-8')
-            );
-        $paramEncoder = new Swift_Encoder_Rfc2231Encoder(
-            new Swift_CharacterStream_ArrayCharacterStream($factory, 'utf-8')
-            );
-        $this->emailValidator = new EmailValidator();
-        $this->idGenerator = new Swift_Mime_IdGenerator('example.com');
-        $this->headers = new Swift_Mime_SimpleHeaderSet(
-            new Swift_Mime_SimpleHeaderFactory($headerEncoder, $paramEncoder, $this->emailValidator)
-            );
+        return $entity;
     }
 }

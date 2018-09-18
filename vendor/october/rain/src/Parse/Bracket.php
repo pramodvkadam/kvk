@@ -70,64 +70,6 @@ class Bracket
     }
 
     /**
-     * Search for open/close keys and process them in a nested fashion
-     * @param  string $key
-     * @param  array  $data
-     * @param  string $string
-     * @return string
-     */
-    protected function parseLoop($key, $data, $string)
-    {
-        $returnStr = '';
-        $match = $this->parseLoopRegex($string, $key);
-
-        if (!$match) {
-            return $string;
-        }
-
-        foreach ($data as $row) {
-            $matchedText = $match[1];
-
-            foreach ($row as $key => $value) {
-                if (is_array($value)) {
-                    $matchedText = $this->parseLoop($key, $value, $matchedText);
-                }
-                else {
-                    $matchedText = $this->parseKey($key, $value, $matchedText);
-                    $matchedText = $this->parseKeyFilters($key, $value, $matchedText);
-                    $matchedText = $this->parseKeyBooleans($key, $value, $matchedText);
-                }
-            }
-
-            $returnStr .= $matchedText;
-        }
-
-        return str_replace($match[0], $returnStr, $string);
-    }
-
-    /**
-     * Internal method, returns a Regular expression for parsing
-     * a looping tag.
-     * @param  string $string
-     * @param  string $key
-     * @return string
-     */
-    protected function parseLoopRegex($string, $key)
-    {
-        $open = preg_quote(static::CHAR_OPEN);
-        $close = preg_quote(static::CHAR_CLOSE);
-
-        $regex = '|';
-        $regex .= $open.$key.$close; // Open
-        $regex .= '(.+?)'; // Content
-        $regex .= $open.'/'.$key.$close; // Close
-        $regex .='|s';
-
-        preg_match($regex, $string, $match);
-        return ($match) ? $match : false;
-    }
-
-    /**
      * Process a single key
      * @param  string $key
      * @param  string $value
@@ -193,5 +135,63 @@ class Bracket
         }
 
         return $returnStr;
+    }
+
+    /**
+     * Search for open/close keys and process them in a nested fashion
+     * @param  string $key
+     * @param  array  $data
+     * @param  string $string
+     * @return string
+     */
+    protected function parseLoop($key, $data, $string)
+    {
+        $returnStr = '';
+        $match = $this->parseLoopRegex($string, $key);
+
+        if (!$match) {
+            return $string;
+        }
+
+        foreach ($data as $row) {
+            $matchedText = $match[1];
+
+            foreach ($row as $key => $value) {
+                if (is_array($value)) {
+                    $matchedText = $this->parseLoop($key, $value, $matchedText);
+                }
+                else {
+                    $matchedText = $this->parseKey($key, $value, $matchedText);
+                    $matchedText = $this->parseKeyFilters($key, $value, $matchedText);
+                    $matchedText = $this->parseKeyBooleans($key, $value, $matchedText);
+                }
+            }
+
+            $returnStr .= $matchedText;
+        }
+
+        return str_replace($match[0], $returnStr, $string);
+    }
+
+    /**
+     * Internal method, returns a Regular expression for parsing
+     * a looping tag.
+     * @param  string $string
+     * @param  string $key
+     * @return string
+     */
+    protected function parseLoopRegex($string, $key)
+    {
+        $open = preg_quote(static::CHAR_OPEN);
+        $close = preg_quote(static::CHAR_CLOSE);
+
+        $regex = '|';
+        $regex .= $open.$key.$close; // Open
+        $regex .= '(.+?)'; // Content
+        $regex .= $open.'/'.$key.$close; // Close
+        $regex .='|s';
+
+        preg_match($regex, $string, $match);
+        return ($match) ? $match : false;
     }
 }

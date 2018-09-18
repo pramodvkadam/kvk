@@ -60,14 +60,14 @@ class DartFilter extends BaseProcessFilter
         $this->cleanup($output);
     }
 
+    public function filterDump(AssetInterface $asset)
+    {
+    }
+
     private function cleanup($file)
     {
         foreach (glob($file.'*') as $related) {
             unlink($related);
         }
-    }
-
-    public function filterDump(AssetInterface $asset)
-    {
     }
 }

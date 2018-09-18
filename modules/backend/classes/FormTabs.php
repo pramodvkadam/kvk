@@ -151,6 +151,30 @@ class FormTabs implements IteratorAggregate, ArrayAccess
     }
 
     /**
+     * Returns an array of the registered fields, including tabs.
+     * @return array
+     */
+    public function getFields()
+    {
+        return $this->fields;
+    }
+
+    /**
+     * Returns an array of the registered fields, without tabs.
+     * @return array
+     */
+    public function getAllFields()
+    {
+        $tablessFields = [];
+
+        foreach ($this->getFields() as $tab) {
+            $tablessFields += $tab;
+        }
+
+        return $tablessFields;
+    }
+
+    /**
      * Returns a tab pane CSS class.
      * @param string $index
      * @param string $label
@@ -177,30 +201,6 @@ class FormTabs implements IteratorAggregate, ArrayAccess
             ? $this->getAllFields()
             : $this->getFields()
         );
-    }
-
-    /**
-     * Returns an array of the registered fields, without tabs.
-     * @return array
-     */
-    public function getAllFields()
-    {
-        $tablessFields = [];
-
-        foreach ($this->getFields() as $tab) {
-            $tablessFields += $tab;
-        }
-
-        return $tablessFields;
-    }
-
-    /**
-     * Returns an array of the registered fields, including tabs.
-     * @return array
-     */
-    public function getFields()
-    {
-        return $this->fields;
     }
 
     /**

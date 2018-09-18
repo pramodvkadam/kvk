@@ -12,6 +12,23 @@ class MemcacheCacheTest extends CacheTest
 {
     private $memcache;
 
+    protected function setUp()
+    {
+        $this->memcache = new Memcache();
+
+        if (@$this->memcache->connect('localhost', 11211) === false) {
+            unset($this->memcache);
+            $this->markTestSkipped('Cannot connect to Memcache.');
+        }
+    }
+
+    protected function tearDown()
+    {
+        if ($this->memcache instanceof Memcache) {
+            $this->memcache->flush();
+        }
+    }
+
     /**
      * {@inheritdoc}
      *
@@ -38,22 +55,5 @@ class MemcacheCacheTest extends CacheTest
         $driver = new MemcacheCache();
         $driver->setMemcache($this->memcache);
         return $driver;
-    }
-
-    protected function setUp()
-    {
-        $this->memcache = new Memcache();
-
-        if (@$this->memcache->connect('localhost', 11211) === false) {
-            unset($this->memcache);
-            $this->markTestSkipped('Cannot connect to Memcache.');
-        }
-    }
-
-    protected function tearDown()
-    {
-        if ($this->memcache instanceof Memcache) {
-            $this->memcache->flush();
-        }
     }
 }

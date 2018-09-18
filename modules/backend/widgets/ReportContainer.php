@@ -109,87 +109,6 @@ class ReportContainer extends WidgetBase
     }
 
     /**
-     * Registers the report widgets that will be included in this container.
-     * The chosen widgets are based on the user preferences.
-     */
-    protected function defineReportWidgets()
-    {
-        if ($this->reportsDefined) {
-            return;
-        }
-
-        $result = [];
-        $widgets = $this->getWidgetsFromUserPreferences();
-
-        foreach ($widgets as $alias => $widgetInfo) {
-            if ($widget = $this->makeReportWidget($alias, $widgetInfo)) {
-                $result[$alias] = $widget;
-            }
-        }
-
-        uasort($result, function ($a, $b) {
-            return $a['sortOrder'] - $b['sortOrder'];
-        });
-
-        $this->reportWidgets = $result;
-
-        $this->reportsDefined = true;
-    }
-
-    protected function getWidgetsFromUserPreferences()
-    {
-        $defaultWidgets = SystemParameters::get($this->getSystemParametersKey(), $this->defaultWidgets);
-
-        $widgets = UserPreference::forUser()
-            ->get($this->getUserPreferencesKey(), $defaultWidgets);
-
-        if (!is_array($widgets)) {
-            return [];
-        }
-
-        return $widgets;
-    }
-
-    //
-    // Event handlers
-    //
-
-    protected function getSystemParametersKey()
-    {
-        return 'backend::reportwidgets.default.'.$this->context;
-    }
-
-    protected function getUserPreferencesKey()
-    {
-        return 'backend::reportwidgets.'.$this->context;
-    }
-
-    /**
-     * Makes a single report widget object, returned array index:
-     * - widget: The widget object (Backend\Classes\ReportWidgetBase)
-     * - sortOrder: The current sort order
-     *
-     * @param  string $alias
-     * @param  array $widgetInfo
-     * @return array
-     */
-    protected function makeReportWidget($alias, $widgetInfo)
-    {
-        $configuration = $widgetInfo['configuration'];
-        $configuration['alias'] = $alias;
-
-        $className = $widgetInfo['class'];
-        if (!class_exists($className)) {
-            return;
-        }
-
-        $widget = new $className($this->controller, $configuration);
-        $widget->bindToController();
-
-        return ['widget' => $widget, 'sortOrder' => $widgetInfo['sortOrder']];
-    }
-
-    /**
      * Renders this widget along with its collection of report widgets.
      */
     public function render()
@@ -198,6 +117,20 @@ class ReportContainer extends WidgetBase
         $this->vars['widgets'] = $this->reportWidgets;
         return $this->makePartial('container');
     }
+
+    /**
+     * @inheritDoc
+     */
+    protected function loadAssets()
+    {
+        $this->addCss('css/reportcontainer.css', 'core');
+        $this->addJs('vendor/isotope/jquery.isotope.min.js', 'core');
+        $this->addJs('js/reportcontainer.js', 'core');
+    }
+
+    //
+    // Event handlers
+    //
 
     public function onResetWidgets()
     {
@@ -210,20 +143,6 @@ class ReportContainer extends WidgetBase
         return ['#'.$this->getId('container-list') => $this->makePartial('widget_list')];
     }
 
-    protected function resetWidgets()
-    {
-        $this->resetWidgetsUserPreferences();
-
-        $this->reportsDefined = false;
-
-        $this->defineReportWidgets();
-    }
-
-    protected function resetWidgetsUserPreferences()
-    {
-        UserPreference::forUser()->reset($this->getUserPreferencesKey());
-    }
-
     public function onMakeLayoutDefault()
     {
         $widgets = $this->getWidgetsFromUserPreferences();
@@ -232,10 +151,6 @@ class ReportContainer extends WidgetBase
 
         Flash::success(Lang::get('backend::lang.dashboard.make_default_success'));
     }
-
-    //
-    // Methods for internal use
-    //
 
     public function onUpdateWidget()
     {
@@ -252,54 +167,11 @@ class ReportContainer extends WidgetBase
         ];
     }
 
-    protected function findWidgetByAlias($alias)
-    {
-        $this->defineReportWidgets();
-
-        $widgets = $this->reportWidgets;
-        if (!isset($widgets[$alias])) {
-            throw new ApplicationException('The specified widget is not found.');
-        }
-
-        return $widgets[$alias]['widget'];
-    }
-
-    protected function saveWidgetProperties($alias, $properties)
-    {
-        $widgets = $this->getWidgetsFromUserPreferences();
-
-        if (isset($widgets[$alias])) {
-            $widgets[$alias]['configuration'] = $properties;
-
-            $this->setWidgetsToUserPreferences($widgets);
-        }
-    }
-
-    protected function setWidgetsToUserPreferences($widgets)
-    {
-        UserPreference::forUser()->set($this->getUserPreferencesKey(), $widgets);
-    }
-
     public function onRemoveWidget()
     {
         $alias = Request::input('alias');
 
         $this->removeWidget($alias);
-    }
-
-    protected function removeWidget($alias)
-    {
-        if (!$this->canAddAndDelete) {
-            throw new ApplicationException('Access denied.');
-        }
-
-        $widgets = $this->getWidgetsFromUserPreferences();
-
-        if (isset($widgets[$alias])) {
-            unset($widgets[$alias]);
-        }
-
-        $this->setWidgetsToUserPreferences($widgets);
     }
 
     public function onLoadAddPopup()
@@ -314,10 +186,6 @@ class ReportContainer extends WidgetBase
 
         return $this->makePartial('new_widget_popup');
     }
-
-    //
-    // User and system value storage
-    //
 
     public function onAddWidget()
     {
@@ -416,14 +284,97 @@ class ReportContainer extends WidgetBase
         $this->setWidgetsToUserPreferences($widgets);
     }
 
+    //
+    // Methods for internal use
+    //
+
     /**
-     * @inheritDoc
+     * Registers the report widgets that will be included in this container.
+     * The chosen widgets are based on the user preferences.
      */
-    protected function loadAssets()
+    protected function defineReportWidgets()
     {
-        $this->addCss('css/reportcontainer.css', 'core');
-        $this->addJs('vendor/isotope/jquery.isotope.min.js', 'core');
-        $this->addJs('js/reportcontainer.js', 'core');
+        if ($this->reportsDefined) {
+            return;
+        }
+
+        $result = [];
+        $widgets = $this->getWidgetsFromUserPreferences();
+
+        foreach ($widgets as $alias => $widgetInfo) {
+            if ($widget = $this->makeReportWidget($alias, $widgetInfo)) {
+                $result[$alias] = $widget;
+            }
+        }
+
+        uasort($result, function ($a, $b) {
+            return $a['sortOrder'] - $b['sortOrder'];
+        });
+
+        $this->reportWidgets = $result;
+
+        $this->reportsDefined = true;
+    }
+
+    /**
+     * Makes a single report widget object, returned array index:
+     * - widget: The widget object (Backend\Classes\ReportWidgetBase)
+     * - sortOrder: The current sort order
+     *
+     * @param  string $alias
+     * @param  array $widgetInfo
+     * @return array
+     */
+    protected function makeReportWidget($alias, $widgetInfo)
+    {
+        $configuration = $widgetInfo['configuration'];
+        $configuration['alias'] = $alias;
+
+        $className = $widgetInfo['class'];
+        if (!class_exists($className)) {
+            return;
+        }
+
+        $widget = new $className($this->controller, $configuration);
+        $widget->bindToController();
+
+        return ['widget' => $widget, 'sortOrder' => $widgetInfo['sortOrder']];
+    }
+
+    protected function resetWidgets()
+    {
+        $this->resetWidgetsUserPreferences();
+
+        $this->reportsDefined = false;
+
+        $this->defineReportWidgets();
+    }
+
+    protected function removeWidget($alias)
+    {
+        if (!$this->canAddAndDelete) {
+            throw new ApplicationException('Access denied.');
+        }
+
+        $widgets = $this->getWidgetsFromUserPreferences();
+
+        if (isset($widgets[$alias])) {
+            unset($widgets[$alias]);
+        }
+
+        $this->setWidgetsToUserPreferences($widgets);
+    }
+
+    protected function findWidgetByAlias($alias)
+    {
+        $this->defineReportWidgets();
+
+        $widgets = $this->reportWidgets;
+        if (!isset($widgets[$alias])) {
+            throw new ApplicationException('The specified widget is not found.');
+        }
+
+        return $widgets[$alias]['widget'];
     }
 
     protected function getWidgetPropertyConfig($widget)
@@ -495,5 +446,54 @@ class ReportContainer extends WidgetBase
         $result['ocWidgetNewRow'] = $widget->property('ocWidgetNewRow');
 
         return json_encode($result);
+    }
+
+    //
+    // User and system value storage
+    //
+
+    protected function getWidgetsFromUserPreferences()
+    {
+        $defaultWidgets = SystemParameters::get($this->getSystemParametersKey(), $this->defaultWidgets);
+
+        $widgets = UserPreference::forUser()
+            ->get($this->getUserPreferencesKey(), $defaultWidgets);
+
+        if (!is_array($widgets)) {
+            return [];
+        }
+
+        return $widgets;
+    }
+
+    protected function setWidgetsToUserPreferences($widgets)
+    {
+        UserPreference::forUser()->set($this->getUserPreferencesKey(), $widgets);
+    }
+
+    protected function resetWidgetsUserPreferences()
+    {
+        UserPreference::forUser()->reset($this->getUserPreferencesKey());
+    }
+
+    protected function saveWidgetProperties($alias, $properties)
+    {
+        $widgets = $this->getWidgetsFromUserPreferences();
+
+        if (isset($widgets[$alias])) {
+            $widgets[$alias]['configuration'] = $properties;
+
+            $this->setWidgetsToUserPreferences($widgets);
+        }
+    }
+
+    protected function getUserPreferencesKey()
+    {
+        return 'backend::reportwidgets.'.$this->context;
+    }
+
+    protected function getSystemParametersKey()
+    {
+        return 'backend::reportwidgets.default.'.$this->context;
     }
 }

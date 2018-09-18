@@ -7,6 +7,19 @@ use Illuminate\Support\Carbon;
 trait ManagesFrequencies
 {
     /**
+     * The Cron expression representing the event's frequency.
+     *
+     * @param  string  $expression
+     * @return $this
+     */
+    public function cron($expression)
+    {
+        $this->expression = $expression;
+
+        return $this;
+    }
+
+    /**
      * Schedule the event to run between start and end time.
      *
      * @param  string  $startTime
@@ -16,6 +29,18 @@ trait ManagesFrequencies
     public function between($startTime, $endTime)
     {
         return $this->when($this->inTimeInterval($startTime, $endTime));
+    }
+
+    /**
+     * Schedule the event to not run between start and end time.
+     *
+     * @param  string  $startTime
+     * @param  string  $endTime
+     * @return $this
+     */
+    public function unlessBetween($startTime, $endTime)
+    {
+        return $this->skip($this->inTimeInterval($startTime, $endTime));
     }
 
     /**
@@ -37,18 +62,6 @@ trait ManagesFrequencies
     }
 
     /**
-     * Schedule the event to not run between start and end time.
-     *
-     * @param  string  $startTime
-     * @param  string  $endTime
-     * @return $this
-     */
-    public function unlessBetween($startTime, $endTime)
-    {
-        return $this->skip($this->inTimeInterval($startTime, $endTime));
-    }
-
-    /**
      * Schedule the event to run every minute.
      *
      * @return $this
@@ -56,35 +69,6 @@ trait ManagesFrequencies
     public function everyMinute()
     {
         return $this->spliceIntoPosition(1, '*');
-    }
-
-    /**
-     * Splice the given value into the given position of the expression.
-     *
-     * @param  int  $position
-     * @param  string  $value
-     * @return $this
-     */
-    protected function spliceIntoPosition($position, $value)
-    {
-        $segments = explode(' ', $this->expression);
-
-        $segments[$position - 1] = $value;
-
-        return $this->cron(implode(' ', $segments));
-    }
-
-    /**
-     * The Cron expression representing the event's frequency.
-     *
-     * @param  string  $expression
-     * @return $this
-     */
-    public function cron($expression)
-    {
-        $this->expression = $expression;
-
-        return $this;
     }
 
     /**
@@ -227,19 +211,6 @@ trait ManagesFrequencies
     public function mondays()
     {
         return $this->days(1);
-    }
-
-    /**
-     * Set the days of the week the command should run on.
-     *
-     * @param  array|mixed  $days
-     * @return $this
-     */
-    public function days($days)
-    {
-        $days = is_array($days) ? $days : func_get_args();
-
-        return $this->spliceIntoPosition(5, implode(',', $days));
     }
 
     /**
@@ -397,6 +368,19 @@ trait ManagesFrequencies
     }
 
     /**
+     * Set the days of the week the command should run on.
+     *
+     * @param  array|mixed  $days
+     * @return $this
+     */
+    public function days($days)
+    {
+        $days = is_array($days) ? $days : func_get_args();
+
+        return $this->spliceIntoPosition(5, implode(',', $days));
+    }
+
+    /**
      * Set the timezone the date should be evaluated on.
      *
      * @param  \DateTimeZone|string  $timezone
@@ -407,5 +391,21 @@ trait ManagesFrequencies
         $this->timezone = $timezone;
 
         return $this;
+    }
+
+    /**
+     * Splice the given value into the given position of the expression.
+     *
+     * @param  int  $position
+     * @param  string  $value
+     * @return $this
+     */
+    protected function spliceIntoPosition($position, $value)
+    {
+        $segments = explode(' ', $this->expression);
+
+        $segments[$position - 1] = $value;
+
+        return $this->cron(implode(' ', $segments));
     }
 }

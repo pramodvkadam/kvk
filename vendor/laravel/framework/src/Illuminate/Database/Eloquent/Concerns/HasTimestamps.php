@@ -30,16 +30,6 @@ trait HasTimestamps
     }
 
     /**
-     * Determine if the model uses timestamps.
-     *
-     * @return bool
-     */
-    public function usesTimestamps()
-    {
-        return $this->timestamps;
-    }
-
-    /**
      * Update the creation and update timestamps.
      *
      * @return void
@@ -58,13 +48,16 @@ trait HasTimestamps
     }
 
     /**
-     * Get a fresh timestamp for the model.
+     * Set the value of the "created at" attribute.
      *
-     * @return \Illuminate\Support\Carbon
+     * @param  mixed  $value
+     * @return $this
      */
-    public function freshTimestamp()
+    public function setCreatedAt($value)
     {
-        return new Carbon;
+        $this->{static::CREATED_AT} = $value;
+
+        return $this;
     }
 
     /**
@@ -81,16 +74,13 @@ trait HasTimestamps
     }
 
     /**
-     * Set the value of the "created at" attribute.
+     * Get a fresh timestamp for the model.
      *
-     * @param  mixed  $value
-     * @return $this
+     * @return \Illuminate\Support\Carbon
      */
-    public function setCreatedAt($value)
+    public function freshTimestamp()
     {
-        $this->{static::CREATED_AT} = $value;
-
-        return $this;
+        return new Carbon;
     }
 
     /**
@@ -101,6 +91,16 @@ trait HasTimestamps
     public function freshTimestampString()
     {
         return $this->fromDateTime($this->freshTimestamp());
+    }
+
+    /**
+     * Determine if the model uses timestamps.
+     *
+     * @return bool
+     */
+    public function usesTimestamps()
+    {
+        return $this->timestamps;
     }
 
     /**

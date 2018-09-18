@@ -44,6 +44,11 @@ class Swift_Mime_SimpleHeaderSet implements Swift_Mime_CharsetObserver
         }
     }
 
+    public function newInstance()
+    {
+        return new self($this->factory);
+    }
+
     /**
      * Set the charset used by these headers.
      *
@@ -56,21 +61,6 @@ class Swift_Mime_SimpleHeaderSet implements Swift_Mime_CharsetObserver
         $this->notifyHeadersOfCharset($charset);
     }
 
-    /** Notify all Headers of the new charset */
-    private function notifyHeadersOfCharset($charset)
-    {
-        foreach ($this->headers as $headerGroup) {
-            foreach ($headerGroup as $header) {
-                $header->setCharset($charset);
-            }
-        }
-    }
-
-    public function newInstance()
-    {
-        return new self($this->factory);
-    }
-
     /**
      * Add a new Mailbox Header with a list of $addresses.
      *
@@ -81,19 +71,6 @@ class Swift_Mime_SimpleHeaderSet implements Swift_Mime_CharsetObserver
     {
         $this->storeHeader($name,
         $this->factory->createMailboxHeader($name, $addresses));
-    }
-
-    /** Save a Header to the internal collection */
-    private function storeHeader($name, Swift_Mime_Header $header, $offset = null)
-    {
-        if (!isset($this->headers[strtolower($name)])) {
-            $this->headers[strtolower($name)] = array();
-        }
-        if (!isset($offset)) {
-            $this->headers[strtolower($name)][] = $header;
-        } else {
-            $this->headers[strtolower($name)][$offset] = $header;
-        }
     }
 
     /**
@@ -155,6 +132,32 @@ class Swift_Mime_SimpleHeaderSet implements Swift_Mime_CharsetObserver
     }
 
     /**
+     * Returns true if at least one header with the given $name exists.
+     *
+     * If multiple headers match, the actual one may be specified by $index.
+     *
+     * @param string $name
+     * @param int    $index
+     *
+     * @return bool
+     */
+    public function has($name, $index = 0)
+    {
+        $lowerName = strtolower($name);
+
+        if (!array_key_exists($lowerName, $this->headers)) {
+            return false;
+        }
+
+        if (func_num_args() < 2) {
+            // index was not specified, so we only need to check that there is at least one header value set
+            return (bool) count($this->headers[$lowerName]);
+        }
+
+        return array_key_exists($index, $this->headers[$lowerName]);
+    }
+
+    /**
      * Set a header in the HeaderSet.
      *
      * The header may be a previously fetched header via {@link get()} or it may
@@ -200,32 +203,6 @@ class Swift_Mime_SimpleHeaderSet implements Swift_Mime_CharsetObserver
     }
 
     /**
-     * Returns true if at least one header with the given $name exists.
-     *
-     * If multiple headers match, the actual one may be specified by $index.
-     *
-     * @param string $name
-     * @param int    $index
-     *
-     * @return bool
-     */
-    public function has($name, $index = 0)
-    {
-        $lowerName = strtolower($name);
-
-        if (!array_key_exists($lowerName, $this->headers)) {
-            return false;
-        }
-
-        if (func_num_args() < 2) {
-            // index was not specified, so we only need to check that there is at least one header value set
-            return (bool) count($this->headers[$lowerName]);
-        }
-
-        return array_key_exists($index, $this->headers[$lowerName]);
-    }
-
-    /**
      * Get all headers with the given $name.
      *
      * @param string $name
@@ -264,12 +241,6 @@ class Swift_Mime_SimpleHeaderSet implements Swift_Mime_CharsetObserver
         }
 
         return array_keys($headers);
-    }
-
-    /** Test if the headers can be sorted */
-    private function canSort()
-    {
-        return count($this->order) > 0;
     }
 
     /**
@@ -332,18 +303,6 @@ class Swift_Mime_SimpleHeaderSet implements Swift_Mime_CharsetObserver
     }
 
     /**
-     * Returns a string representation of this object.
-     *
-     * @return string
-     *
-     * @see toString()
-     */
-    public function __toString()
-    {
-        return $this->toString();
-    }
-
-    /**
      * Returns a string with a representation of all headers.
      *
      * @return string
@@ -366,23 +325,35 @@ class Swift_Mime_SimpleHeaderSet implements Swift_Mime_CharsetObserver
         return $string;
     }
 
-    /** Test if the given Header is always displayed */
-    private function isDisplayed(Swift_Mime_Header $header)
+    /**
+     * Returns a string representation of this object.
+     *
+     * @return string
+     *
+     * @see toString()
+     */
+    public function __toString()
     {
-        return array_key_exists(strtolower($header->getFieldName()), $this->required);
+        return $this->toString();
     }
 
-    /**
-     * Make a deep copy of object.
-     */
-    public function __clone()
+    /** Save a Header to the internal collection */
+    private function storeHeader($name, Swift_Mime_Header $header, $offset = null)
     {
-        $this->factory = clone $this->factory;
-        foreach ($this->headers as $groupKey => $headerGroup) {
-            foreach ($headerGroup as $key => $header) {
-                $this->headers[$groupKey][$key] = clone $header;
-            }
+        if (!isset($this->headers[strtolower($name)])) {
+            $this->headers[strtolower($name)] = array();
         }
+        if (!isset($offset)) {
+            $this->headers[strtolower($name)][] = $header;
+        } else {
+            $this->headers[strtolower($name)][$offset] = $header;
+        }
+    }
+
+    /** Test if the headers can be sorted */
+    private function canSort()
+    {
+        return count($this->order) > 0;
     }
 
     /** uksort() algorithm for Header ordering */
@@ -405,5 +376,34 @@ class Swift_Mime_SimpleHeaderSet implements Swift_Mime_CharsetObserver
         }
 
         return $aPos < $bPos ? -1 : 1;
+    }
+
+    /** Test if the given Header is always displayed */
+    private function isDisplayed(Swift_Mime_Header $header)
+    {
+        return array_key_exists(strtolower($header->getFieldName()), $this->required);
+    }
+
+    /** Notify all Headers of the new charset */
+    private function notifyHeadersOfCharset($charset)
+    {
+        foreach ($this->headers as $headerGroup) {
+            foreach ($headerGroup as $header) {
+                $header->setCharset($charset);
+            }
+        }
+    }
+
+    /**
+     * Make a deep copy of object.
+     */
+    public function __clone()
+    {
+        $this->factory = clone $this->factory;
+        foreach ($this->headers as $groupKey => $headerGroup) {
+            foreach ($headerGroup as $key => $header) {
+                $this->headers[$groupKey][$key] = clone $header;
+            }
+        }
     }
 }

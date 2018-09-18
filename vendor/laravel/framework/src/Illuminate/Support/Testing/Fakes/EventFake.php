@@ -47,14 +47,48 @@ class EventFake implements Dispatcher
      * Assert if an event was dispatched based on a truth-test callback.
      *
      * @param  string  $event
-     * @param  callable|null  $callback
+     * @param  callable|int|null  $callback
      * @return void
      */
     public function assertDispatched($event, $callback = null)
     {
+        if (is_int($callback)) {
+            return $this->assertDispatchedTimes($event, $callback);
+        }
+
         PHPUnit::assertTrue(
             $this->dispatched($event, $callback)->count() > 0,
             "The expected [{$event}] event was not dispatched."
+        );
+    }
+
+    /**
+     * Assert if a event was dispatched a number of times.
+     *
+     * @param  string  $event
+     * @param  int  $times
+     * @return void
+     */
+    public function assertDispatchedTimes($event, $times = 1)
+    {
+        PHPUnit::assertTrue(
+            ($count = $this->dispatched($event)->count()) === $times,
+            "The expected [{$event}] event was dispatched {$count} times instead of {$times} times."
+        );
+    }
+
+    /**
+     * Determine if an event was dispatched based on a truth-test callback.
+     *
+     * @param  string  $event
+     * @param  callable|null  $callback
+     * @return void
+     */
+    public function assertNotDispatched($event, $callback = null)
+    {
+        PHPUnit::assertTrue(
+            $this->dispatched($event, $callback)->count() === 0,
+            "The unexpected [{$event}] event was dispatched."
         );
     }
 
@@ -89,21 +123,6 @@ class EventFake implements Dispatcher
     public function hasDispatched($event)
     {
         return isset($this->events[$event]) && ! empty($this->events[$event]);
-    }
-
-    /**
-     * Determine if an event was dispatched based on a truth-test callback.
-     *
-     * @param  string  $event
-     * @param  callable|null  $callback
-     * @return void
-     */
-    public function assertNotDispatched($event, $callback = null)
-    {
-        PHPUnit::assertTrue(
-            $this->dispatched($event, $callback)->count() === 0,
-            "The unexpected [{$event}] event was dispatched."
-        );
     }
 
     /**

@@ -1,13 +1,11 @@
 description = "Chair layout"
 
-[session]
-security = "all"
-redirect = "home"
-
 [staticMenu mainMenu]
 code = "main-menu"
 
 [staticPage]
+useContent = 1
+default = 0
 ==
 <!DOCTYPE html>
 <html>
@@ -18,50 +16,34 @@ code = "main-menu"
         {variable tab="Header" type="text" name="tagline" label="Tagline"}{/variable}
         {variable tab="Header" type="mediafinder" mode="image" name="banner" label="Banner image"}{/variable}
 
-        <!-- Top -->
-        <div id="top-nav">
-            <div class="container">
-                <!-- Put anything here, social links? -->
+        {% partial "header" %}
+
+        {% partial "nav" %}
+        <header>
+            <div class="inner-banner">
+                <img src="{{'banner1.jpg'|media}}">
             </div>
-        </div>
-
-        <!-- Header -->
-        <header id="layout-header">
-            {% partial "header" %}
-
-            <!-- Nav -->
-            <nav id="layout-nav">
-                {% partial "nav" %}
-            </nav>
         </header>
-
         <!-- Content -->
-        <section id="layout-content">
-            <div class="container">
 
-                <div class="slider-wrapper title-style">
-                    {% partial "title" %}
+        <div class="container">
+            <!-- Marketing Icons Section -->
+            <div class="row">
+                <div class="col-lg-4 mb-4 left-block">
+                    {% partial "current-events-sidebar" %}
+
                 </div>
-
-                <div class="content-area with-padding">
-                    <div class="row">
-                        <div class="col-md-8">
-                            {% page %}
-                        </div>
-                        <div class="col-md-4">
-                            {% placeholder sidebarSection title="Sidebar" %}
-                        </div>
+                <div class="col-lg-8 mb-4">
+                    <div class="right-block">
+                        {% partial "title" %}
+                        {% page %}
                     </div>
                 </div>
             </div>
-        </section>
-
-        <!-- Slogan -->
-        <div id="layout-slogan">
-            <div class="container">
-                <div class="service-strip"></div>
-            </div>
         </div>
+
+        </div>
+
 
         <!-- Footer -->
         <footer id="layout-footer">

@@ -74,14 +74,14 @@ class Twig_Filter
         return $this->options['node_class'];
     }
 
-    public function getArguments()
-    {
-        return $this->arguments;
-    }
-
     public function setArguments($arguments)
     {
         $this->arguments = $arguments;
+    }
+
+    public function getArguments()
+    {
+        return $this->arguments;
     }
 
     public function needsEnvironment()

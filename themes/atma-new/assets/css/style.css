@@ -32,6 +32,22 @@ body {
     z-index: 0;
 }
 
+.slider-carousel-item {
+  height: 25vh;
+  min-height: 200px;
+  max-height: 250px;
+  background: no-repeat center center scroll;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+}
+
+.slider-carousel {
+    top: -20px;
+    z-index: 0;
+}
+
 .navbar{
   z-index: 1;
 }

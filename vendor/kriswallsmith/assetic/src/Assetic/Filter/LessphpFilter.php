@@ -27,17 +27,18 @@ use Assetic\Util\LessUtils;
  */
 class LessphpFilter implements DependencyExtractorInterface
 {
+    private $presets = array();
+    private $formatter;
+    private $preserveComments;
+    private $customFunctions = array();
+    private $options = array();
+
     /**
      * Lessphp Load Paths
      *
      * @var array
      */
     protected $loadPaths = array();
-    private $presets = array();
-    private $formatter;
-    private $preserveComments;
-    private $customFunctions = array();
-    private $options = array();
 
     /**
      * Adds a load path to the paths used by lessphp

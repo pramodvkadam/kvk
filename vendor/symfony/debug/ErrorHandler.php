@@ -48,13 +48,6 @@ use Symfony\Component\Debug\FatalErrorHandler\FatalErrorHandlerInterface;
  */
 class ErrorHandler
 {
-    private static $reservedMemory;
-    private static $stackedErrors = array();
-    private static $stackedErrorLevels = array(); // E_ALL - E_DEPRECATED - E_USER_DEPRECATED
-        private static $toStringException = null; // E_ALL - E_DEPRECATED - E_USER_DEPRECATED
-        private static $silencedErrorCache = array(); // E_ALL - E_STRICT - E_PARSE
-        private static $silencedErrorCount = 0; // E_ERROR + E_CORE_ERROR + E_COMPILE_ERROR + E_PARSE
-    private static $exitCode = 0;
     private $levels = array(
         E_DEPRECATED => 'Deprecated',
         E_USER_DEPRECATED => 'User Deprecated',
@@ -72,6 +65,7 @@ class ErrorHandler
         E_ERROR => 'Error',
         E_CORE_ERROR => 'Core Error',
     );
+
     private $loggers = array(
         E_DEPRECATED => array(null, LogLevel::INFO),
         E_USER_DEPRECATED => array(null, LogLevel::INFO),
@@ -89,16 +83,81 @@ class ErrorHandler
         E_ERROR => array(null, LogLevel::CRITICAL),
         E_CORE_ERROR => array(null, LogLevel::CRITICAL),
     );
-private $thrownErrors = 0x1FFF;
-private $scopedErrors = 0x1FFF;
-private $tracedErrors = 0x77FB;
-private $screamedErrors = 0x55;
+
+    private $thrownErrors = 0x1FFF; // E_ALL - E_DEPRECATED - E_USER_DEPRECATED
+    private $scopedErrors = 0x1FFF; // E_ALL - E_DEPRECATED - E_USER_DEPRECATED
+    private $tracedErrors = 0x77FB; // E_ALL - E_STRICT - E_PARSE
+    private $screamedErrors = 0x55; // E_ERROR + E_CORE_ERROR + E_COMPILE_ERROR + E_PARSE
     private $loggedErrors = 0;
     private $traceReflector;
+
     private $isRecursive = 0;
     private $isRoot = false;
     private $exceptionHandler;
     private $bootstrappingLogger;
+
+    private static $reservedMemory;
+    private static $stackedErrors = array();
+    private static $stackedErrorLevels = array();
+    private static $toStringException = null;
+    private static $silencedErrorCache = array();
+    private static $silencedErrorCount = 0;
+    private static $exitCode = 0;
+
+    /**
+     * Registers the error handler.
+     *
+     * @param self|null $handler The handler to register
+     * @param bool      $replace Whether to replace or not any existing handler
+     *
+     * @return self The registered error handler
+     */
+    public static function register(self $handler = null, $replace = true)
+    {
+        if (null === self::$reservedMemory) {
+            self::$reservedMemory = str_repeat('x', 10240);
+            register_shutdown_function(__CLASS__.'::handleFatalError');
+        }
+
+        if ($handlerIsNew = null === $handler) {
+            $handler = new static();
+        }
+
+        if (null === $prev = set_error_handler(array($handler, 'handleError'))) {
+            restore_error_handler();
+            // Specifying the error types earlier would expose us to https://bugs.php.net/63206
+            set_error_handler(array($handler, 'handleError'), $handler->thrownErrors | $handler->loggedErrors);
+            $handler->isRoot = true;
+        }
+
+        if ($handlerIsNew && is_array($prev) && $prev[0] instanceof self) {
+            $handler = $prev[0];
+            $replace = false;
+        }
+        if (!$replace && $prev) {
+            restore_error_handler();
+            $handlerIsRegistered = is_array($prev) && $handler === $prev[0];
+        } else {
+            $handlerIsRegistered = true;
+        }
+        if (is_array($prev = set_exception_handler(array($handler, 'handleException'))) && $prev[0] instanceof self) {
+            restore_exception_handler();
+            if (!$handlerIsRegistered) {
+                $handler = $prev[0];
+            } elseif ($handler !== $prev[0] && $replace) {
+                set_exception_handler(array($handler, 'handleException'));
+                $p = $prev[0]->setExceptionHandler(null);
+                $handler->setExceptionHandler($p);
+                $prev[0]->setExceptionHandler($p);
+            }
+        } else {
+            $handler->setExceptionHandler($prev);
+        }
+
+        $handler->throwAt(E_ALL & $handler->thrownErrors, true);
+
+        return $handler;
+    }
 
     public function __construct(BufferingLogger $bootstrappingLogger = null)
     {
@@ -196,87 +255,6 @@ private $screamedErrors = 0x55;
     }
 
     /**
-     * Re-registers as a PHP error handler if levels changed.
-     */
-    private function reRegister($prev)
-    {
-        if ($prev !== $this->thrownErrors | $this->loggedErrors) {
-            $handler = set_error_handler('var_dump');
-            $handler = is_array($handler) ? $handler[0] : null;
-            restore_error_handler();
-            if ($handler === $this) {
-                restore_error_handler();
-                if ($this->isRoot) {
-                    set_error_handler(array($this, 'handleError'), $this->thrownErrors | $this->loggedErrors);
-                } else {
-                    set_error_handler(array($this, 'handleError'));
-                }
-            }
-        }
-    }
-
-    /**
-     * Registers the error handler.
-     *
-     * @param self|null $handler The handler to register
-     * @param bool      $replace Whether to replace or not any existing handler
-     *
-     * @return self The registered error handler
-     */
-    public static function register(self $handler = null, $replace = true)
-    {
-        if (null === self::$reservedMemory) {
-            self::$reservedMemory = str_repeat('x', 10240);
-            register_shutdown_function(__CLASS__.'::handleFatalError');
-        }
-
-        if ($handlerIsNew = null === $handler) {
-            $handler = new static();
-        }
-
-        if (null === $prev = set_error_handler(array($handler, 'handleError'))) {
-            restore_error_handler();
-            // Specifying the error types earlier would expose us to https://bugs.php.net/63206
-            set_error_handler(array($handler, 'handleError'), $handler->thrownErrors | $handler->loggedErrors);
-            $handler->isRoot = true;
-        }
-
-        if ($handlerIsNew && is_array($prev) && $prev[0] instanceof self) {
-            $handler = $prev[0];
-            $replace = false;
-        }
-        if ($replace || !$prev) {
-            $handler->setExceptionHandler(set_exception_handler(array($handler, 'handleException')));
-        } else {
-            restore_error_handler();
-        }
-
-        $handler->throwAt(E_ALL & $handler->thrownErrors, true);
-
-        return $handler;
-    }
-
-    /**
-     * Configures the error handler for delayed handling.
-     * Ensures also that non-catchable fatal errors are never silenced.
-     *
-     * As shown by http://bugs.php.net/42098 and http://bugs.php.net/60724
-     * PHP has a compile stage where it behaves unusually. To workaround it,
-     * we plug an error handler that only stacks errors for later.
-     *
-     * The most important feature of this is to prevent
-     * autoloading until unstackErrors() is called.
-     *
-     * @deprecated since version 3.4, to be removed in 4.0.
-     */
-    public static function stackErrors()
-    {
-        @trigger_error('Support for stacking errors is deprecated since Symfony 3.4 and will be removed in 4.0.', E_USER_DEPRECATED);
-
-        self::$stackedErrorLevels[] = error_reporting(error_reporting() | E_PARSE | E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR);
-    }
-
-    /**
      * Sets a user exception handler.
      *
      * @param callable $handler A handler that will be called on Exception
@@ -287,6 +265,26 @@ private $screamedErrors = 0x55;
     {
         $prev = $this->exceptionHandler;
         $this->exceptionHandler = $handler;
+
+        return $prev;
+    }
+
+    /**
+     * Sets the PHP error levels that throw an exception when a PHP error occurs.
+     *
+     * @param int  $levels  A bit field of E_* constants for thrown errors
+     * @param bool $replace Replace or amend the previous value
+     *
+     * @return int The previous value
+     */
+    public function throwAt($levels, $replace = false)
+    {
+        $prev = $this->thrownErrors;
+        $this->thrownErrors = ($levels | E_RECOVERABLE_ERROR | E_USER_ERROR) & ~E_USER_DEPRECATED & ~E_DEPRECATED;
+        if (!$replace) {
+            $this->thrownErrors |= $prev;
+        }
+        $this->reRegister($prev | $this->loggedErrors);
 
         return $prev;
     }
@@ -346,6 +344,26 @@ private $screamedErrors = 0x55;
         }
 
         return $prev;
+    }
+
+    /**
+     * Re-registers as a PHP error handler if levels changed.
+     */
+    private function reRegister($prev)
+    {
+        if ($prev !== $this->thrownErrors | $this->loggedErrors) {
+            $handler = set_error_handler('var_dump');
+            $handler = is_array($handler) ? $handler[0] : null;
+            restore_error_handler();
+            if ($handler === $this) {
+                restore_error_handler();
+                if ($this->isRoot) {
+                    set_error_handler(array($this, 'handleError'), $this->thrownErrors | $this->loggedErrors);
+                } else {
+                    set_error_handler(array($this, 'handleError'));
+                }
+            }
+        }
     }
 
     /**
@@ -510,6 +528,75 @@ private $screamedErrors = 0x55;
     }
 
     /**
+     * Handles an exception by logging then forwarding it to another handler.
+     *
+     * @param \Exception|\Throwable $exception An exception to handle
+     * @param array                 $error     An array as returned by error_get_last()
+     *
+     * @internal
+     */
+    public function handleException($exception, array $error = null)
+    {
+        if (null === $error) {
+            self::$exitCode = 255;
+        }
+        if (!$exception instanceof \Exception) {
+            $exception = new FatalThrowableError($exception);
+        }
+        $type = $exception instanceof FatalErrorException ? $exception->getSeverity() : E_ERROR;
+        $handlerException = null;
+
+        if (($this->loggedErrors & $type) || $exception instanceof FatalThrowableError) {
+            if ($exception instanceof FatalErrorException) {
+                if ($exception instanceof FatalThrowableError) {
+                    $error = array(
+                        'type' => $type,
+                        'message' => $message = $exception->getMessage(),
+                        'file' => $exception->getFile(),
+                        'line' => $exception->getLine(),
+                    );
+                } else {
+                    $message = 'Fatal '.$exception->getMessage();
+                }
+            } elseif ($exception instanceof \ErrorException) {
+                $message = 'Uncaught '.$exception->getMessage();
+            } else {
+                $message = 'Uncaught Exception: '.$exception->getMessage();
+            }
+        }
+        if ($this->loggedErrors & $type) {
+            try {
+                $this->loggers[$type][0]->log($this->loggers[$type][1], $message, array('exception' => $exception));
+            } catch (\Exception $handlerException) {
+            } catch (\Throwable $handlerException) {
+            }
+        }
+        if ($exception instanceof FatalErrorException && !$exception instanceof OutOfMemoryException && $error) {
+            foreach ($this->getFatalErrorHandlers() as $handler) {
+                if ($e = $handler->handleError($error, $exception)) {
+                    $exception = $e;
+                    break;
+                }
+            }
+        }
+        $exceptionHandler = $this->exceptionHandler;
+        $this->exceptionHandler = null;
+        try {
+            if (null !== $exceptionHandler) {
+                return \call_user_func($exceptionHandler, $exception);
+            }
+            $handlerException = $handlerException ?: $exception;
+        } catch (\Exception $handlerException) {
+        } catch (\Throwable $handlerException) {
+        }
+        if ($exception === $handlerException) {
+            self::$reservedMemory = null; // Disable the fatal error handler
+            throw $exception; // Give back $exception to the native handler
+        }
+        $this->handleException($handlerException);
+    }
+
+    /**
      * Shutdown registered function for handling PHP fatal errors.
      *
      * @param array $error An array as returned by error_get_last()
@@ -522,15 +609,39 @@ private $screamedErrors = 0x55;
             return;
         }
 
-        self::$reservedMemory = null;
+        $handler = self::$reservedMemory = null;
+        $handlers = array();
+        $previousHandler = null;
+        $sameHandlerLimit = 10;
 
-        $handler = set_error_handler('var_dump');
-        $handler = is_array($handler) ? $handler[0] : null;
-        restore_error_handler();
+        while (!is_array($handler) || !$handler[0] instanceof self) {
+            $handler = set_exception_handler('var_dump');
+            restore_exception_handler();
 
-        if (!$handler instanceof self) {
+            if (!$handler) {
+                break;
+            }
+            restore_exception_handler();
+
+            if ($handler !== $previousHandler) {
+                array_unshift($handlers, $handler);
+                $previousHandler = $handler;
+            } elseif (0 === --$sameHandlerLimit) {
+                $handler = null;
+                break;
+            }
+        }
+        foreach ($handlers as $h) {
+            set_exception_handler($h);
+        }
+        if (!$handler) {
             return;
         }
+        if ($handler !== $h) {
+            $handler[0]->setExceptionHandler($h);
+        }
+        $handler = $handler[0];
+        $handlers = array();
 
         if ($exit = null === $error) {
             $error = error_get_last();
@@ -574,6 +685,26 @@ private $screamedErrors = 0x55;
     }
 
     /**
+     * Configures the error handler for delayed handling.
+     * Ensures also that non-catchable fatal errors are never silenced.
+     *
+     * As shown by http://bugs.php.net/42098 and http://bugs.php.net/60724
+     * PHP has a compile stage where it behaves unusually. To workaround it,
+     * we plug an error handler that only stacks errors for later.
+     *
+     * The most important feature of this is to prevent
+     * autoloading until unstackErrors() is called.
+     *
+     * @deprecated since version 3.4, to be removed in 4.0.
+     */
+    public static function stackErrors()
+    {
+        @trigger_error('Support for stacking errors is deprecated since Symfony 3.4 and will be removed in 4.0.', E_USER_DEPRECATED);
+
+        self::$stackedErrorLevels[] = error_reporting(error_reporting() | E_PARSE | E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR);
+    }
+
+    /**
      * Unstacks stacked errors and forwards to the logger.
      *
      * @deprecated since version 3.4, to be removed in 4.0.
@@ -599,91 +730,6 @@ private $screamedErrors = 0x55;
             foreach ($errors as $error) {
                 $error[0]->log($error[1], $error[2], $error[3]);
             }
-        }
-    }
-
-    /**
-     * Sets the PHP error levels that throw an exception when a PHP error occurs.
-     *
-     * @param int  $levels  A bit field of E_* constants for thrown errors
-     * @param bool $replace Replace or amend the previous value
-     *
-     * @return int The previous value
-     */
-    public function throwAt($levels, $replace = false)
-    {
-        $prev = $this->thrownErrors;
-        $this->thrownErrors = ($levels | E_RECOVERABLE_ERROR | E_USER_ERROR) & ~E_USER_DEPRECATED & ~E_DEPRECATED;
-        if (!$replace) {
-            $this->thrownErrors |= $prev;
-        }
-        $this->reRegister($prev | $this->loggedErrors);
-
-        return $prev;
-    }
-
-    /**
-     * Handles an exception by logging then forwarding it to another handler.
-     *
-     * @param \Exception|\Throwable $exception An exception to handle
-     * @param array                 $error     An array as returned by error_get_last()
-     *
-     * @internal
-     */
-    public function handleException($exception, array $error = null)
-    {
-        if (null === $error) {
-            self::$exitCode = 255;
-        }
-        if (!$exception instanceof \Exception) {
-            $exception = new FatalThrowableError($exception);
-        }
-        $type = $exception instanceof FatalErrorException ? $exception->getSeverity() : E_ERROR;
-
-        if (($this->loggedErrors & $type) || $exception instanceof FatalThrowableError) {
-            if ($exception instanceof FatalErrorException) {
-                if ($exception instanceof FatalThrowableError) {
-                    $error = array(
-                        'type' => $type,
-                        'message' => $message = $exception->getMessage(),
-                        'file' => $exception->getFile(),
-                        'line' => $exception->getLine(),
-                    );
-                } else {
-                    $message = 'Fatal '.$exception->getMessage();
-                }
-            } elseif ($exception instanceof \ErrorException) {
-                $message = 'Uncaught '.$exception->getMessage();
-            } else {
-                $message = 'Uncaught Exception: '.$exception->getMessage();
-            }
-        }
-        if ($this->loggedErrors & $type) {
-            try {
-                $this->loggers[$type][0]->log($this->loggers[$type][1], $message, array('exception' => $exception));
-            } catch (\Exception $handlerException) {
-            } catch (\Throwable $handlerException) {
-            }
-        }
-        if ($exception instanceof FatalErrorException && !$exception instanceof OutOfMemoryException && $error) {
-            foreach ($this->getFatalErrorHandlers() as $handler) {
-                if ($e = $handler->handleError($error, $exception)) {
-                    $exception = $e;
-                    break;
-                }
-            }
-        }
-        if (empty($this->exceptionHandler)) {
-            throw $exception; // Give back $exception to the native handler
-        }
-        try {
-            call_user_func($this->exceptionHandler, $exception);
-        } catch (\Exception $handlerException) {
-        } catch (\Throwable $handlerException) {
-        }
-        if (isset($handlerException)) {
-            $this->exceptionHandler = null;
-            $this->handleException($handlerException);
         }
     }
 

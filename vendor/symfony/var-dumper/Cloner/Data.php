@@ -33,15 +33,37 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
         $this->data = $data;
     }
 
-    public function count()
+    /**
+     * @return string The type of the value
+     */
+    public function getType()
     {
-        return count($this->getValue());
+        $item = $this->data[$this->position][$this->key];
+
+        if ($item instanceof Stub && Stub::TYPE_REF === $item->type && !$item->position) {
+            $item = $item->value;
+        }
+        if (!$item instanceof Stub) {
+            return gettype($item);
+        }
+        if (Stub::TYPE_STRING === $item->type) {
+            return 'string';
+        }
+        if (Stub::TYPE_ARRAY === $item->type) {
+            return 'array';
+        }
+        if (Stub::TYPE_OBJECT === $item->type) {
+            return $item->class;
+        }
+        if (Stub::TYPE_RESOURCE === $item->type) {
+            return $item->class.' resource';
+        }
     }
 
     /**
      * @param bool $recursive Whether values should be resolved recursively or not
      *
-     * @return scalar|array|null|Data[] A native representation of the original value
+     * @return string|int|float|bool|array|null|Data[] A native representation of the original value
      */
     public function getValue($recursive = false)
     {
@@ -82,22 +104,9 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
         return $children;
     }
 
-    private function getStub($item)
+    public function count()
     {
-        if (!$item || !\is_array($item)) {
-            return $item;
-        }
-
-        $stub = new Stub();
-        $stub->type = Stub::TYPE_ARRAY;
-        foreach ($item as $stub->class => $stub->position) {
-        }
-        if (isset($item[0])) {
-            $stub->cut = $item[0];
-        }
-        $stub->value = $stub->cut + ($stub->position ? \count($this->data[$stub->position]) : 0);
-
-        return $stub;
+        return count($this->getValue());
     }
 
     public function getIterator()
@@ -111,69 +120,6 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
         }
     }
 
-    public function offsetExists($key)
-    {
-        return $this->__isset($key);
-    }
-
-    public function __isset($key)
-    {
-        return null !== $this->seek($key);
-    }
-
-    /**
-     * Seeks to a specific key in nested data structures.
-     *
-     * @param string|int $key The key to seek to
-     *
-     * @return self|null A clone of $this of null if the key is not set
-     */
-    public function seek($key)
-    {
-        $item = $this->data[$this->position][$this->key];
-
-        if ($item instanceof Stub && Stub::TYPE_REF === $item->type && !$item->position) {
-            $item = $item->value;
-        }
-        if (!($item = $this->getStub($item)) instanceof Stub || !$item->position) {
-            return;
-        }
-        $keys = array($key);
-
-        switch ($item->type) {
-            case Stub::TYPE_OBJECT:
-                $keys[] = Caster::PREFIX_DYNAMIC.$key;
-                $keys[] = Caster::PREFIX_PROTECTED.$key;
-                $keys[] = Caster::PREFIX_VIRTUAL.$key;
-                $keys[] = "\0$item->class\0$key";
-                // no break
-            case Stub::TYPE_ARRAY:
-            case Stub::TYPE_RESOURCE:
-                break;
-            default:
-                return;
-        }
-
-        $data = null;
-        $children = $this->data[$item->position];
-
-        foreach ($keys as $key) {
-            if (isset($children[$key]) || array_key_exists($key, $children)) {
-                $data = clone $this;
-                $data->key = $key;
-                $data->position = $item->position;
-                break;
-            }
-        }
-
-        return $data;
-    }
-
-    public function offsetGet($key)
-    {
-        return $this->__get($key);
-    }
-
     public function __get($key)
     {
         if (null !== $data = $this->seek($key)) {
@@ -181,6 +127,21 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
 
             return $item instanceof Stub || array() === $item ? $data : $item;
         }
+    }
+
+    public function __isset($key)
+    {
+        return null !== $this->seek($key);
+    }
+
+    public function offsetExists($key)
+    {
+        return $this->__isset($key);
+    }
+
+    public function offsetGet($key)
+    {
+        return $this->__get($key);
     }
 
     public function offsetSet($key, $value)
@@ -205,40 +166,13 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
     }
 
     /**
-     * @return string The type of the value
-     */
-    public function getType()
-    {
-        $item = $this->data[$this->position][$this->key];
-
-        if ($item instanceof Stub && Stub::TYPE_REF === $item->type && !$item->position) {
-            $item = $item->value;
-        }
-        if (!$item instanceof Stub) {
-            return gettype($item);
-        }
-        if (Stub::TYPE_STRING === $item->type) {
-            return 'string';
-        }
-        if (Stub::TYPE_ARRAY === $item->type) {
-            return 'array';
-        }
-        if (Stub::TYPE_OBJECT === $item->type) {
-            return $item->class;
-        }
-        if (Stub::TYPE_RESOURCE === $item->type) {
-            return $item->class.' resource';
-        }
-    }
-
-    /**
      * @return array The raw data structure
      *
      * @deprecated since version 3.3. Use array or object access instead.
      */
     public function getRawData()
     {
-        @trigger_error(sprintf('The %s() method is deprecated since version 3.3 and will be removed in 4.0. Use the array or object access instead.', __METHOD__));
+        @trigger_error(sprintf('The %s() method is deprecated since Symfony 3.3 and will be removed in 4.0. Use the array or object access instead.', __METHOD__));
 
         return $this->data;
     }
@@ -284,6 +218,54 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
     {
         $data = clone $this;
         $data->useRefHandles = $useRefHandles ? -1 : 0;
+
+        return $data;
+    }
+
+    /**
+     * Seeks to a specific key in nested data structures.
+     *
+     * @param string|int $key The key to seek to
+     *
+     * @return self|null A clone of $this or null if the key is not set
+     */
+    public function seek($key)
+    {
+        $item = $this->data[$this->position][$this->key];
+
+        if ($item instanceof Stub && Stub::TYPE_REF === $item->type && !$item->position) {
+            $item = $item->value;
+        }
+        if (!($item = $this->getStub($item)) instanceof Stub || !$item->position) {
+            return;
+        }
+        $keys = array($key);
+
+        switch ($item->type) {
+            case Stub::TYPE_OBJECT:
+                $keys[] = Caster::PREFIX_DYNAMIC.$key;
+                $keys[] = Caster::PREFIX_PROTECTED.$key;
+                $keys[] = Caster::PREFIX_VIRTUAL.$key;
+                $keys[] = "\0$item->class\0$key";
+                // no break
+            case Stub::TYPE_ARRAY:
+            case Stub::TYPE_RESOURCE:
+                break;
+            default:
+                return;
+        }
+
+        $data = null;
+        $children = $this->data[$item->position];
+
+        foreach ($keys as $key) {
+            if (isset($children[$key]) || array_key_exists($key, $children)) {
+                $data = clone $this;
+                $data->key = $key;
+                $data->position = $item->position;
+                break;
+            }
+        }
 
         return $data;
     }
@@ -433,5 +415,23 @@ class Data implements \ArrayAccess, \Countable, \IteratorAggregate
         }
 
         return $hashCut;
+    }
+
+    private function getStub($item)
+    {
+        if (!$item || !\is_array($item)) {
+            return $item;
+        }
+
+        $stub = new Stub();
+        $stub->type = Stub::TYPE_ARRAY;
+        foreach ($item as $stub->class => $stub->position) {
+        }
+        if (isset($item[0])) {
+            $stub->cut = $item[0];
+        }
+        $stub->value = $stub->cut + ($stub->position ? \count($this->data[$stub->position]) : 0);
+
+        return $stub;
     }
 }

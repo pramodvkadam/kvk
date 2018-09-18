@@ -9,29 +9,32 @@ use Illuminate\Database\Connection;
 class Builder
 {
     /**
-     * The default string length for migrations.
-     *
-     * @var int
-     */
-    public static $defaultStringLength = 255;
-    /**
      * The database connection instance.
      *
      * @var \Illuminate\Database\Connection
      */
     protected $connection;
+
     /**
      * The schema grammar instance.
      *
      * @var \Illuminate\Database\Schema\Grammars\Grammar
      */
     protected $grammar;
+
     /**
      * The Blueprint resolver callback.
      *
      * @var \Closure
      */
     protected $resolver;
+
+    /**
+     * The default string length for migrations.
+     *
+     * @var int
+     */
+    public static $defaultStringLength = 255;
 
     /**
      * Create a new database Schema manager.
@@ -86,21 +89,6 @@ class Builder
     }
 
     /**
-     * Get the column listing for a given table.
-     *
-     * @param  string  $table
-     * @return array
-     */
-    public function getColumnListing($table)
-    {
-        $results = $this->connection->select($this->grammar->compileColumnListing(
-            $this->connection->getTablePrefix().$table
-        ));
-
-        return $this->connection->getPostProcessor()->processColumnListing($results);
-    }
-
-    /**
      * Determine if the given table has given columns.
      *
      * @param  string  $table
@@ -135,6 +123,21 @@ class Builder
     }
 
     /**
+     * Get the column listing for a given table.
+     *
+     * @param  string  $table
+     * @return array
+     */
+    public function getColumnListing($table)
+    {
+        $results = $this->connection->select($this->grammar->compileColumnListing(
+            $this->connection->getTablePrefix().$table
+        ));
+
+        return $this->connection->getPostProcessor()->processColumnListing($results);
+    }
+
+    /**
      * Modify a table on the schema.
      *
      * @param  string    $table
@@ -144,33 +147,6 @@ class Builder
     public function table($table, Closure $callback)
     {
         $this->build($this->createBlueprint($table, $callback));
-    }
-
-    /**
-     * Execute the blueprint to build / modify the table.
-     *
-     * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
-     * @return void
-     */
-    protected function build(Blueprint $blueprint)
-    {
-        $blueprint->build($this->connection, $this->grammar);
-    }
-
-    /**
-     * Create a new command set with a Closure.
-     *
-     * @param  string  $table
-     * @param  \Closure|null  $callback
-     * @return \Illuminate\Database\Schema\Blueprint
-     */
-    protected function createBlueprint($table, Closure $callback = null)
-    {
-        if (isset($this->resolver)) {
-            return call_user_func($this->resolver, $table, $callback);
-        }
-
-        return new Blueprint($table, $callback);
     }
 
     /**
@@ -263,6 +239,33 @@ class Builder
         return $this->connection->statement(
             $this->grammar->compileDisableForeignKeyConstraints()
         );
+    }
+
+    /**
+     * Execute the blueprint to build / modify the table.
+     *
+     * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
+     * @return void
+     */
+    protected function build(Blueprint $blueprint)
+    {
+        $blueprint->build($this->connection, $this->grammar);
+    }
+
+    /**
+     * Create a new command set with a Closure.
+     *
+     * @param  string  $table
+     * @param  \Closure|null  $callback
+     * @return \Illuminate\Database\Schema\Blueprint
+     */
+    protected function createBlueprint($table, Closure $callback = null)
+    {
+        if (isset($this->resolver)) {
+            return call_user_func($this->resolver, $table, $callback);
+        }
+
+        return new Blueprint($table, $callback);
     }
 
     /**

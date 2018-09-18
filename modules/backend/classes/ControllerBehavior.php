@@ -61,6 +61,16 @@ class ControllerBehavior extends ExtensionBase
     }
 
     /**
+     * Sets the configuration values
+     * @param mixed $config   Config object or array
+     * @param array $required Required config items
+     */
+    public function setConfig($config, $required = [])
+    {
+        $this->config = $this->makeConfig($config, $required);
+    }
+
+    /**
      * Safe accessor for configuration values.
      * @param string $name Config name, supports array names like "field[key]"
      * @param mixed $default Default value if nothing is found
@@ -105,28 +115,6 @@ class ControllerBehavior extends ExtensionBase
     }
 
     /**
-     * Sets the configuration values
-     * @param mixed $config   Config object or array
-     * @param array $required Required config items
-     */
-    public function setConfig($config, $required = [])
-    {
-        $this->config = $this->makeConfig($config, $required);
-    }
-
-    /**
-     * Makes all views in context of the controller, not the behavior.
-     * @param string $filePath Absolute path to the view file.
-     * @param array $extraParams Parameters that should be available to the view.
-     * @return string
-     */
-    public function makeFileContents($filePath, $extraParams = [])
-    {
-        $this->controller->vars = array_merge($this->controller->vars, $this->vars);
-        return $this->controller->makeFileContents($filePath, $extraParams);
-    }
-
-    /**
      * Protects a public method from being available as an controller action.
      * These methods could be defined in a controller to override a behavior default action.
      * Such methods should be defined as public, to allow the behavior object to access it.
@@ -141,6 +129,18 @@ class ControllerBehavior extends ExtensionBase
         }
 
         $this->controller->hiddenActions = array_merge($this->controller->hiddenActions, $methodName);
+    }
+
+    /**
+     * Makes all views in context of the controller, not the behavior.
+     * @param string $filePath Absolute path to the view file.
+     * @param array $extraParams Parameters that should be available to the view.
+     * @return string
+     */
+    public function makeFileContents($filePath, $extraParams = [])
+    {
+        $this->controller->vars = array_merge($this->controller->vars, $this->vars);
+        return $this->controller->makeFileContents($filePath, $extraParams);
     }
 
     /**

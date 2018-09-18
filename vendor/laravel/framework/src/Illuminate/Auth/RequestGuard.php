@@ -41,19 +41,6 @@ class RequestGuard implements Guard
     }
 
     /**
-     * Validate a user's credentials.
-     *
-     * @param  array  $credentials
-     * @return bool
-     */
-    public function validate(array $credentials = [])
-    {
-        return ! is_null((new static(
-            $this->callback, $credentials['request'], $this->getProvider()
-        ))->user());
-    }
-
-    /**
      * Get the currently authenticated user.
      *
      * @return \Illuminate\Contracts\Auth\Authenticatable|null
@@ -70,6 +57,19 @@ class RequestGuard implements Guard
         return $this->user = call_user_func(
             $this->callback, $this->request, $this->getProvider()
         );
+    }
+
+    /**
+     * Validate a user's credentials.
+     *
+     * @param  array  $credentials
+     * @return bool
+     */
+    public function validate(array $credentials = [])
+    {
+        return ! is_null((new static(
+            $this->callback, $credentials['request'], $this->getProvider()
+        ))->user());
     }
 
     /**

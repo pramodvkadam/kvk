@@ -17,13 +17,13 @@ class DbFailedJobs extends Migration
         });
     }
 
-    protected function getTableName()
-    {
-        return Config::get('queue.failed.table', 'failed_jobs');
-    }
-
     public function down()
     {
         Schema::dropIfExists($this->getTableName());
+    }
+
+    protected function getTableName()
+    {
+        return Config::get('queue.failed.table', 'failed_jobs');
     }
 }

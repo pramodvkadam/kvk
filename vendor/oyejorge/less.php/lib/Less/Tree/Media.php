@@ -28,13 +28,6 @@ class Less_Tree_Media extends Less_Tree{
 		$this->rules[0]->allowImports = true;
 	}
 
-	public function emptySelectors(){
-		$el = new Less_Tree_Element('','&', $this->index, $this->currentFileInfo );
-		$sels = array( new Less_Tree_Selector(array($el), array(), null, $this->index, $this->currentFileInfo) );
-		$sels[0]->mediaEmpty = true;
-        return $sels;
-	}
-
     public function accept( $visitor ){
 		$this->features = $visitor->visitObj($this->features);
 		$this->rules = $visitor->visitArray($this->rules);
@@ -79,6 +72,28 @@ class Less_Tree_Media extends Less_Tree{
 		return !$env->mediaPath ? $media->compileTop($env) : $media->compileNested($env);
 	}
 
+	public function variable($name) {
+		return $this->rules[0]->variable($name);
+	}
+
+	public function find($selector) {
+		return $this->rules[0]->find($selector, $this);
+	}
+
+	public function emptySelectors(){
+		$el = new Less_Tree_Element('','&', $this->index, $this->currentFileInfo );
+		$sels = array( new Less_Tree_Selector(array($el), array(), null, $this->index, $this->currentFileInfo) );
+		$sels[0]->mediaEmpty = true;
+        return $sels;
+	}
+
+	public function markReferenced(){
+		$this->rules[0]->markReferenced();
+		$this->isReferenced = true;
+		Less_Tree::ReferencedArray($this->rules[0]->rules);
+	}
+
+	// evaltop
 	public function compileTop($env) {
 		$result = $this;
 
@@ -152,22 +167,6 @@ class Less_Tree_Media extends Less_Tree{
 		}
 
 		return $result;
-	}
-
-	// evaltop
-
-	public function variable($name) {
-		return $this->rules[0]->variable($name);
-	}
-
-	public function find($selector) {
-		return $this->rules[0]->find($selector, $this);
-	}
-
-	public function markReferenced(){
-		$this->rules[0]->markReferenced();
-		$this->isReferenced = true;
-		Less_Tree::ReferencedArray($this->rules[0]->rules);
 	}
 
     public function bubbleSelectors($selectors) {

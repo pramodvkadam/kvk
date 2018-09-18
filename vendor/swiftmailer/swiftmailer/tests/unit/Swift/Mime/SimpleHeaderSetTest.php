@@ -14,32 +14,6 @@ class Swift_Mime_SimpleHeaderSetTest extends \PHPUnit\Framework\TestCase
         $set->addMailboxHeader('From', array('person@domain' => 'Person'));
     }
 
-    private function createFactory()
-    {
-        return $this->getMockBuilder('Swift_Mime_SimpleHeaderFactory')->disableOriginalConstructor()->getMock();
-    }
-
-    private function createHeader($name, $body = '')
-    {
-        $header = $this->getMockBuilder('Swift_Mime_Header')->getMock();
-        $header->expects($this->any())
-               ->method('getFieldName')
-               ->will($this->returnValue($name));
-        $header->expects($this->any())
-               ->method('toString')
-               ->will($this->returnValue(sprintf("%s: %s\r\n", $name, $body)));
-        $header->expects($this->any())
-               ->method('getFieldBody')
-               ->will($this->returnValue($body));
-
-        return $header;
-    }
-
-    private function createSet($factory)
-    {
-        return new Swift_Mime_SimpleHeaderSet($factory);
-    }
-
     public function testAddDateHeaderDelegatesToFactory()
     {
         $dateTime = new DateTimeImmutable();
@@ -730,5 +704,31 @@ class Swift_Mime_SimpleHeaderSetTest extends \PHPUnit\Framework\TestCase
         $set = $this->createSet($factory);
 
         $set->setCharset('utf-8');
+    }
+
+    private function createSet($factory)
+    {
+        return new Swift_Mime_SimpleHeaderSet($factory);
+    }
+
+    private function createFactory()
+    {
+        return $this->getMockBuilder('Swift_Mime_SimpleHeaderFactory')->disableOriginalConstructor()->getMock();
+    }
+
+    private function createHeader($name, $body = '')
+    {
+        $header = $this->getMockBuilder('Swift_Mime_Header')->getMock();
+        $header->expects($this->any())
+               ->method('getFieldName')
+               ->will($this->returnValue($name));
+        $header->expects($this->any())
+               ->method('toString')
+               ->will($this->returnValue(sprintf("%s: %s\r\n", $name, $body)));
+        $header->expects($this->any())
+               ->method('getFieldBody')
+               ->will($this->returnValue($body));
+
+        return $header;
     }
 }

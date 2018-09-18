@@ -42,15 +42,6 @@ class LocaleListener implements EventSubscriberInterface
         $this->router = $router;
     }
 
-    public static function getSubscribedEvents()
-    {
-        return array(
-            // must be registered after the Router to have access to the _locale
-            KernelEvents::REQUEST => array(array('onKernelRequest', 16)),
-            KernelEvents::FINISH_REQUEST => array(array('onKernelFinishRequest', 0)),
-        );
-    }
-
     public function onKernelRequest(GetResponseEvent $event)
     {
         $request = $event->getRequest();
@@ -58,6 +49,13 @@ class LocaleListener implements EventSubscriberInterface
 
         $this->setLocale($request);
         $this->setRouterContext($request);
+    }
+
+    public function onKernelFinishRequest(FinishRequestEvent $event)
+    {
+        if (null !== $parentRequest = $this->requestStack->getParentRequest()) {
+            $this->setRouterContext($parentRequest);
+        }
     }
 
     private function setLocale(Request $request)
@@ -74,10 +72,12 @@ class LocaleListener implements EventSubscriberInterface
         }
     }
 
-    public function onKernelFinishRequest(FinishRequestEvent $event)
+    public static function getSubscribedEvents()
     {
-        if (null !== $parentRequest = $this->requestStack->getParentRequest()) {
-            $this->setRouterContext($parentRequest);
-        }
+        return array(
+            // must be registered after the Router to have access to the _locale
+            KernelEvents::REQUEST => array(array('onKernelRequest', 16)),
+            KernelEvents::FINISH_REQUEST => array(array('onKernelFinishRequest', 0)),
+        );
     }
 }

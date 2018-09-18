@@ -13,16 +13,6 @@ class Swift_Mime_HeaderEncoder_QpHeaderEncoderTest extends \SwiftMailerTestCase
         $this->assertEquals('Q', $encoder->getName());
     }
 
-    private function createEncoder($charStream)
-    {
-        return new Swift_Mime_HeaderEncoder_QpHeaderEncoder($charStream);
-    }
-
-    private function createCharacterStream($stub = false)
-    {
-        return $this->getMockery('Swift_CharacterStream')->shouldIgnoreMissing();
-    }
-
     public function testSpaceAndTabNeverAppear()
     {
         /* -- RFC 2047, 4.
@@ -217,5 +207,15 @@ class Swift_Mime_HeaderEncoder_QpHeaderEncoderTest extends \SwiftMailerTestCase
 
         $encoder = $this->createEncoder($charStream);
         $this->assertEquals($output, $encoder->encodeString($input));
+    }
+
+    private function createEncoder($charStream)
+    {
+        return new Swift_Mime_HeaderEncoder_QpHeaderEncoder($charStream);
+    }
+
+    private function createCharacterStream($stub = false)
+    {
+        return $this->getMockery('Swift_CharacterStream')->shouldIgnoreMissing();
     }
 }

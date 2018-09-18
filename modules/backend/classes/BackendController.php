@@ -28,17 +28,19 @@ class BackendController extends ControllerBase
     use \October\Rain\Extension\ExtendableTrait;
 
     /**
+     * @var array Behaviors implemented by this controller.
+     */
+    public $implement;
+
+    /**
      * @var string Allows early access to page action.
      */
     public static $action;
+
     /**
      * @var array Allows early access to page parameters.
      */
     public static $params;
-    /**
-     * @var array Behaviors implemented by this controller.
-     */
-    public $implement;
 
     /**
      * Instantiate a new BackendController instance.
@@ -118,20 +120,6 @@ class BackendController extends ControllerBase
     }
 
     /**
-     * Process the action name, since dashes are not supported in PHP methods.
-     * @param  string $actionName
-     * @return string
-     */
-    protected function parseAction($actionName)
-    {
-        if (strpos($actionName, '-') !== false) {
-            return camel_case($actionName);
-        }
-
-        return $actionName;
-    }
-
-    /**
      * This method is used internally.
      * Finds a backend controller with a callable action method.
      * @param string $controller Specifies a method name to execute.
@@ -163,5 +151,19 @@ class BackendController extends ControllerBase
         }
 
         return false;
+    }
+
+    /**
+     * Process the action name, since dashes are not supported in PHP methods.
+     * @param  string $actionName
+     * @return string
+     */
+    protected function parseAction($actionName)
+    {
+        if (strpos($actionName, '-') !== false) {
+            return camel_case($actionName);
+        }
+
+        return $actionName;
     }
 }

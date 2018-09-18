@@ -54,6 +54,50 @@ class PoolingShardManager implements ShardManager
     }
 
     /**
+     * @return void
+     */
+    public function selectGlobal()
+    {
+        $this->conn->connect(0);
+        $this->currentDistributionValue = null;
+    }
+
+    /**
+     * @param string $distributionValue
+     *
+     * @return void
+     */
+    public function selectShard($distributionValue)
+    {
+        $shardId = $this->choser->pickShard($distributionValue, $this->conn);
+        $this->conn->connect($shardId);
+        $this->currentDistributionValue = $distributionValue;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getCurrentDistributionValue()
+    {
+        return $this->currentDistributionValue;
+    }
+
+    /**
+     * @return array
+     */
+    public function getShards()
+    {
+        $params = $this->conn->getParams();
+        $shards = array();
+
+        foreach ($params['shards'] as $shard) {
+            $shards[] = array('id' => $shard['id']);
+        }
+
+        return $shards;
+    }
+
+    /**
      * @param string $sql
      * @param array  $params
      * @param array  $types
@@ -86,49 +130,5 @@ class PoolingShardManager implements ShardManager
         }
 
         return $result;
-    }
-
-    /**
-     * @return array
-     */
-    public function getShards()
-    {
-        $params = $this->conn->getParams();
-        $shards = array();
-
-        foreach ($params['shards'] as $shard) {
-            $shards[] = array('id' => $shard['id']);
-        }
-
-        return $shards;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getCurrentDistributionValue()
-    {
-        return $this->currentDistributionValue;
-    }
-
-    /**
-     * @return void
-     */
-    public function selectGlobal()
-    {
-        $this->conn->connect(0);
-        $this->currentDistributionValue = null;
-    }
-
-    /**
-     * @param string $distributionValue
-     *
-     * @return void
-     */
-    public function selectShard($distributionValue)
-    {
-        $shardId = $this->choser->pickShard($distributionValue, $this->conn);
-        $this->conn->connect($shardId);
-        $this->currentDistributionValue = $distributionValue;
     }
 }

@@ -80,6 +80,21 @@ class Less_Visitor_toCSS extends Less_VisitorReplacing{
 		return $directiveNode;
 	}
 
+	public function checkPropertiesInRoot( $rulesetNode ){
+
+		if( !$rulesetNode->firstRoot ){
+			return;
+		}
+
+		foreach($rulesetNode->rules as $ruleNode){
+			if( $ruleNode instanceof Less_Tree_Rule && !$ruleNode->variable ){
+				$msg = "properties must be inside selector blocks, they cannot be in the root. Index ".$ruleNode->index.($ruleNode->currentFileInfo ? (' Filename: '.$ruleNode->currentFileInfo['filename']) : null);
+				throw new Less_Exception_Compiler($msg);
+			}
+		}
+	}
+
+
 	public function visitRuleset( $rulesetNode, &$visitDeeper ){
 
 		$visitDeeper = false;
@@ -138,19 +153,6 @@ class Less_Visitor_toCSS extends Less_VisitorReplacing{
 		return $rulesets;
 	}
 
-	public function checkPropertiesInRoot( $rulesetNode ){
-
-		if( !$rulesetNode->firstRoot ){
-			return;
-		}
-
-		foreach($rulesetNode->rules as $ruleNode){
-			if( $ruleNode instanceof Less_Tree_Rule && !$ruleNode->variable ){
-				$msg = "properties must be inside selector blocks, they cannot be in the root. Index ".$ruleNode->index.($ruleNode->currentFileInfo ? (' Filename: '.$ruleNode->currentFileInfo['filename']) : null);
-				throw new Less_Exception_Compiler($msg);
-			}
-		}
-	}
 
 	/**
 	 * Helper function for visitiRuleset
@@ -188,6 +190,33 @@ class Less_Visitor_toCSS extends Less_VisitorReplacing{
 		}
 
 		return $paths;
+	}
+
+	protected function _removeDuplicateRules( &$rules ){
+		// remove duplicates
+		$ruleCache = array();
+		for( $i = count($rules)-1; $i >= 0 ; $i-- ){
+			$rule = $rules[$i];
+			if( $rule instanceof Less_Tree_Rule || $rule instanceof Less_Tree_NameValue ){
+
+				if( !isset($ruleCache[$rule->name]) ){
+					$ruleCache[$rule->name] = $rule;
+				}else{
+					$ruleList =& $ruleCache[$rule->name];
+
+					if( $ruleList instanceof Less_Tree_Rule || $ruleList instanceof Less_Tree_NameValue ){
+						$ruleList = $ruleCache[$rule->name] = array( $ruleCache[$rule->name]->toCSS() );
+					}
+
+					$ruleCSS = $rule->toCSS();
+					if( array_search($ruleCSS,$ruleList) !== false ){
+						array_splice($rules,$i,1);
+					}else{
+						$ruleList[] = $ruleCSS;
+					}
+				}
+			}
+		}
 	}
 
 	protected function _mergeRules( &$rules ){
@@ -258,33 +287,6 @@ class Less_Visitor_toCSS extends Less_VisitorReplacing{
 			$mapped[] = $p;
 		}
 		return new Less_Tree_Value($mapped);
-	}
-
-	protected function _removeDuplicateRules( &$rules ){
-		// remove duplicates
-		$ruleCache = array();
-		for( $i = count($rules)-1; $i >= 0 ; $i-- ){
-			$rule = $rules[$i];
-			if( $rule instanceof Less_Tree_Rule || $rule instanceof Less_Tree_NameValue ){
-
-				if( !isset($ruleCache[$rule->name]) ){
-					$ruleCache[$rule->name] = $rule;
-				}else{
-					$ruleList =& $ruleCache[$rule->name];
-
-					if( $ruleList instanceof Less_Tree_Rule || $ruleList instanceof Less_Tree_NameValue ){
-						$ruleList = $ruleCache[$rule->name] = array( $ruleCache[$rule->name]->toCSS() );
-					}
-
-					$ruleCSS = $rule->toCSS();
-					if( array_search($ruleCSS,$ruleList) !== false ){
-						array_splice($rules,$i,1);
-					}else{
-						$ruleList[] = $ruleCSS;
-					}
-				}
-			}
-		}
 	}
 }
 

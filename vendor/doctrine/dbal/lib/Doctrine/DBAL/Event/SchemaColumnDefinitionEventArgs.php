@@ -73,14 +73,6 @@ class SchemaColumnDefinitionEventArgs extends SchemaEventArgs
     }
 
     /**
-     * @return \Doctrine\DBAL\Schema\Column|null
-     */
-    public function getColumn()
-    {
-        return $this->_column;
-    }
-
-    /**
      * Allows to clear the column which means the column will be excluded from
      * tables column list.
      *
@@ -93,6 +85,14 @@ class SchemaColumnDefinitionEventArgs extends SchemaEventArgs
         $this->_column = $column;
 
         return $this;
+    }
+
+    /**
+     * @return \Doctrine\DBAL\Schema\Column|null
+     */
+    public function getColumn()
+    {
+        return $this->_column;
     }
 
     /**

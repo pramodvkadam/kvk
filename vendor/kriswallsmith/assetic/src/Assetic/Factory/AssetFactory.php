@@ -52,16 +52,6 @@ class AssetFactory
     }
 
     /**
-     * Checks if the factory is in debug mode.
-     *
-     * @return Boolean Debug mode
-     */
-    public function isDebug()
-    {
-        return $this->debug;
-    }
-
-    /**
      * Sets debug mode for the current factory.
      *
      * @param Boolean $debug Debug mode
@@ -69,6 +59,16 @@ class AssetFactory
     public function setDebug($debug)
     {
         $this->debug = $debug;
+    }
+
+    /**
+     * Checks if the factory is in debug mode.
+     *
+     * @return Boolean Debug mode
+     */
+    public function isDebug()
+    {
+        return $this->debug;
     }
 
     /**
@@ -248,9 +248,39 @@ class AssetFactory
         return substr(sha1(serialize($inputs).serialize($filters).serialize($options)), 0, 7);
     }
 
-    protected function createAssetCollection(array $assets = array(), array $options = array())
+    public function getLastModified(AssetInterface $asset)
     {
-        return new AssetCollection($assets, array(), null, isset($options['vars']) ? $options['vars'] : array());
+        $mtime = 0;
+        foreach ($asset instanceof AssetCollectionInterface ? $asset : array($asset) as $leaf) {
+            $mtime = max($mtime, $leaf->getLastModified());
+
+            if (!$filters = $leaf->getFilters()) {
+                continue;
+            }
+
+            $prevFilters = array();
+            foreach ($filters as $filter) {
+                $prevFilters[] = $filter;
+
+                if (!$filter instanceof DependencyExtractorInterface) {
+                    continue;
+                }
+
+                // extract children from leaf after running all preceeding filters
+                $clone = clone $leaf;
+                $clone->clearFilters();
+                foreach (array_slice($prevFilters, 0, -1) as $prevFilter) {
+                    $clone->ensureFilter($prevFilter);
+                }
+                $clone->load();
+
+                foreach ($filter->getChildren($this, $clone->getContent(), $clone->getSourceDirectory()) as $child) {
+                    $mtime = max($mtime, $this->getLastModified($child));
+                }
+            }
+        }
+
+        return $mtime;
     }
 
     /**
@@ -299,6 +329,11 @@ class AssetFactory
         return $this->createFileAsset($input, $root, $path, $options['vars']);
     }
 
+    protected function createAssetCollection(array $assets = array(), array $options = array())
+    {
+        return new AssetCollection($assets, array(), null, isset($options['vars']) ? $options['vars'] : array());
+    }
+
     protected function createAssetReference($name)
     {
         if (!$this->am) {
@@ -311,28 +346,6 @@ class AssetFactory
     protected function createHttpAsset($sourceUrl, $vars)
     {
         return new HttpAsset($sourceUrl, array(), false, $vars);
-    }
-
-    private static function isAbsolutePath($path)
-    {
-        return '/' == $path[0] || '\\' == $path[0] || (3 < strlen($path) && ctype_alpha($path[0]) && $path[1] == ':' && ('\\' == $path[2] || '/' == $path[2]));
-    }
-
-    /**
-     * Loops through the root directories and returns the first match.
-     *
-     * @param string $path  An absolute path
-     * @param array  $roots An array of root directories
-     *
-     * @return string|null The matching root directory, if found
-     */
-    private static function findRootDir($path, array $roots)
-    {
-        foreach ($roots as $root) {
-            if (0 === strpos($path, $root)) {
-                return $root;
-            }
-        }
     }
 
     protected function createGlobAsset($glob, $root = null, $vars)
@@ -387,38 +400,25 @@ class AssetFactory
         return $asset instanceof AssetCollectionInterface ? $asset : $this->createAssetCollection(array($asset));
     }
 
-    public function getLastModified(AssetInterface $asset)
+    private static function isAbsolutePath($path)
     {
-        $mtime = 0;
-        foreach ($asset instanceof AssetCollectionInterface ? $asset : array($asset) as $leaf) {
-            $mtime = max($mtime, $leaf->getLastModified());
+        return '/' == $path[0] || '\\' == $path[0] || (3 < strlen($path) && ctype_alpha($path[0]) && $path[1] == ':' && ('\\' == $path[2] || '/' == $path[2]));
+    }
 
-            if (!$filters = $leaf->getFilters()) {
-                continue;
-            }
-
-            $prevFilters = array();
-            foreach ($filters as $filter) {
-                $prevFilters[] = $filter;
-
-                if (!$filter instanceof DependencyExtractorInterface) {
-                    continue;
-                }
-
-                // extract children from leaf after running all preceeding filters
-                $clone = clone $leaf;
-                $clone->clearFilters();
-                foreach (array_slice($prevFilters, 0, -1) as $prevFilter) {
-                    $clone->ensureFilter($prevFilter);
-                }
-                $clone->load();
-
-                foreach ($filter->getChildren($this, $clone->getContent(), $clone->getSourceDirectory()) as $child) {
-                    $mtime = max($mtime, $this->getLastModified($child));
-                }
+    /**
+     * Loops through the root directories and returns the first match.
+     *
+     * @param string $path  An absolute path
+     * @param array  $roots An array of root directories
+     *
+     * @return string|null The matching root directory, if found
+     */
+    private static function findRootDir($path, array $roots)
+    {
+        foreach ($roots as $root) {
+            if (0 === strpos($path, $root)) {
+                return $root;
             }
         }
-
-        return $mtime;
     }
 }

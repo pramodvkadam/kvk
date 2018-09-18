@@ -6,33 +6,6 @@ class Swift_Transport_StreamBuffer_SocketTimeoutTest extends \PHPUnit\Framework\
     protected $server;
     protected $randomHighPort;
 
-    public function testTimeoutException()
-    {
-        $this->initializeBuffer();
-        $e = null;
-        try {
-            $line = $this->buffer->readLine(0);
-        } catch (Exception $e) {
-        }
-        $this->assertInstanceOf('Swift_IoException', $e, 'IO Exception Not Thrown On Connection Timeout');
-        $this->assertRegExp('/Connection to .* Timed Out/', $e->getMessage());
-    }
-
-    protected function initializeBuffer()
-    {
-        $host = '127.0.0.1';
-        $port = $this->randomHighPort;
-
-        $this->buffer->initialize(array(
-            'type' => Swift_Transport_IoBuffer::TYPE_SOCKET,
-            'host' => $host,
-            'port' => $port,
-            'protocol' => 'tcp',
-            'blocking' => 1,
-            'timeout' => 1,
-        ));
-    }
-
     protected function setUp()
     {
         if (!defined('SWIFT_SMTP_HOST')) {
@@ -54,6 +27,33 @@ class Swift_Transport_StreamBuffer_SocketTimeoutTest extends \PHPUnit\Framework\
         $this->buffer = new Swift_Transport_StreamBuffer(
             $this->getMockBuilder('Swift_ReplacementFilterFactory')->getMock()
         );
+    }
+
+    protected function initializeBuffer()
+    {
+        $host = '127.0.0.1';
+        $port = $this->randomHighPort;
+
+        $this->buffer->initialize(array(
+            'type' => Swift_Transport_IoBuffer::TYPE_SOCKET,
+            'host' => $host,
+            'port' => $port,
+            'protocol' => 'tcp',
+            'blocking' => 1,
+            'timeout' => 1,
+        ));
+    }
+
+    public function testTimeoutException()
+    {
+        $this->initializeBuffer();
+        $e = null;
+        try {
+            $line = $this->buffer->readLine(0);
+        } catch (Exception $e) {
+        }
+        $this->assertInstanceOf('Swift_IoException', $e, 'IO Exception Not Thrown On Connection Timeout');
+        $this->assertRegExp('/Connection to .* Timed Out/', $e->getMessage());
     }
 
     protected function tearDown()

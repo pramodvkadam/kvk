@@ -34,21 +34,11 @@ class ErrorListenerTest extends TestCase
         $logger
             ->expects($this->once())
             ->method('error')
-            ->with('Error thrown while running command "{command}". Message: "{message}"', array('error' => $error, 'command' => 'test:run --foo=baz buzz', 'message' => 'An error occurred'))
+            ->with('Error thrown while running command "{command}". Message: "{message}"', array('exception' => $error, 'command' => 'test:run --foo=baz buzz', 'message' => 'An error occurred'))
         ;
 
         $listener = new ErrorListener($logger);
         $listener->onConsoleError(new ConsoleErrorEvent(new ArgvInput(array('console.php', 'test:run', '--foo=baz', 'buzz')), $this->getOutput(), $error, new Command('test:run')));
-    }
-
-    private function getLogger()
-    {
-        return $this->getMockForAbstractClass(LoggerInterface::class);
-    }
-
-    private function getOutput()
-    {
-        return $this->getMockBuilder(OutputInterface::class)->getMock();
     }
 
     public function testOnConsoleErrorWithNoCommandAndNoInputString()
@@ -59,7 +49,7 @@ class ErrorListenerTest extends TestCase
         $logger
             ->expects($this->once())
             ->method('error')
-            ->with('An error occurred while using the console. Message: "{message}"', array('error' => $error, 'message' => 'An error occurred'))
+            ->with('An error occurred while using the console. Message: "{message}"', array('exception' => $error, 'message' => 'An error occurred'))
         ;
 
         $listener = new ErrorListener($logger);
@@ -77,11 +67,6 @@ class ErrorListenerTest extends TestCase
 
         $listener = new ErrorListener($logger);
         $listener->onConsoleTerminate($this->getConsoleTerminateEvent(new ArgvInput(array('console.php', 'test:run')), 255));
-    }
-
-    private function getConsoleTerminateEvent(InputInterface $input, $exitCode)
-    {
-        return new ConsoleTerminateEvent(new Command('test:run'), $input, $this->getOutput(), $exitCode);
     }
 
     public function testOnConsoleTerminateForZeroExitCodeDoesNotWriteToLog()
@@ -133,6 +118,21 @@ class ErrorListenerTest extends TestCase
 
         $listener = new ErrorListener($logger);
         $listener->onConsoleTerminate($this->getConsoleTerminateEvent($this->getMockBuilder(InputInterface::class)->getMock(), 255));
+    }
+
+    private function getLogger()
+    {
+        return $this->getMockForAbstractClass(LoggerInterface::class);
+    }
+
+    private function getConsoleTerminateEvent(InputInterface $input, $exitCode)
+    {
+        return new ConsoleTerminateEvent(new Command('test:run'), $input, $this->getOutput(), $exitCode);
+    }
+
+    private function getOutput()
+    {
+        return $this->getMockBuilder(OutputInterface::class)->getMock();
     }
 }
 

@@ -56,12 +56,47 @@ class BelongsToMany extends BelongsToManyBase
     }
 
     /**
+     * Get the select columns for the relation query.
+     *
+     * @param  array  $columns
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    protected function shouldSelect(array $columns = ['*'])
+    {
+        if ($this->countMode) {
+            return $this->table.'.'.$this->foreignPivotKey.' as pivot_'.$this->foreignPivotKey;
+        }
+
+        if ($columns == ['*']) {
+            $columns = [$this->related->getTable().'.*'];
+        }
+
+        if ($this->orphanMode) {
+            return $columns;
+        }
+
+        return array_merge($columns, $this->aliasedPivotColumns());
+    }
+
+    /**
      * Save the supplied related model with deferred binding support.
      */
     public function save(Model $model, array $pivotData = [], $sessionKey = null)
     {
         $model->save();
         $this->add($model, $sessionKey, $pivotData);
+        return $model;
+    }
+
+    /**
+     * Create a new instance of this related model with deferred binding support.
+     */
+    public function create(array $attributes = [], array $pivotData = [], $sessionKey = null)
+    {
+        $model = $this->related->create($attributes);
+
+        $this->add($model, $sessionKey, $pivotData);
+
         return $model;
     }
 
@@ -82,18 +117,6 @@ class BelongsToMany extends BelongsToManyBase
         else {
             $this->parent->bindDeferred($this->relationName, $model, $sessionKey);
         }
-    }
-
-    /**
-     * Create a new instance of this related model with deferred binding support.
-     */
-    public function create(array $attributes = [], array $pivotData = [], $sessionKey = null)
-    {
-        $model = $this->related->create($attributes);
-
-        $this->add($model, $sessionKey, $pivotData);
-
-        return $model;
     }
 
     /**
@@ -128,29 +151,6 @@ class BelongsToMany extends BelongsToManyBase
         $this->hydratePivotRelation($paginator->items());
 
         return $paginator;
-    }
-
-    /**
-     * Get the select columns for the relation query.
-     *
-     * @param  array  $columns
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
-     */
-    protected function shouldSelect(array $columns = ['*'])
-    {
-        if ($this->countMode) {
-            return $this->table.'.'.$this->foreignPivotKey.' as pivot_'.$this->foreignPivotKey;
-        }
-
-        if ($columns == ['*']) {
-            $columns = [$this->related->getTable().'.*'];
-        }
-
-        if ($this->orphanMode) {
-            return $columns;
-        }
-
-        return array_merge($columns, $this->aliasedPivotColumns());
     }
 
     /**

@@ -99,25 +99,6 @@ class RichEditor extends FormWidgetBase
     }
 
     /**
-     * Returns a valid language code for Redactor.
-     * @return string|mixed
-     */
-    protected function getValidEditorLang()
-    {
-        $locale = App::getLocale();
-
-        // English is baked in
-        if ($locale == 'en') {
-            return null;
-        }
-
-        $locale = str_replace('-', '_', strtolower($locale));
-        $path = base_path('modules/backend/formwidgets/richeditor/assets/vendor/froala/js/languages/' . $locale . '.js');
-
-        return File::exists($path) ? $locale : false;
-    }
-
-    /**
      * Determine the toolbar buttons to use based on config.
      * @return string
      */
@@ -141,50 +122,36 @@ class RichEditor extends FormWidgetBase
     }
 
     /**
-     * Returns a single collection of available page links.
-     * This implementation has room to place links under
-     * different groups based on the link type.
-     * @return array
+     * @inheritDoc
      */
-    protected function getPageLinksArray()
+    protected function loadAssets()
     {
-        $links = [];
-        $types = $this->getPageLinkTypes();
+        $this->addCss('css/richeditor.css', 'core');
+        $this->addJs('js/build-min.js', 'core');
+        $this->addJs('/modules/backend/formwidgets/codeeditor/assets/js/build-min.js', 'core');
 
-        $links[] = ['name' => Lang::get('backend::lang.pagelist.select_page'), 'url' => false];
+        if ($lang = $this->getValidEditorLang()) {
+            $this->addJs('vendor/froala/js/languages/'.$lang.'.js', 'core');
+        }
+    }
 
-        $iterator = function ($links, $level = 0) use (&$iterator) {
-            $result = [];
-            foreach ($links as $linkUrl => $link) {
+    /**
+     * Returns a valid language code for Redactor.
+     * @return string|mixed
+     */
+    protected function getValidEditorLang()
+    {
+        $locale = App::getLocale();
 
-                /*
-                 * Remove scheme and host from URL
-                 */
-                $baseUrl = Request::getSchemeAndHttpHost();
-                if (strpos($linkUrl, $baseUrl) === 0) {
-                    $linkUrl = substr($linkUrl, strlen($baseUrl));
-                }
-
-                $linkName = str_repeat('&nbsp;', $level * 4);
-                $linkName .= is_array($link) ? array_get($link, 'title', '') : $link;
-                $result[] = ['name' => $linkName, 'url' => $linkUrl];
-
-                if (is_array($link)) {
-                    $result = array_merge(
-                        $result,
-                        $iterator(array_get($link, 'links', []), $level + 1)
-                    );
-                }
-            }
-
-            return $result;
-        };
-
-        foreach ($types as $typeCode => $typeName) {
-            $links = array_merge($links, $iterator($this->getPageLinks($typeCode)));
+        // English is baked in
+        if ($locale == 'en') {
+            return null;
         }
 
-        return $links;
+        $locale = str_replace('-', '_', strtolower($locale));
+        $path = base_path('modules/backend/formwidgets/richeditor/assets/vendor/froala/js/languages/'.$locale.'.js');
+
+        return File::exists($path) ? $locale : false;
     }
 
     /**
@@ -232,16 +199,49 @@ class RichEditor extends FormWidgetBase
     }
 
     /**
-     * @inheritDoc
+     * Returns a single collection of available page links.
+     * This implementation has room to place links under
+     * different groups based on the link type.
+     * @return array
      */
-    protected function loadAssets()
+    protected function getPageLinksArray()
     {
-        $this->addCss('css/richeditor.css', 'core');
-        $this->addJs('js/build-min.js', 'core');
-        $this->addJs('/modules/backend/formwidgets/codeeditor/assets/js/build-min.js', 'core');
+        $links = [];
+        $types = $this->getPageLinkTypes();
 
-        if ($lang = $this->getValidEditorLang()) {
-            $this->addJs('vendor/froala/js/languages/' . $lang . '.js', 'core');
+        $links[] = ['name' => Lang::get('backend::lang.pagelist.select_page'), 'url' => false];
+
+        $iterator = function ($links, $level = 0) use (&$iterator) {
+            $result = [];
+            foreach ($links as $linkUrl => $link) {
+
+                /*
+                 * Remove scheme and host from URL
+                 */
+                $baseUrl = Request::getSchemeAndHttpHost();
+                if (strpos($linkUrl, $baseUrl) === 0) {
+                    $linkUrl = substr($linkUrl, strlen($baseUrl));
+                }
+
+                $linkName = str_repeat('&nbsp;', $level * 4);
+                $linkName .= is_array($link) ? array_get($link, 'title', '') : $link;
+                $result[] = ['name' => $linkName, 'url' => $linkUrl];
+
+                if (is_array($link)) {
+                    $result = array_merge(
+                        $result,
+                        $iterator(array_get($link, 'links', []), $level + 1)
+                    );
+                }
+            }
+
+            return $result;
+        };
+
+        foreach ($types as $typeCode => $typeName) {
+            $links = array_merge($links, $iterator($this->getPageLinks($typeCode)));
         }
+
+        return $links;
     }
 }

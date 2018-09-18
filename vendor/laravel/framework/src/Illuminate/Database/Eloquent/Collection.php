@@ -4,6 +4,7 @@ namespace Illuminate\Database\Eloquent;
 
 use LogicException;
 use Illuminate\Support\Arr;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Queue\QueueableCollection;
 use Illuminate\Support\Collection as BaseCollection;
 
@@ -20,6 +21,10 @@ class Collection extends BaseCollection implements QueueableCollection
     {
         if ($key instanceof Model) {
             $key = $key->getKey();
+        }
+
+        if ($key instanceof Arrayable) {
+            $key = $key->toArray();
         }
 
         if (is_array($key)) {
@@ -48,10 +53,23 @@ class Collection extends BaseCollection implements QueueableCollection
                 $relations = func_get_args();
             }
 
-            $query = $this->first()->newQuery()->with($relations);
+            $query = $this->first()->newQueryWithoutRelationships()->with($relations);
 
             $this->items = $query->eagerLoadRelations($this->items);
         }
+
+        return $this;
+    }
+
+    /**
+     * Add an item to the collection.
+     *
+     * @param  mixed  $item
+     * @return $this
+     */
+    public function add($item)
+    {
+        $this->items[] = $item;
 
         return $this;
     }
@@ -82,6 +100,18 @@ class Collection extends BaseCollection implements QueueableCollection
     }
 
     /**
+     * Get the array of primary keys.
+     *
+     * @return array
+     */
+    public function modelKeys()
+    {
+        return array_map(function ($model) {
+            return $model->getKey();
+        }, $this->items);
+    }
+
+    /**
      * Merge the collection with the given items.
      *
      * @param  \ArrayAccess|array  $items
@@ -99,22 +129,18 @@ class Collection extends BaseCollection implements QueueableCollection
     }
 
     /**
-     * Get a dictionary keyed by primary keys.
+     * Run a map over each of the items.
      *
-     * @param  \ArrayAccess|array|null  $items
-     * @return array
+     * @param  callable  $callback
+     * @return \Illuminate\Support\Collection|static
      */
-    public function getDictionary($items = null)
+    public function map(callable $callback)
     {
-        $items = is_null($items) ? $this->items : $items;
+        $result = parent::map($callback);
 
-        $dictionary = [];
-
-        foreach ($items as $value) {
-            $dictionary[$value->getKey()] = $value;
-        }
-
-        return $dictionary;
+        return $result->contains(function ($item) {
+            return ! $item instanceof Model;
+        }) ? $result->toBase() : $result;
     }
 
     /**
@@ -144,33 +170,6 @@ class Collection extends BaseCollection implements QueueableCollection
     }
 
     /**
-     * Get the array of primary keys.
-     *
-     * @return array
-     */
-    public function modelKeys()
-    {
-        return array_map(function ($model) {
-            return $model->getKey();
-        }, $this->items);
-    }
-
-    /**
-     * Run a map over each of the items.
-     *
-     * @param  callable  $callback
-     * @return \Illuminate\Support\Collection|static
-     */
-    public function map(callable $callback)
-    {
-        $result = parent::map($callback);
-
-        return $result->contains(function ($item) {
-            return ! $item instanceof Model;
-        }) ? $result->toBase() : $result;
-    }
-
-    /**
      * Diff the collection with the given items.
      *
      * @param  \ArrayAccess|array  $items
@@ -189,19 +188,6 @@ class Collection extends BaseCollection implements QueueableCollection
         }
 
         return $diff;
-    }
-
-    /**
-     * Add an item to the collection.
-     *
-     * @param  mixed  $item
-     * @return $this
-     */
-    public function add($item)
-    {
-        $this->items[] = $item;
-
-        return $this;
     }
 
     /**
@@ -295,6 +281,25 @@ class Collection extends BaseCollection implements QueueableCollection
         return $this->each(function ($model) use ($attributes) {
             $model->makeVisible($attributes);
         });
+    }
+
+    /**
+     * Get a dictionary keyed by primary keys.
+     *
+     * @param  \ArrayAccess|array|null  $items
+     * @return array
+     */
+    public function getDictionary($items = null)
+    {
+        $items = is_null($items) ? $this->items : $items;
+
+        $dictionary = [];
+
+        foreach ($items as $value) {
+            $dictionary[$value->getKey()] = $value;
+        }
+
+        return $dictionary;
     }
 
     /**

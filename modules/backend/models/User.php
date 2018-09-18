@@ -14,9 +14,10 @@ use October\Rain\Auth\Models\User as UserBase;
 class User extends UserBase
 {
     /**
-     * @var string Login attribute
+     * @var string The database table used by the model.
      */
-    public static $loginAttribute = 'login';
+    protected $table = 'backend_users';
+
     /**
      * Validation rules
      */
@@ -41,14 +42,16 @@ class User extends UserBase
     public $attachOne = [
         'avatar' => \System\Models\File::class
     ];
-    /**
-     * @var string The database table used by the model.
-     */
-    protected $table = 'backend_users';
+
     /**
      * Purge attributes from data set.
      */
     protected $purgeable = ['password_confirmation', 'send_invite'];
+
+    /**
+     * @var string Login attribute
+     */
+    public static $loginAttribute = 'login';
 
     /**
      * @return string Returns the user's full name.
@@ -115,6 +118,16 @@ class User extends UserBase
     }
 
     /**
+     * After login event
+     * @return void
+     */
+    public function afterLogin()
+    {
+        parent::afterLogin();
+        Event::fire('backend.user.login', [$this]);
+    }
+
+    /**
      * Sends an invitation to the user using template "backend::mail.invite".
      * @return void
      */
@@ -130,16 +143,6 @@ class User extends UserBase
         Mail::send('backend::mail.invite', $data, function ($message) {
             $message->to($this->email, $this->full_name);
         });
-    }
-
-    /**
-     * After login event
-     * @return void
-     */
-    public function afterLogin()
-    {
-        parent::afterLogin();
-        Event::fire('backend.user.login', [$this]);
     }
 
     public function getGroupsOptions()

@@ -105,105 +105,6 @@ class FormController extends ControllerBehavior
     }
 
     /**
-     * Static helper for extending form fields.
-     * @param  callable $callback
-     * @return void
-     */
-    public static function extendFormFields($callback)
-    {
-        $calledClass = self::getCalledExtensionClass();
-        Event::listen('backend.form.extendFields', function ($widget) use ($calledClass, $callback) {
-            if (!is_a($widget->getController(), $calledClass)) {
-                return;
-            }
-            call_user_func_array($callback, [$widget, $widget->model, $widget->getContext()]);
-        });
-    }
-
-    /**
-     * Controller "create" action used for creating new model records.
-     *
-     * @param string $context Form context
-     * @return void
-     */
-    public function create($context = null)
-    {
-        try {
-            $this->context = strlen($context) ? $context : $this->getConfig('create[context]', self::CONTEXT_CREATE);
-            $this->controller->pageTitle = $this->controller->pageTitle ?: $this->getLang(
-                "{$this->context}[title]",
-                'backend::lang.form.create_title'
-            );
-
-            $model = $this->controller->formCreateModelObject();
-            $model = $this->controller->formExtendModel($model) ?: $model;
-
-            $this->initForm($model);
-        }
-        catch (Exception $ex) {
-            $this->controller->handleError($ex);
-        }
-    }
-
-    //
-    // Create
-    //
-
-    /**
-     * Parses in some default variables to a language string defined in config.
-     *
-     * @param string $name Configuration property containing the language string
-     * @param string $default A default language string to use if the config is not found
-     * @param array $extras Any extra params to include in the language string variables
-     * @return string The translated string.
-     */
-    protected function getLang($name, $default = null, $extras = [])
-    {
-        $name = $this->getConfig($name, $default);
-        $vars = [
-            'name' => Lang::get($this->getConfig('name', 'backend::lang.model.name'))
-        ];
-        $vars = array_merge($vars, $extras);
-        return Lang::get($name, $vars);
-    }
-
-    /**
-     * Creates a new instance of a form model. This logic can be changed
-     * by overriding it in the controller.
-     * @return Model
-     */
-    public function formCreateModelObject()
-    {
-        return $this->createModel();
-    }
-
-    //
-    // Update
-    //
-
-    /**
-     * Internal method used to prepare the form model object.
-     *
-     * @return October\Rain\Database\Model
-     */
-    protected function createModel()
-    {
-        $class = $this->config->modelClass;
-        $model = new $class;
-        return $model;
-    }
-
-    /**
-     * Extend supplied model used by create and update actions, the model can
-     * be altered by overriding it in the controller.
-     * @param Model $model
-     * @return Model
-     */
-    public function formExtendModel($model)
-    {
-    }
-
-    /**
      * Initialize the form configuration against a model and context value.
      * This will process the configuration found in the `$formConfig` property
      * and prepare the Form widget, which is the underlying tool used for
@@ -272,74 +173,6 @@ class FormController extends ControllerBehavior
         $this->model = $model;
     }
 
-    //
-    // Preview
-    //
-
-    /**
-     * Returns the active form context, either obtained from the postback
-     * variable called `form_context` or detected from the configuration,
-     * or routing parameters.
-     *
-     * @return string
-     */
-    public function formGetContext()
-    {
-        return post('form_context', $this->context);
-    }
-
-    //
-    // Utils
-    //
-
-    /**
-     * Called before the form fields are defined.
-     * @param Backend\Widgets\Form $host The hosting form widget
-     * @return void
-     */
-    public function formExtendFieldsBefore($host)
-    {
-    }
-
-    /**
-     * Called after the form fields are defined.
-     * @param Backend\Widgets\Form $host The hosting form widget
-     * @return void
-     */
-    public function formExtendFields($host, $fields)
-    {
-    }
-
-    /**
-     * Called before the form is refreshed, should return an array of additional save data.
-     * @param Backend\Widgets\Form $host The hosting form widget
-     * @param array $saveData Current save data
-     * @return array
-     */
-    public function formExtendRefreshData($host, $saveData)
-    {
-    }
-
-    /**
-     * Called when the form is refreshed, giving the opportunity to modify the form fields.
-     * @param Backend\Widgets\Form $host The hosting form widget
-     * @param array $fields Current form fields
-     * @return array
-     */
-    public function formExtendRefreshFields($host, $fields)
-    {
-    }
-
-    /**
-     * Called after the form is refreshed, should return an array of additional result parameters.
-     * @param Backend\Widgets\Form $host The hosting form widget
-     * @param array $result Current result parameters.
-     * @return array
-     */
-    public function formExtendRefreshResults($host, $result)
-    {
-    }
-
     /**
      * Prepares commonly used view data.
      * @param October\Rain\Database\Model $model
@@ -349,6 +182,35 @@ class FormController extends ControllerBehavior
         $this->controller->vars['formModel'] = $model;
         $this->controller->vars['formContext'] = $this->formGetContext();
         $this->controller->vars['formRecordName'] = Lang::get($this->getConfig('name', 'backend::lang.model.name'));
+    }
+
+    //
+    // Create
+    //
+
+    /**
+     * Controller "create" action used for creating new model records.
+     *
+     * @param string $context Form context
+     * @return void
+     */
+    public function create($context = null)
+    {
+        try {
+            $this->context = strlen($context) ? $context : $this->getConfig('create[context]', self::CONTEXT_CREATE);
+            $this->controller->pageTitle = $this->controller->pageTitle ?: $this->getLang(
+                "{$this->context}[title]",
+                'backend::lang.form.create_title'
+            );
+
+            $model = $this->controller->formCreateModelObject();
+            $model = $this->controller->formExtendModel($model) ?: $model;
+
+            $this->initForm($model);
+        }
+        catch (Exception $ex) {
+            $this->controller->handleError($ex);
+        }
     }
 
     /**
@@ -391,96 +253,8 @@ class FormController extends ControllerBehavior
     }
 
     //
-    // Pass-through Helpers
+    // Update
     //
-
-    /**
-     * Called before the creation or updating form is saved.
-     * @param Model
-     */
-    public function formBeforeSave($model)
-    {
-    }
-
-    /**
-     * Called before the creation form is saved.
-     * @param Model
-     */
-    public function formBeforeCreate($model)
-    {
-    }
-
-    /**
-     * Called after the creation or updating form is saved.
-     * @param Model
-     */
-    public function formAfterSave($model)
-    {
-    }
-
-    /**
-     * Called after the creation form is saved.
-     * @param Model
-     */
-    public function formAfterCreate($model)
-    {
-    }
-
-    /**
-     * Returns a Redirect object based on supplied context and parses
-     * the model primary key.
-     *
-     * @param string $context Redirect context, eg: create, update, delete
-     * @param Model $model The active model to parse in it's ID and attributes.
-     * @return Redirect
-     */
-    public function makeRedirect($context = null, $model = null)
-    {
-        $redirectUrl = null;
-        if (post('close') && !ends_with($context, '-close')) {
-            $context .= '-close';
-        }
-
-        if (post('refresh', false)) {
-            return Redirect::refresh();
-        }
-
-        if (post('redirect', true)) {
-            $redirectUrl = $this->getRedirectUrl($context);
-        }
-
-        if ($model && $redirectUrl) {
-            $redirectUrl = RouterHelper::parseValues($model, array_keys($model->getAttributes()), $redirectUrl);
-        }
-
-        return ($redirectUrl) ? Backend::redirect($redirectUrl) : null;
-    }
-
-    /**
-     * Internal method that returns a redirect URL from the config based on
-     * supplied context. Otherwise the default redirect is used.
-     *
-     * @param string $context Redirect context, eg: create, update, delete.
-     * @return string
-     */
-    protected function getRedirectUrl($context = null)
-    {
-        $redirectContext = explode('-', $context, 2)[0];
-        $redirectSource = ends_with($context, '-close') ? 'redirectClose' : 'redirect';
-
-        // Get the redirect for the provided context
-        $redirects = [$context => $this->getConfig("{$redirectContext}[{$redirectSource}]", '')];
-
-        // Assign the default redirect afterwards to prevent the
-        // source for the default redirect being default[redirect]
-        $redirects['default'] = $this->getConfig('defaultRedirect', '');
-
-        if (!isset($redirects[$context])) {
-            return $redirects['default'];
-        }
-
-        return $redirects[$context];
-    }
 
     /**
      * Controller "update" action used for updating existing model records.
@@ -506,48 +280,6 @@ class FormController extends ControllerBehavior
         catch (Exception $ex) {
             $this->controller->handleError($ex);
         }
-    }
-
-    /**
-     * Finds a Model record by its primary identifier, used by update actions. This logic
-     * can be changed by overriding it in the controller.
-     * @param string $recordId
-     * @return Model
-     */
-    public function formFindModelObject($recordId)
-    {
-        if (!strlen($recordId)) {
-            throw new ApplicationException($this->getLang('not-found-message', 'backend::lang.form.missing_id'));
-        }
-
-        $model = $this->controller->formCreateModelObject();
-
-        /*
-         * Prepare query and find model record
-         */
-        $query = $model->newQuery();
-        $this->controller->formExtendQuery($query);
-        $result = $query->find($recordId);
-
-        if (!$result) {
-            throw new ApplicationException($this->getLang('not-found-message', 'backend::lang.form.not_found', [
-                'class' => get_class($model), 'id' => $recordId
-            ]));
-        }
-
-        $result = $this->controller->formExtendModel($result) ?: $result;
-
-        return $result;
-    }
-
-    /**
-     * Extend the query used for finding the form model. Extra conditions
-     * can be applied to the query, for example, $query->withTrashed();
-     * @param October\Rain\Database\Builder $query
-     * @return void
-     */
-    public function formExtendQuery($query)
-    {
     }
 
     /**
@@ -588,26 +320,6 @@ class FormController extends ControllerBehavior
     }
 
     /**
-     * Called before the updating form is saved.
-     * @param Model
-     */
-    public function formBeforeUpdate($model)
-    {
-    }
-
-    //
-    // Overrides
-    //
-
-    /**
-     * Called after the updating form is saved.
-     * @param Model
-     */
-    public function formAfterUpdate($model)
-    {
-    }
-
-    /**
      * AJAX handler "onDelete" called from the update action and
      * used for deleting existing records.
      *
@@ -634,13 +346,9 @@ class FormController extends ControllerBehavior
         }
     }
 
-    /**
-     * Called after the form model is deleted.
-     * @param Model
-     */
-    public function formAfterDelete($model)
-    {
-    }
+    //
+    // Preview
+    //
 
     /**
      * Controller "preview" action used for viewing existing model records.
@@ -668,6 +376,34 @@ class FormController extends ControllerBehavior
         }
     }
 
+    //
+    // Utils
+    //
+
+    /**
+     * Method to render the prepared form markup. This method is usually
+     * called from a view file.
+     *
+     *     <?= $this->formRender() ?>
+     *
+     * The first argument supports an array of render options. The supported
+     * options can be found via the `render` method of the Form widget class.
+     *
+     *     <?= $this->formRender(['preview' => true, section' => 'primary']) ?>
+     *
+     * @see Backend\Widgets\Form
+     * @param array $options Render options
+     * @return string Rendered HTML for the form.
+     */
+    public function formRender($options = [])
+    {
+        if (!$this->formWidget) {
+            throw new ApplicationException(Lang::get('backend::lang.form.behavior_not_ready'));
+        }
+
+        return $this->formWidget->render($options);
+    }
+
     /**
      * Returns the model initialized by this form behavior.
      * The model will be provided by one of the page actions or AJAX
@@ -679,6 +415,116 @@ class FormController extends ControllerBehavior
     {
         return $this->model;
     }
+
+    /**
+     * Returns the active form context, either obtained from the postback
+     * variable called `form_context` or detected from the configuration,
+     * or routing parameters.
+     *
+     * @return string
+     */
+    public function formGetContext()
+    {
+        return post('form_context', $this->context);
+    }
+
+    /**
+     * Internal method used to prepare the form model object.
+     *
+     * @return October\Rain\Database\Model
+     */
+    protected function createModel()
+    {
+        $class = $this->config->modelClass;
+        $model = new $class;
+        return $model;
+    }
+
+    /**
+     * Returns a Redirect object based on supplied context and parses
+     * the model primary key.
+     *
+     * @param string $context Redirect context, eg: create, update, delete
+     * @param Model $model The active model to parse in it's ID and attributes.
+     * @return Redirect
+     */
+    public function makeRedirect($context = null, $model = null)
+    {
+        $redirectUrl = null;
+        if (post('close') && !ends_with($context, '-close')) {
+            $context .= '-close';
+        }
+
+        if (post('refresh', false)) {
+            return Redirect::refresh();
+        }
+
+        if (post('redirect', true)) {
+            $redirectUrl = $this->getRedirectUrl($context);
+        }
+
+        if ($model && $redirectUrl) {
+            $redirectUrl = RouterHelper::parseValues($model, array_keys($model->getAttributes()), $redirectUrl);
+        }
+
+        if (starts_with($redirectUrl, 'http://') || starts_with($redirectUrl, 'https://')) {
+            // Process absolute redirects
+            $redirect = Redirect::to($redirectUrl);
+        } else {
+            // Process relative redirects
+            $redirect = ($redirectUrl) ? Backend::redirect($redirectUrl) : null;
+        }
+
+        return $redirect;
+    }
+
+    /**
+     * Internal method that returns a redirect URL from the config based on
+     * supplied context. Otherwise the default redirect is used.
+     *
+     * @param string $context Redirect context, eg: create, update, delete.
+     * @return string
+     */
+    protected function getRedirectUrl($context = null)
+    {
+        $redirectContext = explode('-', $context, 2)[0];
+        $redirectSource = ends_with($context, '-close') ? 'redirectClose' : 'redirect';
+
+        // Get the redirect for the provided context
+        $redirects = [$context => $this->getConfig("{$redirectContext}[{$redirectSource}]", '')];
+
+        // Assign the default redirect afterwards to prevent the
+        // source for the default redirect being default[redirect]
+        $redirects['default'] = $this->getConfig('defaultRedirect', '');
+
+        if (empty($redirects[$context])) {
+            return $redirects['default'];
+        }
+
+        return $redirects[$context];
+    }
+
+    /**
+     * Parses in some default variables to a language string defined in config.
+     *
+     * @param string $name Configuration property containing the language string
+     * @param string $default A default language string to use if the config is not found
+     * @param array $extras Any extra params to include in the language string variables
+     * @return string The translated string.
+     */
+    protected function getLang($name, $default = null, $extras = [])
+    {
+        $name = $this->getConfig($name, $default);
+        $vars = [
+            'name' => Lang::get($this->getConfig('name', 'backend::lang.model.name'))
+        ];
+        $vars = array_merge($vars, $extras);
+        return Lang::get($name, $vars);
+    }
+
+    //
+    // Pass-through Helpers
+    //
 
     /**
      * View helper to render a single form field.
@@ -703,30 +549,6 @@ class FormController extends ControllerBehavior
     public function formRenderPreview()
     {
         return $this->formRender(['preview' => true]);
-    }
-
-    /**
-     * Method to render the prepared form markup. This method is usually
-     * called from a view file.
-     *
-     *     <?= $this->formRender() ?>
-     *
-     * The first argument supports an array of render options. The supported
-     * options can be found via the `render` method of the Form widget class.
-     *
-     *     <?= $this->formRender(['preview' => true, section' => 'primary']) ?>
-     *
-     * @see Backend\Widgets\Form
-     * @param array $options Render options
-     * @return string Rendered HTML for the form.
-     */
-    public function formRender($options = [])
-    {
-        if (!$this->formWidget) {
-            throw new ApplicationException(Lang::get('backend::lang.form.behavior_not_ready'));
-        }
-
-        return $this->formWidget->render($options);
     }
 
     /**
@@ -850,5 +672,191 @@ class FormController extends ControllerBehavior
     public function formGetSessionKey()
     {
         return $this->formWidget->getSessionKey();
+    }
+
+    //
+    // Overrides
+    //
+
+    /**
+     * Called before the creation or updating form is saved.
+     * @param Model
+     */
+    public function formBeforeSave($model)
+    {
+    }
+
+    /**
+     * Called after the creation or updating form is saved.
+     * @param Model
+     */
+    public function formAfterSave($model)
+    {
+    }
+
+    /**
+     * Called before the creation form is saved.
+     * @param Model
+     */
+    public function formBeforeCreate($model)
+    {
+    }
+
+    /**
+     * Called after the creation form is saved.
+     * @param Model
+     */
+    public function formAfterCreate($model)
+    {
+    }
+
+    /**
+     * Called before the updating form is saved.
+     * @param Model
+     */
+    public function formBeforeUpdate($model)
+    {
+    }
+
+    /**
+     * Called after the updating form is saved.
+     * @param Model
+     */
+    public function formAfterUpdate($model)
+    {
+    }
+
+    /**
+     * Called after the form model is deleted.
+     * @param Model
+     */
+    public function formAfterDelete($model)
+    {
+    }
+
+    /**
+     * Finds a Model record by its primary identifier, used by update actions. This logic
+     * can be changed by overriding it in the controller.
+     * @param string $recordId
+     * @return Model
+     */
+    public function formFindModelObject($recordId)
+    {
+        if (!strlen($recordId)) {
+            throw new ApplicationException($this->getLang('not-found-message', 'backend::lang.form.missing_id'));
+        }
+
+        $model = $this->controller->formCreateModelObject();
+
+        /*
+         * Prepare query and find model record
+         */
+        $query = $model->newQuery();
+        $this->controller->formExtendQuery($query);
+        $result = $query->find($recordId);
+
+        if (!$result) {
+            throw new ApplicationException($this->getLang('not-found-message', 'backend::lang.form.not_found', [
+                'class' => get_class($model), 'id' => $recordId
+            ]));
+        }
+
+        $result = $this->controller->formExtendModel($result) ?: $result;
+
+        return $result;
+    }
+
+    /**
+     * Creates a new instance of a form model. This logic can be changed
+     * by overriding it in the controller.
+     * @return Model
+     */
+    public function formCreateModelObject()
+    {
+        return $this->createModel();
+    }
+
+    /**
+     * Called before the form fields are defined.
+     * @param Backend\Widgets\Form $host The hosting form widget
+     * @return void
+     */
+    public function formExtendFieldsBefore($host)
+    {
+    }
+
+    /**
+     * Called after the form fields are defined.
+     * @param Backend\Widgets\Form $host The hosting form widget
+     * @return void
+     */
+    public function formExtendFields($host, $fields)
+    {
+    }
+
+    /**
+     * Called before the form is refreshed, should return an array of additional save data.
+     * @param Backend\Widgets\Form $host The hosting form widget
+     * @param array $saveData Current save data
+     * @return array
+     */
+    public function formExtendRefreshData($host, $saveData)
+    {
+    }
+
+    /**
+     * Called when the form is refreshed, giving the opportunity to modify the form fields.
+     * @param Backend\Widgets\Form $host The hosting form widget
+     * @param array $fields Current form fields
+     * @return array
+     */
+    public function formExtendRefreshFields($host, $fields)
+    {
+    }
+
+    /**
+     * Called after the form is refreshed, should return an array of additional result parameters.
+     * @param Backend\Widgets\Form $host The hosting form widget
+     * @param array $result Current result parameters.
+     * @return array
+     */
+    public function formExtendRefreshResults($host, $result)
+    {
+    }
+
+    /**
+     * Extend supplied model used by create and update actions, the model can
+     * be altered by overriding it in the controller.
+     * @param Model $model
+     * @return Model
+     */
+    public function formExtendModel($model)
+    {
+    }
+
+    /**
+     * Extend the query used for finding the form model. Extra conditions
+     * can be applied to the query, for example, $query->withTrashed();
+     * @param October\Rain\Database\Builder $query
+     * @return void
+     */
+    public function formExtendQuery($query)
+    {
+    }
+
+    /**
+     * Static helper for extending form fields.
+     * @param  callable $callback
+     * @return void
+     */
+    public static function extendFormFields($callback)
+    {
+        $calledClass = self::getCalledExtensionClass();
+        Event::listen('backend.form.extendFields', function ($widget) use ($calledClass, $callback) {
+            if (!is_a($widget->getController(), $calledClass)) {
+                return;
+            }
+            call_user_func_array($callback, [$widget, $widget->model, $widget->getContext()]);
+        });
     }
 }

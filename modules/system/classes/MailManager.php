@@ -72,6 +72,29 @@ class MailManager
     }
 
     /**
+     * This function hijacks the `addContent` method of the `October\Rain\Mail\Mailer` 
+     * class, using the `mailer.beforeAddContent` event.
+     * @return bool
+     */
+    public function addContentToMailer($message, $code, $data)
+    {
+        if (isset($this->templateCache[$code])) {
+            $template = $this->templateCache[$code];
+        }
+        else {
+            $this->templateCache[$code] = $template = MailTemplate::findOrMakeTemplate($code);
+        }
+
+        if (!$template) {
+            return false;
+        }
+
+        $this->addContentToMailerInternal($message, $template, $data);
+
+        return true;
+    }
+
+    /**
      * Internal method used to share logic between `addRawContentToMailer` and `addContentToMailer`
      * @return void
      */
@@ -123,28 +146,29 @@ class MailManager
         $this->stopTwig();
     }
 
-    /**
-     * Temporarily registers mail based token parsers with Twig.
-     * @return void
-     */
-    protected function startTwig()
-    {
-        if ($this->isTwigStarted) {
-            return;
-        }
-
-        $this->isTwigStarted = true;
-
-        $markupManager = MarkupManager::instance();
-        $markupManager->beginTransaction();
-        $markupManager->registerTokenParsers([
-            new MailPartialTokenParser
-        ]);
-    }
-
     //
     // Rendering
     //
+
+    /**
+     * Render the Markdown template into HTML.
+     *
+     * @param  string  $content
+     * @param  array  $data
+     * @return string
+     */
+    public function render($content, $data = [])
+    {
+        if (!$content) {
+            return '';
+        }
+
+        $html = $this->renderTwig($content, $data);
+
+        $html = Markdown::parseSafe($html);
+
+        return $html;
+    }
 
     public function renderTemplate($template, $data = [])
     {
@@ -170,57 +194,23 @@ class MailManager
     }
 
     /**
-     * Render the Markdown template into HTML.
+     * Render the Markdown template into text.
      *
-     * @param  string  $content
+     * @param  string  $view
      * @param  array  $data
      * @return string
      */
-    public function render($content, $data = [])
+    public function renderText($content, $data = [])
     {
         if (!$content) {
             return '';
         }
 
-        $html = $this->renderTwig($content, $data);
+        $text = $this->renderTwig($content, $data);
 
-        $html = Markdown::parseSafe($html);
+        $text = html_entity_decode(preg_replace("/[\r\n]{2,}/", "\n\n", $text), ENT_QUOTES, 'UTF-8');
 
-        return $html;
-    }
-
-    /**
-     * Internal helper for rendering Twig
-     */
-    protected function renderTwig($content, $data = [])
-    {
-        if ($this->isTwigStarted) {
-            return Twig::parse($content, $data);
-        }
-
-        $this->startTwig();
-
-        $result = Twig::parse($content, $data);
-
-        $this->stopTwig();
-
-        return $result;
-    }
-
-    /**
-     * Indicates that we are finished with Twig.
-     * @return void
-     */
-    protected function stopTwig()
-    {
-        if (!$this->isTwigStarted) {
-            return;
-        }
-
-        $markupManager = MarkupManager::instance();
-        $markupManager->endTransaction();
-
-        $this->isTwigStarted = false;
+        return $text;
     }
 
     public function renderTextTemplate($template, $data = [])
@@ -244,49 +234,6 @@ class MailManager
         return $text;
     }
 
-    /**
-     * Render the Markdown template into text.
-     *
-     * @param  string  $view
-     * @param  array  $data
-     * @return string
-     */
-    public function renderText($content, $data = [])
-    {
-        if (!$content) {
-            return '';
-        }
-
-        $text = $this->renderTwig($content, $data);
-
-        $text = html_entity_decode(preg_replace("/[\r\n]{2,}/", "\n\n", $text), ENT_QUOTES, 'UTF-8');
-
-        return $text;
-    }
-
-    /**
-     * This function hijacks the `addContent` method of the `October\Rain\Mail\Mailer`
-     * class, using the `mailer.beforeAddContent` event.
-     * @return bool
-     */
-    public function addContentToMailer($message, $code, $data)
-    {
-        if (isset($this->templateCache[$code])) {
-            $template = $this->templateCache[$code];
-        }
-        else {
-            $this->templateCache[$code] = $template = MailTemplate::findOrMakeTemplate($code);
-        }
-
-        if (!$template) {
-            return false;
-        }
-
-        $this->addContentToMailerInternal($message, $template, $data);
-
-        return true;
-    }
-
     public function renderPartial($code, array $params = [])
     {
         if (!$partial = MailPartial::findOrMakePartial($code)) {
@@ -307,22 +254,62 @@ class MailManager
         return $this->renderTwig($content, $params);
     }
 
+    /**
+     * Internal helper for rendering Twig
+     */
+    protected function renderTwig($content, $data = [])
+    {
+        if ($this->isTwigStarted) {
+            return Twig::parse($content, $data);
+        }
+
+        $this->startTwig();
+
+        $result = Twig::parse($content, $data);
+
+        $this->stopTwig();
+
+        return $result;
+    }
+
+    /**
+     * Temporarily registers mail based token parsers with Twig.
+     * @return void
+     */
+    protected function startTwig()
+    {
+        if ($this->isTwigStarted) {
+            return;
+        }
+
+        $this->isTwigStarted = true;
+
+        $markupManager = MarkupManager::instance();
+        $markupManager->beginTransaction();
+        $markupManager->registerTokenParsers([
+            new MailPartialTokenParser
+        ]);
+    }
+
+    /**
+     * Indicates that we are finished with Twig.
+     * @return void
+     */
+    protected function stopTwig()
+    {
+        if (!$this->isTwigStarted) {
+            return;
+        }
+
+        $markupManager = MarkupManager::instance();
+        $markupManager->endTransaction();
+
+        $this->isTwigStarted = false;
+    }
+
     //
     // Registration
     //
-
-    /**
-     * Returns a list of the registered templates.
-     * @return array
-     */
-    public function listRegisteredTemplates()
-    {
-        if ($this->registeredTemplates === null) {
-            $this->loadRegisteredTemplates();
-        }
-
-        return $this->registeredTemplates;
-    }
 
     /**
      * Loads registered mail templates from modules and plugins
@@ -346,22 +333,16 @@ class MailManager
     }
 
     /**
-     * Registers mail views and manageable templates.
+     * Returns a list of the registered templates.
+     * @return array
      */
-    public function registerMailTemplates(array $definitions)
+    public function listRegisteredTemplates()
     {
-        if (!$this->registeredTemplates) {
-            $this->registeredTemplates = [];
+        if ($this->registeredTemplates === null) {
+            $this->loadRegisteredTemplates();
         }
 
-        // Prior sytax where (key) code => (value) description
-        if (!isset($definitions[0])) {
-            $definitions = array_keys($definitions);
-        }
-
-        $definitions = array_combine($definitions, $definitions);
-
-        $this->registeredTemplates = $definitions + $this->registeredTemplates;
+        return $this->registeredTemplates;
     }
 
     /**
@@ -405,6 +386,25 @@ class MailManager
     public function registerCallback(callable $callback)
     {
         $this->callbacks[] = $callback;
+    }
+
+    /**
+     * Registers mail views and manageable templates.
+     */
+    public function registerMailTemplates(array $definitions)
+    {
+        if (!$this->registeredTemplates) {
+            $this->registeredTemplates = [];
+        }
+
+        // Prior sytax where (key) code => (value) description
+        if (!isset($definitions[0])) {
+            $definitions = array_keys($definitions);
+        }
+
+        $definitions = array_combine($definitions, $definitions);
+
+        $this->registeredTemplates = $definitions + $this->registeredTemplates;
     }
 
     /**

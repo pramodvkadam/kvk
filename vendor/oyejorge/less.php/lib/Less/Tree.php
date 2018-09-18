@@ -10,6 +10,22 @@ class Less_Tree{
 
 	public $cache_string;
 
+	public function toCSS(){
+		$output = new Less_Output();
+		$this->genCSS($output);
+		return $output->toString();
+	}
+
+
+    /**
+     * Generate CSS by adding it to the output object
+     *
+     * @param Less_Output $output The output
+     * @return void
+     */
+    public function genCSS($output){}
+
+
 	/**
 	 * @param Less_Tree_Ruleset[] $rules
 	 */
@@ -46,6 +62,9 @@ class Less_Tree{
 
 	}
 
+	public function accept($visitor){}
+
+
 	public static function ReferencedArray($rules){
 		foreach($rules as $rule){
 			if( method_exists($rule, 'markReferenced') ){
@@ -53,6 +72,7 @@ class Less_Tree{
 			}
 		}
 	}
+
 
 	/**
 	 * Requires php 5.3+
@@ -66,21 +86,5 @@ class Less_Tree{
 		}
 		return $obj;
 	}
-
-	public function toCSS(){
-		$output = new Less_Output();
-		$this->genCSS($output);
-		return $output->toString();
-	}
-
-    /**
-     * Generate CSS by adding it to the output object
-     *
-     * @param Less_Output $output The output
-     * @return void
-     */
-    public function genCSS($output){}
-
-	public function accept($visitor){}
 
 }

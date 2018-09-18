@@ -59,6 +59,24 @@ class CallQueuedHandler
     }
 
     /**
+     * Resolve the handler for the given command.
+     *
+     * @param  \Illuminate\Contracts\Queue\Job  $job
+     * @param  mixed  $command
+     * @return mixed
+     */
+    protected function resolveHandler($job, $command)
+    {
+        $handler = $this->dispatcher->getCommandHandler($command) ?: null;
+
+        if ($handler) {
+            $this->setJobInstanceIfNecessary($job, $handler);
+        }
+
+        return $handler;
+    }
+
+    /**
      * Set the job instance of the given class if necessary.
      *
      * @param  \Illuminate\Contracts\Queue\Job  $job
@@ -72,6 +90,19 @@ class CallQueuedHandler
         }
 
         return $instance;
+    }
+
+    /**
+     * Ensure the next job in the chain is dispatched if applicable.
+     *
+     * @param  mixed  $command
+     * @return void
+     */
+    protected function ensureNextJobInChainIsDispatched($command)
+    {
+        if (method_exists($command, 'dispatchNextJobInChain')) {
+            $command->dispatchNextJobInChain();
+        }
     }
 
     /**
@@ -99,37 +130,6 @@ class CallQueuedHandler
         return FailingJob::handle(
             $job->getConnectionName(), $job, $e
         );
-    }
-
-    /**
-     * Resolve the handler for the given command.
-     *
-     * @param  \Illuminate\Contracts\Queue\Job  $job
-     * @param  mixed  $command
-     * @return mixed
-     */
-    protected function resolveHandler($job, $command)
-    {
-        $handler = $this->dispatcher->getCommandHandler($command) ?: null;
-
-        if ($handler) {
-            $this->setJobInstanceIfNecessary($job, $handler);
-        }
-
-        return $handler;
-    }
-
-    /**
-     * Ensure the next job in the chain is dispatched if applicable.
-     *
-     * @param  mixed  $command
-     * @return void
-     */
-    protected function ensureNextJobInChainIsDispatched($command)
-    {
-        if (method_exists($command, 'dispatchNextJobInChain')) {
-            $command->dispatchNextJobInChain();
-        }
     }
 
     /**

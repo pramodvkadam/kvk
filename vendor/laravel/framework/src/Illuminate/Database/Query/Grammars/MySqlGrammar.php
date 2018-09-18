@@ -2,6 +2,7 @@
 
 namespace Illuminate\Database\Query\Grammars;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JsonExpression;
@@ -45,6 +46,19 @@ class MySqlGrammar extends Grammar
     }
 
     /**
+     * Compile a single union statement.
+     *
+     * @param  array  $union
+     * @return string
+     */
+    protected function compileUnion(array $union)
+    {
+        $conjuction = $union['all'] ? ' union all ' : ' union ';
+
+        return $conjuction.'('.$union['query']->toSql().')';
+    }
+
+    /**
      * Compile the random statement into SQL.
      *
      * @param  string  $seed
@@ -53,6 +67,22 @@ class MySqlGrammar extends Grammar
     public function compileRandom($seed)
     {
         return 'RAND('.$seed.')';
+    }
+
+    /**
+     * Compile the lock into SQL.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  bool|string  $value
+     * @return string
+     */
+    protected function compileLock(Builder $query, $value)
+    {
+        if (! is_string($value)) {
+            return $value ? 'for update' : 'lock in share mode';
+        }
+
+        return $value;
     }
 
     /**
@@ -115,21 +145,10 @@ class MySqlGrammar extends Grammar
         return collect($values)->map(function ($value, $key) {
             if ($this->isJsonSelector($key)) {
                 return $this->compileJsonUpdateColumn($key, new JsonExpression($value));
-            } else {
-                return $this->wrap($key).' = '.$this->parameter($value);
             }
-        })->implode(', ');
-    }
 
-    /**
-     * Determine if the given string is a JSON selector.
-     *
-     * @param  string  $value
-     * @return bool
-     */
-    protected function isJsonSelector($value)
-    {
-        return Str::contains($value, '->');
+            return $this->wrap($key).' = '.$this->parameter($value);
+        })->implode(', ');
     }
 
     /**
@@ -145,9 +164,104 @@ class MySqlGrammar extends Grammar
 
         $field = $this->wrapValue(array_shift($path));
 
-        $accessor = "'$.\"".implode('.', $path)."\"'";
+        $accessor = "'$.\"".implode('"."', $path)."\"'";
 
         return "{$field} = json_set({$field}, {$accessor}, {$value->getValue()})";
+    }
+
+    /**
+     * Prepare the bindings for an update statement.
+     *
+     * Booleans, integers, and doubles are inserted into JSON updates as raw values.
+     *
+     * @param  array  $bindings
+     * @param  array  $values
+     * @return array
+     */
+    public function prepareBindingsForUpdate(array $bindings, array $values)
+    {
+        $values = collect($values)->reject(function ($value, $column) {
+            return $this->isJsonSelector($column) &&
+                in_array(gettype($value), ['boolean', 'integer', 'double']);
+        })->all();
+
+        return parent::prepareBindingsForUpdate($bindings, $values);
+    }
+
+    /**
+     * Compile a delete statement into SQL.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @return string
+     */
+    public function compileDelete(Builder $query)
+    {
+        $table = $this->wrapTable($query->from);
+
+        $where = is_array($query->wheres) ? $this->compileWheres($query) : '';
+
+        return isset($query->joins)
+                    ? $this->compileDeleteWithJoins($query, $table, $where)
+                    : $this->compileDeleteWithoutJoins($query, $table, $where);
+    }
+
+    /**
+     * Prepare the bindings for a delete statement.
+     *
+     * @param  array  $bindings
+     * @return array
+     */
+    public function prepareBindingsForDelete(array $bindings)
+    {
+        $cleanBindings = Arr::except($bindings, ['join', 'select']);
+
+        return array_values(
+            array_merge($bindings['join'], Arr::flatten($cleanBindings))
+        );
+    }
+
+    /**
+     * Compile a delete query that does not use joins.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  string  $table
+     * @param  array  $where
+     * @return string
+     */
+    protected function compileDeleteWithoutJoins($query, $table, $where)
+    {
+        $sql = trim("delete from {$table} {$where}");
+
+        // When using MySQL, delete statements may contain order by statements and limits
+        // so we will compile both of those here. Once we have finished compiling this
+        // we will return the completed SQL statement so it will be executed for us.
+        if (! empty($query->orders)) {
+            $sql .= ' '.$this->compileOrders($query, $query->orders);
+        }
+
+        if (isset($query->limit)) {
+            $sql .= ' '.$this->compileLimit($query, $query->limit);
+        }
+
+        return $sql;
+    }
+
+    /**
+     * Compile a delete query that uses joins.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  string  $table
+     * @param  array  $where
+     * @return string
+     */
+    protected function compileDeleteWithJoins($query, $table, $where)
+    {
+        $joins = ' '.$this->compileJoins($query, $query->joins);
+
+        $alias = strpos(strtolower($table), ' as ') !== false
+                ? explode(' as ', $table)[1] : $table;
+
+        return trim("delete {$alias} from {$table}{$joins} {$where}");
     }
 
     /**
@@ -190,111 +304,13 @@ class MySqlGrammar extends Grammar
     }
 
     /**
-     * Prepare the bindings for an update statement.
+     * Determine if the given string is a JSON selector.
      *
-     * Booleans, integers, and doubles are inserted into JSON updates as raw values.
-     *
-     * @param  array  $bindings
-     * @param  array  $values
-     * @return array
+     * @param  string  $value
+     * @return bool
      */
-    public function prepareBindingsForUpdate(array $bindings, array $values)
+    protected function isJsonSelector($value)
     {
-        $values = collect($values)->reject(function ($value, $column) {
-            return $this->isJsonSelector($column) &&
-                in_array(gettype($value), ['boolean', 'integer', 'double']);
-        })->all();
-
-        return parent::prepareBindingsForUpdate($bindings, $values);
-    }
-
-    /**
-     * Compile a delete statement into SQL.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @return string
-     */
-    public function compileDelete(Builder $query)
-    {
-        $table = $this->wrapTable($query->from);
-
-        $where = is_array($query->wheres) ? $this->compileWheres($query) : '';
-
-        return isset($query->joins)
-                    ? $this->compileDeleteWithJoins($query, $table, $where)
-                    : $this->compileDeleteWithoutJoins($query, $table, $where);
-    }
-
-    /**
-     * Compile a delete query that uses joins.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  string  $table
-     * @param  array  $where
-     * @return string
-     */
-    protected function compileDeleteWithJoins($query, $table, $where)
-    {
-        $joins = ' '.$this->compileJoins($query, $query->joins);
-
-        $alias = strpos(strtolower($table), ' as ') !== false
-                ? explode(' as ', $table)[1] : $table;
-
-        return trim("delete {$alias} from {$table}{$joins} {$where}");
-    }
-
-    /**
-     * Compile a delete query that does not use joins.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  string  $table
-     * @param  array  $where
-     * @return string
-     */
-    protected function compileDeleteWithoutJoins($query, $table, $where)
-    {
-        $sql = trim("delete from {$table} {$where}");
-
-        // When using MySQL, delete statements may contain order by statements and limits
-        // so we will compile both of those here. Once we have finished compiling this
-        // we will return the completed SQL statement so it will be executed for us.
-        if (! empty($query->orders)) {
-            $sql .= ' '.$this->compileOrders($query, $query->orders);
-        }
-
-        if (isset($query->limit)) {
-            $sql .= ' '.$this->compileLimit($query, $query->limit);
-        }
-
-        return $sql;
-    }
-
-    /**
-     * Compile a single union statement.
-     *
-     * @param  array  $union
-     * @return string
-     */
-    protected function compileUnion(array $union)
-    {
-        $conjuction = $union['all'] ? ' union all ' : ' union ';
-
-        return $conjuction.'('.$union['query']->toSql().')';
-    }
-
-    /**
-     * Compile the lock into SQL.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  bool|string  $value
-     * @return string
-     */
-    protected function compileLock(Builder $query, $value)
-    {
-        if (! is_string($value)) {
-            return $value ? 'for update' : 'lock in share mode';
-        }
-
-        return $value;
+        return Str::contains($value, '->');
     }
 }

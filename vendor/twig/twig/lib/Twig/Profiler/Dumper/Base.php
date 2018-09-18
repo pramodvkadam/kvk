@@ -21,6 +21,12 @@ abstract class Twig_Profiler_Dumper_Base
         return $this->dumpProfile($profile);
     }
 
+    abstract protected function formatTemplate(Twig_Profiler_Profile $profile, $prefix);
+
+    abstract protected function formatNonTemplate(Twig_Profiler_Profile $profile, $prefix);
+
+    abstract protected function formatTime(Twig_Profiler_Profile $profile, $percent);
+
     private function dumpProfile(Twig_Profiler_Profile $profile, $prefix = '', $sibling = false)
     {
         if ($profile->isRoot()) {
@@ -50,12 +56,6 @@ abstract class Twig_Profiler_Dumper_Base
 
         return $str;
     }
-
-    abstract protected function formatTemplate(Twig_Profiler_Profile $profile, $prefix);
-
-    abstract protected function formatNonTemplate(Twig_Profiler_Profile $profile, $prefix);
-
-    abstract protected function formatTime(Twig_Profiler_Profile $profile, $percent);
 }
 
 class_alias('Twig_Profiler_Dumper_Base', 'Twig\Profiler\Dumper\BaseDumper', false);

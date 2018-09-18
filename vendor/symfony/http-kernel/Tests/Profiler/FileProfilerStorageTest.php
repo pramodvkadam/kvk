@@ -20,6 +20,21 @@ class FileProfilerStorageTest extends TestCase
     private $tmpDir;
     private $storage;
 
+    protected function setUp()
+    {
+        $this->tmpDir = sys_get_temp_dir().'/sf2_profiler_file_storage';
+        if (is_dir($this->tmpDir)) {
+            self::cleanDir();
+        }
+        $this->storage = new FileProfilerStorage('file:'.$this->tmpDir);
+        $this->storage->purge();
+    }
+
+    protected function tearDown()
+    {
+        self::cleanDir();
+    }
+
     public function testStore()
     {
         for ($i = 0; $i < 10; ++$i) {
@@ -68,22 +83,22 @@ class FileProfilerStorageTest extends TestCase
         $profile = new Profile('simple_quote');
         $profile->setUrl('http://foo.bar/\'');
         $this->storage->write($profile);
-        $this->assertTrue(false !== $this->storage->read('simple_quote'), '->write() accepts single quotes in URL');
+        $this->assertNotFalse($this->storage->read('simple_quote'), '->write() accepts single quotes in URL');
 
         $profile = new Profile('double_quote');
         $profile->setUrl('http://foo.bar/"');
         $this->storage->write($profile);
-        $this->assertTrue(false !== $this->storage->read('double_quote'), '->write() accepts double quotes in URL');
+        $this->assertNotFalse($this->storage->read('double_quote'), '->write() accepts double quotes in URL');
 
         $profile = new Profile('backslash');
         $profile->setUrl('http://foo.bar/\\');
         $this->storage->write($profile);
-        $this->assertTrue(false !== $this->storage->read('backslash'), '->write() accepts backslash in URL');
+        $this->assertNotFalse($this->storage->read('backslash'), '->write() accepts backslash in URL');
 
         $profile = new Profile('comma');
         $profile->setUrl('http://foo.bar/,');
         $this->storage->write($profile);
-        $this->assertTrue(false !== $this->storage->read('comma'), '->write() accepts comma in URL');
+        $this->assertNotFalse($this->storage->read('comma'), '->write() accepts comma in URL');
     }
 
     public function testStoreDuplicateToken()
@@ -232,7 +247,7 @@ class FileProfilerStorageTest extends TestCase
         $profile->setMethod('GET');
         $this->storage->write($profile);
 
-        $this->assertTrue(false !== $this->storage->read('token1'));
+        $this->assertNotFalse($this->storage->read('token1'));
         $this->assertCount(1, $this->storage->find('127.0.0.1', '', 10, 'GET'));
 
         $profile = new Profile('token2');
@@ -241,7 +256,7 @@ class FileProfilerStorageTest extends TestCase
         $profile->setMethod('GET');
         $this->storage->write($profile);
 
-        $this->assertTrue(false !== $this->storage->read('token2'));
+        $this->assertNotFalse($this->storage->read('token2'));
         $this->assertCount(2, $this->storage->find('127.0.0.1', '', 10, 'GET'));
 
         $this->storage->purge();
@@ -320,16 +335,6 @@ class FileProfilerStorageTest extends TestCase
         $this->assertEquals('line1', $r->invoke($this->storage, $h));
     }
 
-    protected function setUp()
-    {
-        $this->tmpDir = sys_get_temp_dir().'/sf2_profiler_file_storage';
-        if (is_dir($this->tmpDir)) {
-            self::cleanDir();
-        }
-        $this->storage = new FileProfilerStorage('file:'.$this->tmpDir);
-        $this->storage->purge();
-    }
-
     protected function cleanDir()
     {
         $flags = \FilesystemIterator::SKIP_DOTS;
@@ -341,10 +346,5 @@ class FileProfilerStorageTest extends TestCase
                 unlink($file);
             }
         }
-    }
-
-    protected function tearDown()
-    {
-        self::cleanDir();
     }
 }

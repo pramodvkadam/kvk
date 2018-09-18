@@ -29,11 +29,54 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
-     * All of the verbs supported by the router.
+     * The event dispatcher instance.
+     *
+     * @var \Illuminate\Contracts\Events\Dispatcher
+     */
+    protected $events;
+
+    /**
+     * The IoC container instance.
+     *
+     * @var \Illuminate\Container\Container
+     */
+    protected $container;
+
+    /**
+     * The route collection instance.
+     *
+     * @var \Illuminate\Routing\RouteCollection
+     */
+    protected $routes;
+
+    /**
+     * The currently dispatched route instance.
+     *
+     * @var \Illuminate\Routing\Route
+     */
+    protected $current;
+
+    /**
+     * The request currently being dispatched.
+     *
+     * @var \Illuminate\Http\Request
+     */
+    protected $currentRequest;
+
+    /**
+     * All of the short-hand keys for middlewares.
      *
      * @var array
      */
-    public static $verbs = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+    protected $middleware = [];
+
+    /**
+     * All of the middleware groups.
+     *
+     * @var array
+     */
+    protected $middlewareGroups = [];
+
     /**
      * The priority-sorted list of middleware.
      *
@@ -42,66 +85,34 @@ class Router implements RegistrarContract, BindingRegistrar
      * @var array
      */
     public $middlewarePriority = [];
-    /**
-     * The event dispatcher instance.
-     *
-     * @var \Illuminate\Contracts\Events\Dispatcher
-     */
-    protected $events;
-    /**
-     * The IoC container instance.
-     *
-     * @var \Illuminate\Container\Container
-     */
-    protected $container;
-    /**
-     * The route collection instance.
-     *
-     * @var \Illuminate\Routing\RouteCollection
-     */
-    protected $routes;
-    /**
-     * The currently dispatched route instance.
-     *
-     * @var \Illuminate\Routing\Route
-     */
-    protected $current;
-    /**
-     * The request currently being dispatched.
-     *
-     * @var \Illuminate\Http\Request
-     */
-    protected $currentRequest;
-    /**
-     * All of the short-hand keys for middlewares.
-     *
-     * @var array
-     */
-    protected $middleware = [];
-    /**
-     * All of the middleware groups.
-     *
-     * @var array
-     */
-    protected $middlewareGroups = [];
+
     /**
      * The registered route value binders.
      *
      * @var array
      */
     protected $binders = [];
+
     /**
      * The globally available parameter patterns.
      *
      * @var array
      */
     protected $patterns = [];
+
     /**
      * The route group attribute stack.
      *
      * @var array
      */
     protected $groupStack = [];
+
+    /**
+     * All of the verbs supported by the router.
+     *
+     * @var array
+     */
+    public static $verbs = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
     /**
      * Create a new Router instance.
@@ -118,6 +129,30 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
+     * Register a new GET route with the router.
+     *
+     * @param  string  $uri
+     * @param  \Closure|array|string|null  $action
+     * @return \Illuminate\Routing\Route
+     */
+    public function get($uri, $action = null)
+    {
+        return $this->addRoute(['GET', 'HEAD'], $uri, $action);
+    }
+
+    /**
+     * Register a new POST route with the router.
+     *
+     * @param  string  $uri
+     * @param  \Closure|array|string|null  $action
+     * @return \Illuminate\Routing\Route
+     */
+    public function post($uri, $action = null)
+    {
+        return $this->addRoute('POST', $uri, $action);
+    }
+
+    /**
      * Register a new PUT route with the router.
      *
      * @param  string  $uri
@@ -127,6 +162,252 @@ class Router implements RegistrarContract, BindingRegistrar
     public function put($uri, $action = null)
     {
         return $this->addRoute('PUT', $uri, $action);
+    }
+
+    /**
+     * Register a new PATCH route with the router.
+     *
+     * @param  string  $uri
+     * @param  \Closure|array|string|null  $action
+     * @return \Illuminate\Routing\Route
+     */
+    public function patch($uri, $action = null)
+    {
+        return $this->addRoute('PATCH', $uri, $action);
+    }
+
+    /**
+     * Register a new DELETE route with the router.
+     *
+     * @param  string  $uri
+     * @param  \Closure|array|string|null  $action
+     * @return \Illuminate\Routing\Route
+     */
+    public function delete($uri, $action = null)
+    {
+        return $this->addRoute('DELETE', $uri, $action);
+    }
+
+    /**
+     * Register a new OPTIONS route with the router.
+     *
+     * @param  string  $uri
+     * @param  \Closure|array|string|null  $action
+     * @return \Illuminate\Routing\Route
+     */
+    public function options($uri, $action = null)
+    {
+        return $this->addRoute('OPTIONS', $uri, $action);
+    }
+
+    /**
+     * Register a new route responding to all verbs.
+     *
+     * @param  string  $uri
+     * @param  \Closure|array|string|null  $action
+     * @return \Illuminate\Routing\Route
+     */
+    public function any($uri, $action = null)
+    {
+        return $this->addRoute(self::$verbs, $uri, $action);
+    }
+
+    /**
+     * Register a new Fallback route with the router.
+     *
+     * @param  \Closure|array|string|null  $action
+     * @return \Illuminate\Routing\Route
+     */
+    public function fallback($action)
+    {
+        $placeholder = 'fallbackPlaceholder';
+
+        return $this->addRoute(
+            'GET', "{{$placeholder}}", $action
+        )->where($placeholder, '.*')->fallback();
+    }
+
+    /**
+     * Create a redirect from one URI to another.
+     *
+     * @param  string  $uri
+     * @param  string  $destination
+     * @param  int  $status
+     * @return \Illuminate\Routing\Route
+     */
+    public function redirect($uri, $destination, $status = 301)
+    {
+        return $this->any($uri, '\Illuminate\Routing\RedirectController')
+                ->defaults('destination', $destination)
+                ->defaults('status', $status);
+    }
+
+    /**
+     * Register a new route that returns a view.
+     *
+     * @param  string  $uri
+     * @param  string  $view
+     * @param  array  $data
+     * @return \Illuminate\Routing\Route
+     */
+    public function view($uri, $view, $data = [])
+    {
+        return $this->match(['GET', 'HEAD'], $uri, '\Illuminate\Routing\ViewController')
+                ->defaults('view', $view)
+                ->defaults('data', $data);
+    }
+
+    /**
+     * Register a new route with the given verbs.
+     *
+     * @param  array|string  $methods
+     * @param  string  $uri
+     * @param  \Closure|array|string|null  $action
+     * @return \Illuminate\Routing\Route
+     */
+    public function match($methods, $uri, $action = null)
+    {
+        return $this->addRoute(array_map('strtoupper', (array) $methods), $uri, $action);
+    }
+
+    /**
+     * Register an array of resource controllers.
+     *
+     * @param  array  $resources
+     * @return void
+     */
+    public function resources(array $resources)
+    {
+        foreach ($resources as $name => $controller) {
+            $this->resource($name, $controller);
+        }
+    }
+
+    /**
+     * Route a resource to a controller.
+     *
+     * @param  string  $name
+     * @param  string  $controller
+     * @param  array  $options
+     * @return \Illuminate\Routing\PendingResourceRegistration
+     */
+    public function resource($name, $controller, array $options = [])
+    {
+        if ($this->container && $this->container->bound(ResourceRegistrar::class)) {
+            $registrar = $this->container->make(ResourceRegistrar::class);
+        } else {
+            $registrar = new ResourceRegistrar($this);
+        }
+
+        return new PendingResourceRegistration(
+            $registrar, $name, $controller, $options
+        );
+    }
+
+    /**
+     * Register an array of API resource controllers.
+     *
+     * @param  array  $resources
+     * @return void
+     */
+    public function apiResources(array $resources)
+    {
+        foreach ($resources as $name => $controller) {
+            $this->apiResource($name, $controller);
+        }
+    }
+
+    /**
+     * Route an API resource to a controller.
+     *
+     * @param  string  $name
+     * @param  string  $controller
+     * @param  array  $options
+     * @return \Illuminate\Routing\PendingResourceRegistration
+     */
+    public function apiResource($name, $controller, array $options = [])
+    {
+        return $this->resource($name, $controller, array_merge([
+            'only' => ['index', 'show', 'store', 'update', 'destroy'],
+        ], $options));
+    }
+
+    /**
+     * Create a route group with shared attributes.
+     *
+     * @param  array  $attributes
+     * @param  \Closure|string  $routes
+     * @return void
+     */
+    public function group(array $attributes, $routes)
+    {
+        $this->updateGroupStack($attributes);
+
+        // Once we have updated the group stack, we'll load the provided routes and
+        // merge in the group's attributes when the routes are created. After we
+        // have created the routes, we will pop the attributes off the stack.
+        $this->loadRoutes($routes);
+
+        array_pop($this->groupStack);
+    }
+
+    /**
+     * Update the group stack with the given attributes.
+     *
+     * @param  array  $attributes
+     * @return void
+     */
+    protected function updateGroupStack(array $attributes)
+    {
+        if (! empty($this->groupStack)) {
+            $attributes = RouteGroup::merge($attributes, end($this->groupStack));
+        }
+
+        $this->groupStack[] = $attributes;
+    }
+
+    /**
+     * Merge the given array with the last group stack.
+     *
+     * @param  array  $new
+     * @return array
+     */
+    public function mergeWithLastGroup($new)
+    {
+        return RouteGroup::merge($new, end($this->groupStack));
+    }
+
+    /**
+     * Load the provided routes.
+     *
+     * @param  \Closure|string  $routes
+     * @return void
+     */
+    protected function loadRoutes($routes)
+    {
+        if ($routes instanceof Closure) {
+            $routes($this);
+        } else {
+            $router = $this;
+
+            require $routes;
+        }
+    }
+
+    /**
+     * Get the prefix from the last group on the stack.
+     *
+     * @return string
+     */
+    public function getLastGroupPrefix()
+    {
+        if (! empty($this->groupStack)) {
+            $last = end($this->groupStack);
+
+            return $last['prefix'] ?? '';
+        }
+
+        return '';
     }
 
     /**
@@ -258,54 +539,6 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
-     * Get the prefix from the last group on the stack.
-     *
-     * @return string
-     */
-    public function getLastGroupPrefix()
-    {
-        if (! empty($this->groupStack)) {
-            $last = end($this->groupStack);
-
-            return $last['prefix'] ?? '';
-        }
-
-        return '';
-    }
-
-    /**
-     * Determine if the router currently has a group stack.
-     *
-     * @return bool
-     */
-    public function hasGroupStack()
-    {
-        return ! empty($this->groupStack);
-    }
-
-    /**
-     * Merge the group stack with the controller action.
-     *
-     * @param  \Illuminate\Routing\Route  $route
-     * @return void
-     */
-    protected function mergeGroupAttributesIntoRoute($route)
-    {
-        $route->setAction($this->mergeWithLastGroup($route->getAction()));
-    }
-
-    /**
-     * Merge the given array with the last group stack.
-     *
-     * @param  array  $new
-     * @return array
-     */
-    public function mergeWithLastGroup($new)
-    {
-        return RouteGroup::merge($new, end($this->groupStack));
-    }
-
-    /**
      * Add the necessary where clauses to the route based on its initial registration.
      *
      * @param  \Illuminate\Routing\Route  $route
@@ -321,222 +554,14 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
-     * Register a new PATCH route with the router.
+     * Merge the group stack with the controller action.
      *
-     * @param  string  $uri
-     * @param  \Closure|array|string|null  $action
-     * @return \Illuminate\Routing\Route
-     */
-    public function patch($uri, $action = null)
-    {
-        return $this->addRoute('PATCH', $uri, $action);
-    }
-
-    /**
-     * Register a new DELETE route with the router.
-     *
-     * @param  string  $uri
-     * @param  \Closure|array|string|null  $action
-     * @return \Illuminate\Routing\Route
-     */
-    public function delete($uri, $action = null)
-    {
-        return $this->addRoute('DELETE', $uri, $action);
-    }
-
-    /**
-     * Register a new OPTIONS route with the router.
-     *
-     * @param  string  $uri
-     * @param  \Closure|array|string|null  $action
-     * @return \Illuminate\Routing\Route
-     */
-    public function options($uri, $action = null)
-    {
-        return $this->addRoute('OPTIONS', $uri, $action);
-    }
-
-    /**
-     * Register a new Fallback route with the router.
-     *
-     * @param  \Closure|array|string|null  $action
-     * @return \Illuminate\Routing\Route
-     */
-    public function fallback($action)
-    {
-        $placeholder = 'fallbackPlaceholder';
-
-        return $this->addRoute(
-            'GET', "{{$placeholder}}", $action
-        )->where($placeholder, '.*')->fallback();
-    }
-
-    /**
-     * Create a redirect from one URI to another.
-     *
-     * @param  string  $uri
-     * @param  string  $destination
-     * @param  int  $status
-     * @return \Illuminate\Routing\Route
-     */
-    public function redirect($uri, $destination, $status = 301)
-    {
-        return $this->any($uri, '\Illuminate\Routing\RedirectController')
-                ->defaults('destination', $destination)
-                ->defaults('status', $status);
-    }
-
-    /**
-     * Register a new route responding to all verbs.
-     *
-     * @param  string  $uri
-     * @param  \Closure|array|string|null  $action
-     * @return \Illuminate\Routing\Route
-     */
-    public function any($uri, $action = null)
-    {
-        return $this->addRoute(self::$verbs, $uri, $action);
-    }
-
-    /**
-     * Register a new route that returns a view.
-     *
-     * @param  string  $uri
-     * @param  string  $view
-     * @param  array  $data
-     * @return \Illuminate\Routing\Route
-     */
-    public function view($uri, $view, $data = [])
-    {
-        return $this->match(['GET', 'HEAD'], $uri, '\Illuminate\Routing\ViewController')
-                ->defaults('view', $view)
-                ->defaults('data', $data);
-    }
-
-    /**
-     * Register a new route with the given verbs.
-     *
-     * @param  array|string  $methods
-     * @param  string  $uri
-     * @param  \Closure|array|string|null  $action
-     * @return \Illuminate\Routing\Route
-     */
-    public function match($methods, $uri, $action = null)
-    {
-        return $this->addRoute(array_map('strtoupper', (array) $methods), $uri, $action);
-    }
-
-    /**
-     * Register an array of resource controllers.
-     *
-     * @param  array  $resources
+     * @param  \Illuminate\Routing\Route  $route
      * @return void
      */
-    public function resources(array $resources)
+    protected function mergeGroupAttributesIntoRoute($route)
     {
-        foreach ($resources as $name => $controller) {
-            $this->resource($name, $controller);
-        }
-    }
-
-    /**
-     * Route a resource to a controller.
-     *
-     * @param  string  $name
-     * @param  string  $controller
-     * @param  array  $options
-     * @return \Illuminate\Routing\PendingResourceRegistration
-     */
-    public function resource($name, $controller, array $options = [])
-    {
-        if ($this->container && $this->container->bound(ResourceRegistrar::class)) {
-            $registrar = $this->container->make(ResourceRegistrar::class);
-        } else {
-            $registrar = new ResourceRegistrar($this);
-        }
-
-        return new PendingResourceRegistration(
-            $registrar, $name, $controller, $options
-        );
-    }
-
-    /**
-     * Register an array of API resource controllers.
-     *
-     * @param  array  $resources
-     * @return void
-     */
-    public function apiResources(array $resources)
-    {
-        foreach ($resources as $name => $controller) {
-            $this->apiResource($name, $controller);
-        }
-    }
-
-    /**
-     * Route an API resource to a controller.
-     *
-     * @param  string  $name
-     * @param  string  $controller
-     * @param  array  $options
-     * @return \Illuminate\Routing\PendingResourceRegistration
-     */
-    public function apiResource($name, $controller, array $options = [])
-    {
-        return $this->resource($name, $controller, array_merge([
-            'only' => ['index', 'show', 'store', 'update', 'destroy'],
-        ], $options));
-    }
-
-    /**
-     * Create a route group with shared attributes.
-     *
-     * @param  array  $attributes
-     * @param  \Closure|string  $routes
-     * @return void
-     */
-    public function group(array $attributes, $routes)
-    {
-        $this->updateGroupStack($attributes);
-
-        // Once we have updated the group stack, we'll load the provided routes and
-        // merge in the group's attributes when the routes are created. After we
-        // have created the routes, we will pop the attributes off the stack.
-        $this->loadRoutes($routes);
-
-        array_pop($this->groupStack);
-    }
-
-    /**
-     * Update the group stack with the given attributes.
-     *
-     * @param  array  $attributes
-     * @return void
-     */
-    protected function updateGroupStack(array $attributes)
-    {
-        if (! empty($this->groupStack)) {
-            $attributes = RouteGroup::merge($attributes, end($this->groupStack));
-        }
-
-        $this->groupStack[] = $attributes;
-    }
-
-    /**
-     * Load the provided routes.
-     *
-     * @param  \Closure|string  $routes
-     * @return void
-     */
-    protected function loadRoutes($routes)
-    {
-        if ($routes instanceof Closure) {
-            $routes($this);
-        } else {
-            $router = $this;
-
-            require $routes;
-        }
+        $route->setAction($this->mergeWithLastGroup($route->getAction()));
     }
 
     /**
@@ -550,6 +575,45 @@ class Router implements RegistrarContract, BindingRegistrar
         $route = tap($this->routes->getByName($name))->bind($this->currentRequest);
 
         return $this->runRoute($this->currentRequest, $route);
+    }
+
+    /**
+     * Dispatch the request to the application.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
+     */
+    public function dispatch(Request $request)
+    {
+        $this->currentRequest = $request;
+
+        return $this->dispatchToRoute($request);
+    }
+
+    /**
+     * Dispatch the request to a route and return the response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return mixed
+     */
+    public function dispatchToRoute(Request $request)
+    {
+        return $this->runRoute($request, $this->findRoute($request));
+    }
+
+    /**
+     * Find the route matching a given request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Routing\Route
+     */
+    protected function findRoute($request)
+    {
+        $this->current = $route = $this->routes->match($request);
+
+        $this->container->instance(Route::class, $route);
+
+        return $route;
     }
 
     /**
@@ -570,51 +634,6 @@ class Router implements RegistrarContract, BindingRegistrar
         return $this->prepareResponse($request,
             $this->runRouteWithinStack($route, $request)
         );
-    }
-
-    /**
-     * Create a response instance from the given value.
-     *
-     * @param  \Symfony\Component\HttpFoundation\Request  $request
-     * @param  mixed  $response
-     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
-     */
-    public function prepareResponse($request, $response)
-    {
-        return static::toResponse($request, $response);
-    }
-
-    /**
-     * Static version of prepareResponse.
-     *
-     * @param  \Symfony\Component\HttpFoundation\Request  $request
-     * @param  mixed  $response
-     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
-     */
-    public static function toResponse($request, $response)
-    {
-        if ($response instanceof Responsable) {
-            $response = $response->toResponse($request);
-        }
-
-        if ($response instanceof PsrResponseInterface) {
-            $response = (new HttpFoundationFactory)->createResponse($response);
-        } elseif (! $response instanceof SymfonyResponse &&
-                   ($response instanceof Arrayable ||
-                    $response instanceof Jsonable ||
-                    $response instanceof ArrayObject ||
-                    $response instanceof JsonSerializable ||
-                    is_array($response))) {
-            $response = new JsonResponse($response);
-        } elseif (! $response instanceof SymfonyResponse) {
-            $response = new Response($response);
-        }
-
-        if ($response->getStatusCode() === Response::HTTP_NOT_MODIFIED) {
-            $response->setNotModified();
-        }
-
-        return $response->prepare($request);
     }
 
     /**
@@ -668,42 +687,48 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
-     * Dispatch the request to the application.
+     * Create a response instance from the given value.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \Symfony\Component\HttpFoundation\Request  $request
+     * @param  mixed  $response
      * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
      */
-    public function dispatch(Request $request)
+    public function prepareResponse($request, $response)
     {
-        $this->currentRequest = $request;
-
-        return $this->dispatchToRoute($request);
+        return static::toResponse($request, $response);
     }
 
     /**
-     * Dispatch the request to a route and return the response.
+     * Static version of prepareResponse.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return mixed
+     * @param  \Symfony\Component\HttpFoundation\Request  $request
+     * @param  mixed  $response
+     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
      */
-    public function dispatchToRoute(Request $request)
+    public static function toResponse($request, $response)
     {
-        return $this->runRoute($request, $this->findRoute($request));
-    }
+        if ($response instanceof Responsable) {
+            $response = $response->toResponse($request);
+        }
 
-    /**
-     * Find the route matching a given request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Routing\Route
-     */
-    protected function findRoute($request)
-    {
-        $this->current = $route = $this->routes->match($request);
+        if ($response instanceof PsrResponseInterface) {
+            $response = (new HttpFoundationFactory)->createResponse($response);
+        } elseif (! $response instanceof SymfonyResponse &&
+                   ($response instanceof Arrayable ||
+                    $response instanceof Jsonable ||
+                    $response instanceof ArrayObject ||
+                    $response instanceof JsonSerializable ||
+                    is_array($response))) {
+            $response = new JsonResponse($response);
+        } elseif (! $response instanceof SymfonyResponse) {
+            $response = new Response($response);
+        }
 
-        $this->container->instance(Route::class, $route);
+        if ($response->getStatusCode() === Response::HTTP_NOT_MODIFIED) {
+            $response->setNotModified();
+        }
 
-        return $route;
+        return $response->prepare($request);
     }
 
     /**
@@ -724,6 +749,17 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
+     * Substitute the implicit Eloquent model bindings for the route.
+     *
+     * @param  \Illuminate\Routing\Route  $route
+     * @return void
+     */
+    public function substituteImplicitBindings($route)
+    {
+        ImplicitRouteBinding::resolveForRoute($this->container, $route);
+    }
+
+    /**
      * Call the binding callback for the given key.
      *
      * @param  string  $key
@@ -734,17 +770,6 @@ class Router implements RegistrarContract, BindingRegistrar
     protected function performBinding($key, $value, $route)
     {
         return call_user_func($this->binders[$key], $value, $route);
-    }
-
-    /**
-     * Substitute the implicit Eloquent model bindings for the route.
-     *
-     * @param  \Illuminate\Routing\Route  $route
-     * @return void
-     */
-    public function substituteImplicitBindings($route)
-    {
-        ImplicitRouteBinding::resolveForRoute($this->container, $route);
     }
 
     /**
@@ -858,6 +883,20 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
+     * Add a new route parameter binder.
+     *
+     * @param  string  $key
+     * @param  string|callable  $binder
+     * @return void
+     */
+    public function bind($key, $binder)
+    {
+        $this->binders[str_replace('-', '_', $key)] = RouteBinding::forCallback(
+            $this->container, $binder
+        );
+    }
+
+    /**
      * Register a model binder for a wildcard.
      *
      * @param  string  $key
@@ -870,20 +909,6 @@ class Router implements RegistrarContract, BindingRegistrar
     public function model($key, $class, Closure $callback = null)
     {
         $this->bind($key, RouteBinding::forModel($this->container, $class, $callback));
-    }
-
-    /**
-     * Add a new route parameter binder.
-     *
-     * @param  string  $key
-     * @param  string|callable  $binder
-     * @return void
-     */
-    public function bind($key, $binder)
-    {
-        $this->binders[str_replace('-', '_', $key)] = RouteBinding::forCallback(
-            $this->container, $binder
-        );
     }
 
     /**
@@ -910,6 +935,18 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
+     * Set a global where pattern on all routes.
+     *
+     * @param  string  $key
+     * @param  string  $pattern
+     * @return void
+     */
+    public function pattern($key, $pattern)
+    {
+        $this->patterns[$key] = $pattern;
+    }
+
+    /**
      * Set a group of global where patterns on all routes.
      *
      * @param  array  $patterns
@@ -923,15 +960,13 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
-     * Set a global where pattern on all routes.
+     * Determine if the router currently has a group stack.
      *
-     * @param  string  $key
-     * @param  string  $pattern
-     * @return void
+     * @return bool
      */
-    public function pattern($key, $pattern)
+    public function hasGroupStack()
     {
-        $this->patterns[$key] = $pattern;
+        return ! empty($this->groupStack);
     }
 
     /**
@@ -957,16 +992,6 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
-     * Get the currently dispatched route instance.
-     *
-     * @return \Illuminate\Routing\Route
-     */
-    public function current()
-    {
-        return $this->current;
-    }
-
-    /**
      * Get the request currently being dispatched.
      *
      * @return \Illuminate\Http\Request
@@ -984,6 +1009,16 @@ class Router implements RegistrarContract, BindingRegistrar
     public function getCurrentRoute()
     {
         return $this->current();
+    }
+
+    /**
+     * Get the currently dispatched route instance.
+     *
+     * @return \Illuminate\Routing\Route
+     */
+    public function current()
+    {
+        return $this->current;
     }
 
     /**
@@ -1038,6 +1073,18 @@ class Router implements RegistrarContract, BindingRegistrar
     }
 
     /**
+     * Get the current route action.
+     *
+     * @return string|null
+     */
+    public function currentRouteAction()
+    {
+        if ($this->current()) {
+            return $this->current()->getAction()['controller'] ?? null;
+        }
+    }
+
+    /**
      * Alias for the "currentRouteUses" method.
      *
      * @param  array  ...$patterns
@@ -1052,18 +1099,6 @@ class Router implements RegistrarContract, BindingRegistrar
         }
 
         return false;
-    }
-
-    /**
-     * Get the current route action.
-     *
-     * @return string|null
-     */
-    public function currentRouteAction()
-    {
-        if ($this->current()) {
-            return $this->current()->getAction()['controller'] ?? null;
-        }
     }
 
     /**
@@ -1098,30 +1133,6 @@ class Router implements RegistrarContract, BindingRegistrar
         $this->post('password/email', 'Auth\ForgotPasswordController@sendResetLinkEmail')->name('password.email');
         $this->get('password/reset/{token}', 'Auth\ResetPasswordController@showResetForm')->name('password.reset');
         $this->post('password/reset', 'Auth\ResetPasswordController@reset');
-    }
-
-    /**
-     * Register a new GET route with the router.
-     *
-     * @param  string  $uri
-     * @param  \Closure|array|string|null  $action
-     * @return \Illuminate\Routing\Route
-     */
-    public function get($uri, $action = null)
-    {
-        return $this->addRoute(['GET', 'HEAD'], $uri, $action);
-    }
-
-    /**
-     * Register a new POST route with the router.
-     *
-     * @param  string  $uri
-     * @param  \Closure|array|string|null  $action
-     * @return \Illuminate\Routing\Route
-     */
-    public function post($uri, $action = null)
-    {
-        return $this->addRoute('POST', $uri, $action);
     }
 
     /**

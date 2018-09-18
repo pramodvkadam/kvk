@@ -20,13 +20,14 @@ use Exception;
 class Settings extends Controller
 {
     /**
-     * @var array Permissions required to view this page.
-     */
-    public $requiredPermissions = [];
-    /**
      * @var WidgetBase Reference to the widget object.
      */
     protected $formWidget;
+
+    /**
+     * @var array Permissions required to view this page.
+     */
+    public $requiredPermissions = [];
 
     /**
      * Constructor.
@@ -90,56 +91,6 @@ class Settings extends Controller
         }
     }
 
-    /**
-     * Locates a setting item for a module or plugin
-     */
-    protected function findSettingItem($author, $plugin, $code)
-    {
-        $manager = SettingsManager::instance();
-
-        $moduleOwner = $author;
-        $moduleCode = $plugin;
-        $item = $manager->findSettingItem($moduleOwner, $moduleCode);
-
-        if (!$item) {
-            $pluginOwner = $author . '.' . $plugin;
-            $pluginCode = $code;
-            $item = $manager->findSettingItem($pluginOwner, $pluginCode);
-        }
-
-        return $item;
-    }
-
-    /**
-     * Internal method, prepare the list model object
-     */
-    protected function createModel($item)
-    {
-        if (!isset($item->class) || !strlen($item->class)) {
-            throw new ApplicationException(Lang::get('system::lang.settings.missing_model'));
-        }
-
-        $class = $item->class;
-        $model = $class::instance();
-        return $model;
-    }
-
-    /**
-     * Prepare the widgets used by this action
-     * Model $model
-     */
-    protected function initWidgets($model)
-    {
-        $config = $model->getFieldConfig();
-        $config->model = $model;
-        $config->arrayName = class_basename($model);
-        $config->context = 'update';
-
-        $widget = $this->makeWidget('Backend\Widgets\Form', $config);
-        $widget->bindToController();
-        $this->formWidget = $widget;
-    }
-
     public function update_onSave($author, $plugin, $code = null)
     {
         $item = $this->findSettingItem($author, $plugin, $code);
@@ -187,5 +138,55 @@ class Settings extends Controller
         }
 
         return $this->formWidget->render($options);
+    }
+
+    /**
+     * Prepare the widgets used by this action
+     * Model $model
+     */
+    protected function initWidgets($model)
+    {
+        $config = $model->getFieldConfig();
+        $config->model = $model;
+        $config->arrayName = class_basename($model);
+        $config->context = 'update';
+
+        $widget = $this->makeWidget('Backend\Widgets\Form', $config);
+        $widget->bindToController();
+        $this->formWidget = $widget;
+    }
+
+    /**
+     * Internal method, prepare the list model object
+     */
+    protected function createModel($item)
+    {
+        if (!isset($item->class) || !strlen($item->class)) {
+            throw new ApplicationException(Lang::get('system::lang.settings.missing_model'));
+        }
+
+        $class = $item->class;
+        $model = $class::instance();
+        return $model;
+    }
+
+    /**
+     * Locates a setting item for a module or plugin
+     */
+    protected function findSettingItem($author, $plugin, $code)
+    {
+        $manager = SettingsManager::instance();
+
+        $moduleOwner = $author;
+        $moduleCode = $plugin;
+        $item = $manager->findSettingItem($moduleOwner, $moduleCode);
+
+        if (!$item) {
+            $pluginOwner = $author . '.' . $plugin;
+            $pluginCode = $code;
+            $item = $manager->findSettingItem($pluginOwner, $pluginCode);
+        }
+
+        return $item;
     }
 }

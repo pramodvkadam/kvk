@@ -93,11 +93,6 @@ class Table extends WidgetBase
         }
     }
 
-    protected function isClientDataSource()
-    {
-        return $this->dataSource instanceof \Backend\Widgets\Table\ClientMemoryDataSource;
-    }
-
     /**
      * Returns the data source object.
      * @return \Backend\Widgets\Table\DataSourceBase
@@ -115,10 +110,6 @@ class Table extends WidgetBase
         $this->prepareVars();
         return $this->makePartial('table');
     }
-
-    //
-    // Internals
-    //
 
     /**
      * Prepares the view data
@@ -148,6 +139,19 @@ class Table extends WidgetBase
             ? $this->dataSource->getAllRecords()
             : []
         );
+    }
+
+    //
+    // Internals
+    //
+
+    /**
+     * @inheritDoc
+     */
+    protected function loadAssets()
+    {
+        $this->addCss('css/table.css', 'core');
+        $this->addJs('js/build-min.js', 'core');
     }
 
     /**
@@ -186,6 +190,37 @@ class Table extends WidgetBase
         return $result;
     }
 
+    protected function isClientDataSource()
+    {
+        return $this->dataSource instanceof \Backend\Widgets\Table\ClientMemoryDataSource;
+    }
+
+    //
+    // Event handlers
+    //
+
+    public function onServerGetRecords()
+    {
+        // Disable asset broadcasting
+        $this->controller->flushAssets();
+
+        if ($this->isClientDataSource()) {
+            throw new SystemException('The Table widget is not configured to use the server data source.');
+        }
+
+        $count = post('count');
+
+        // Oddly, JS may pass false as a string (@todo)
+        if ($count === 'false') {
+            $count = false;
+        }
+
+        return [
+            'records' => $this->dataSource->getRecords(post('offset'), $count),
+            'count' => $this->dataSource->getCount()
+        ];
+    }
+
     public function onServerSearchRecords()
     {
         // Disable asset broadcasting
@@ -208,10 +243,6 @@ class Table extends WidgetBase
         ];
     }
 
-    //
-    // Event handlers
-    //
-
     public function onServerCreateRecord()
     {
         if ($this->isClientDataSource()) {
@@ -225,28 +256,6 @@ class Table extends WidgetBase
         );
 
         return $this->onServerGetRecords();
-    }
-
-    public function onServerGetRecords()
-    {
-        // Disable asset broadcasting
-        $this->controller->flushAssets();
-
-        if ($this->isClientDataSource()) {
-            throw new SystemException('The Table widget is not configured to use the server data source.');
-        }
-
-        $count = post('count');
-
-        // Oddly, JS may pass false as a string (@todo)
-        if ($count === 'false') {
-            $count = false;
-        }
-
-        return [
-            'records' => $this->dataSource->getRecords(post('offset'), $count),
-            'count' => $this->dataSource->getCount()
-        ];
     }
 
     public function onServerUpdateRecord()
@@ -301,14 +310,5 @@ class Table extends WidgetBase
         return [
             'options' => $options
         ];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function loadAssets()
-    {
-        $this->addCss('css/table.css', 'core');
-        $this->addJs('js/build-min.js', 'core');
     }
 }

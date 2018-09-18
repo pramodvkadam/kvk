@@ -111,20 +111,6 @@ class PostgresGrammar extends Grammar
     }
 
     /**
-     * Compile a spatial index key command.
-     *
-     * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
-     * @param  \Illuminate\Support\Fluent  $command
-     * @return string
-     */
-    public function compileSpatialIndex(Blueprint $blueprint, Fluent $command)
-    {
-        $command->algorithm = 'gist';
-
-        return $this->compileIndex($blueprint, $command);
-    }
-
-    /**
      * Compile a plain index key command.
      *
      * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
@@ -139,6 +125,20 @@ class PostgresGrammar extends Grammar
             $command->algorithm ? ' using '.$command->algorithm : '',
             $this->columnize($command->columns)
         );
+    }
+
+    /**
+     * Compile a spatial index key command.
+     *
+     * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
+     * @param  \Illuminate\Support\Fluent  $command
+     * @return string
+     */
+    public function compileSpatialIndex(Blueprint $blueprint, Fluent $command)
+    {
+        $command->algorithm = 'gist';
+
+        return $this->compileIndex($blueprint, $command);
     }
 
     /**
@@ -252,18 +252,6 @@ class PostgresGrammar extends Grammar
     }
 
     /**
-     * Compile a drop spatial index command.
-     *
-     * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
-     * @param  \Illuminate\Support\Fluent  $command
-     * @return string
-     */
-    public function compileDropSpatialIndex(Blueprint $blueprint, Fluent $command)
-    {
-        return $this->compileDropIndex($blueprint, $command);
-    }
-
-    /**
      * Compile a drop index command.
      *
      * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
@@ -273,6 +261,18 @@ class PostgresGrammar extends Grammar
     public function compileDropIndex(Blueprint $blueprint, Fluent $command)
     {
         return "drop index {$this->wrap($command->index)}";
+    }
+
+    /**
+     * Compile a drop spatial index command.
+     *
+     * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
+     * @param  \Illuminate\Support\Fluent  $command
+     * @return string
+     */
+    public function compileDropSpatialIndex(Blueprint $blueprint, Fluent $command)
+    {
+        return $this->compileDropIndex($blueprint, $command);
     }
 
     /**
@@ -321,17 +321,6 @@ class PostgresGrammar extends Grammar
     public function compileDisableForeignKeyConstraints()
     {
         return 'SET CONSTRAINTS ALL DEFERRED;';
-    }
-
-    /**
-     * Create the column definition for a spatial MultiLineString type.
-     *
-     * @param  \Illuminate\Support\Fluent  $column
-     * @return string
-     */
-    public function typeMultiLineString(Fluent $column)
-    {
-        return $this->formatPostGisType('multilinestring');
     }
 
     /**
@@ -618,6 +607,17 @@ class PostgresGrammar extends Grammar
     }
 
     /**
+     * Create the column definition for a year type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    protected function typeYear(Fluent $column)
+    {
+        return $this->typeInteger($column);
+    }
+
+    /**
      * Create the column definition for a binary type.
      *
      * @param  \Illuminate\Support\Fluent  $column
@@ -684,17 +684,6 @@ class PostgresGrammar extends Grammar
     }
 
     /**
-     * Format the column definition for a PostGIS spatial type.
-     *
-     * @param  string  $type
-     * @return string
-     */
-    private function formatPostGisType(string $type)
-    {
-        return "geography($type, 4326)";
-    }
-
-    /**
      * Create the column definition for a spatial LineString type.
      *
      * @param  \Illuminate\Support\Fluent  $column
@@ -739,6 +728,17 @@ class PostgresGrammar extends Grammar
     }
 
     /**
+     * Create the column definition for a spatial MultiLineString type.
+     *
+     * @param  \Illuminate\Support\Fluent  $column
+     * @return string
+     */
+    public function typeMultiLineString(Fluent $column)
+    {
+        return $this->formatPostGisType('multilinestring');
+    }
+
+    /**
      * Create the column definition for a spatial MultiPolygon type.
      *
      * @param  \Illuminate\Support\Fluent  $column
@@ -747,6 +747,17 @@ class PostgresGrammar extends Grammar
     protected function typeMultiPolygon(Fluent $column)
     {
         return $this->formatPostGisType('multipolygon');
+    }
+
+    /**
+     * Format the column definition for a PostGIS spatial type.
+     *
+     * @param  string  $type
+     * @return string
+     */
+    private function formatPostGisType(string $type)
+    {
+        return "geography($type, 4326)";
     }
 
     /**

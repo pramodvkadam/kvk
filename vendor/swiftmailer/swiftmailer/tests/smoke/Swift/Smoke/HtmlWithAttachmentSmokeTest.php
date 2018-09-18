@@ -7,6 +7,11 @@ class Swift_Smoke_HtmlWithAttachmentSmokeTest extends SwiftMailerSmokeTestCase
 {
     private $_attFile;
 
+    protected function setUp()
+    {
+        $this->attFile = __DIR__.'/../../../_samples/files/textfile.zip';
+    }
+
     public function testAttachmentSending()
     {
         $mailer = $this->getMailer();
@@ -22,10 +27,5 @@ class Swift_Smoke_HtmlWithAttachmentSmokeTest extends SwiftMailerSmokeTestCase
         $this->assertEquals(1, $mailer->send($message),
             '%s: The smoke test should send a single message'
             );
-    }
-
-    protected function setUp()
-    {
-        $this->attFile = __DIR__.'/../../../_samples/files/textfile.zip';
     }
 }

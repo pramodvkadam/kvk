@@ -33,16 +33,20 @@ class AssetList extends WidgetBase
 {
     use \Backend\Traits\SelectableWidget;
 
+    protected $searchTerm = false;
+
+    protected $theme;
+
     /**
      * @var string Message to display when there are no records in the list.
      */
     public $noRecordsMessage = 'cms::lang.asset.no_list_records';
+
     /**
      * @var string Message to display when the Delete button is clicked.
      */
     public $deleteConfirmation = 'cms::lang.asset.delete_confirm';
-    protected $searchTerm = false;
-    protected $theme;
+
     /**
      * @var array Valid asset file extensions
      */
@@ -62,129 +66,12 @@ class AssetList extends WidgetBase
     }
 
     /**
-     * Checks the current request to see if it is a postback containing a file upload
-     * for this particular widget.
+     * @inheritDoc
      */
-    protected function checkUploadPostback()
+    protected function loadAssets()
     {
-        $fileName = null;
-
-        try {
-            $uploadedFile = Input::file('file_data');
-
-            if (!is_object($uploadedFile)) {
-                return;
-            }
-
-            $fileName = $uploadedFile->getClientOriginalName();
-
-            /*
-             * Check valid upload
-             */
-            if (!$uploadedFile->isValid()) {
-                throw new ApplicationException(Lang::get('cms::lang.asset.file_not_valid'));
-            }
-
-            /*
-             * Check file size
-             */
-            $maxSize = UploadedFile::getMaxFilesize();
-            if ($uploadedFile->getSize() > $maxSize) {
-                throw new ApplicationException(Lang::get(
-                    'cms::lang.asset.too_large',
-                    ['max_size' => File::sizeToString($maxSize)]
-                ));
-            }
-
-            /*
-             * Check for valid file extensions
-             */
-            if (!$this->validateFileType($fileName)) {
-                throw new ApplicationException(Lang::get(
-                    'cms::lang.asset.type_not_allowed',
-                    ['allowed_types' => implode(', ', $this->assetExtensions)]
-                ));
-            }
-
-            /*
-             * Accept the uploaded file
-             */
-            $uploadedFile->move($this->getCurrentPath(), $uploadedFile->getClientOriginalName());
-
-            die('success');
-        }
-        catch (Exception $ex) {
-            $message = $fileName !== null
-                ? Lang::get('cms::lang.asset.error_uploading_file', ['name' => $fileName, 'error' => $ex->getMessage()])
-                : $ex->getMessage();
-
-            die($message);
-        }
-    }
-
-    /**
-     * Check for valid asset file extension
-     * @param string
-     * @return bool
-     */
-    protected function validateFileType($name)
-    {
-        $extension = strtolower(File::extension($name));
-
-        if (!in_array($extension, $this->assetExtensions)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    //
-    // Event handlers
-    //
-
-    protected function getCurrentPath()
-    {
-        $assetsPath = $this->getAssetsPath();
-
-        $path = $assetsPath.'/'.$this->getCurrentRelativePath();
-        if (!is_dir($path)) {
-            return $assetsPath;
-        }
-
-        return $path;
-    }
-
-    protected function getAssetsPath()
-    {
-        return $this->theme->getPath().'/assets';
-    }
-
-    public function getCurrentRelativePath()
-    {
-        $path = $this->getSession('currentPath', '/');
-
-        if (!$this->validatePath($path)) {
-            return null;
-        }
-
-        if ($path == '.') {
-            return null;
-        }
-
-        return ltrim($path, '/');
-    }
-
-    protected function validatePath($path)
-    {
-        if (!preg_match('/^[0-9a-z\.\s_\-\/]+$/i', $path)) {
-            return false;
-        }
-
-        if (strpos($path, '..') !== false || strpos($path, './') !== false) {
-            return false;
-        }
-
-        return true;
+        $this->addCss('css/assetlist.css', 'core');
+        $this->addJs('js/assetlist.js', 'core');
     }
 
     /**
@@ -198,144 +85,9 @@ class AssetList extends WidgetBase
         ]);
     }
 
-    protected function getData()
-    {
-        $assetsPath = $this->getAssetsPath();
-
-        if (!file_exists($assetsPath) || !is_dir($assetsPath)) {
-            if (!File::makeDirectory($assetsPath)) {
-                throw new ApplicationException(Lang::get(
-                    'cms::lang.cms_object.error_creating_directory',
-                    ['name' => $assetsPath]
-                ));
-            }
-        }
-
-        $searchTerm = Str::lower($this->getSearchTerm());
-
-        if (!strlen($searchTerm)) {
-            $currentPath = $this->getCurrentPath();
-            return $this->getDirectoryContents(
-                new DirectoryIterator($currentPath)
-            );
-        }
-
-        return $this->findFiles();
-    }
-
-    protected function getSearchTerm()
-    {
-        return $this->searchTerm !== false ? $this->searchTerm : $this->getSession('search');
-    }
-
-    protected function setSearchTerm($term)
-    {
-        $this->searchTerm = trim($term);
-        $this->putSession('search', $this->searchTerm);
-    }
-
-    protected function getDirectoryContents($dir)
-    {
-        $editableAssetTypes = Asset::getEditableExtensions();
-
-        $result = [];
-        $files = [];
-
-        foreach ($dir as $node) {
-            if (substr($node->getFileName(), 0, 1) == '.') {
-                continue;
-            }
-
-            if ($node->isDir() && !$node->isDot()) {
-                $result[$node->getFilename()] = (object)[
-                    'type'     => 'directory',
-                    'path'     => File::normalizePath($this->getRelativePath($node->getPathname())),
-                    'name'     => $node->getFilename(),
-                    'editable' => false
-                ];
-            }
-            elseif ($node->isFile()) {
-                $files[] = (object)[
-                    'type'     => 'file',
-                    'path'     => File::normalizePath($this->getRelativePath($node->getPathname())),
-                    'name'     => $node->getFilename(),
-                    'editable' => in_array(strtolower($node->getExtension()), $editableAssetTypes)
-                ];
-            }
-        }
-
-        foreach ($files as $file) {
-            $result[] = $file;
-        }
-
-        return $result;
-    }
-
-    protected function getRelativePath($path)
-    {
-        $prefix = $this->getAssetsPath();
-
-        if (substr($path, 0, strlen($prefix)) == $prefix) {
-            $path = substr($path, strlen($prefix));
-        }
-
-        return $path;
-    }
-
-    protected function findFiles()
-    {
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($this->getAssetsPath(), RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::SELF_FIRST,
-            RecursiveIteratorIterator::CATCH_GET_CHILD
-        );
-
-        $editableAssetTypes = Asset::getEditableExtensions();
-        $searchTerm = Str::lower($this->getSearchTerm());
-        $words = explode(' ', $searchTerm);
-
-        $result = [];
-        foreach ($iterator as $item) {
-            if (!$item->isDir()) {
-                if (substr($item->getFileName(), 0, 1) == '.') {
-                    continue;
-                }
-
-                $path = $this->getRelativePath($item->getPathname());
-
-                if ($this->pathMatchesSearch($words, $path)) {
-                    $result[] = (object)[
-                        'type'     => 'file',
-                        'path'     => File::normalizePath($path),
-                        'name'     => $item->getFilename(),
-                        'editable' => in_array(strtolower($item->getExtension()), $editableAssetTypes)
-                    ];
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    /*
-     * Methods for the internal use
-     */
-
-    protected function pathMatchesSearch(&$words, $path)
-    {
-        foreach ($words as $word) {
-            $word = trim($word);
-            if (!strlen($word)) {
-                continue;
-            }
-
-            if (!Str::contains(Str::lower($path), $word)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
+    //
+    // Event handlers
+    //
 
     public function onOpenDirectory()
     {
@@ -355,18 +107,18 @@ class AssetList extends WidgetBase
         ];
     }
 
-    public function onUpdate()
-    {
-        $this->extendSelection();
-
-        return $this->onRefresh();
-    }
-
     public function onRefresh()
     {
         return [
             '#'.$this->getId('asset-list') => $this->makePartial('items', ['items' => $this->getData()])
         ];
+    }
+
+    public function onUpdate()
+    {
+        $this->extendSelection();
+
+        return $this->onRefresh();
     }
 
     public function onDeleteFiles()
@@ -428,13 +180,6 @@ class AssetList extends WidgetBase
             'error'   => $error,
             'theme'   => Request::input('theme')
         ];
-    }
-
-    protected function validateRequestTheme()
-    {
-        if ($this->theme->getDirName() != Request::input('theme')) {
-            throw new ApplicationException(trans('cms::lang.theme.edit.not_match'));
-        }
     }
 
     public function onLoadRenamePopup()
@@ -500,24 +245,6 @@ class AssetList extends WidgetBase
         ];
     }
 
-    protected function validateName($name)
-    {
-        if (!preg_match('/^[0-9a-z\.\s_\-]+$/i', $name)) {
-            return false;
-        }
-
-        if (strpos($name, '..') !== false) {
-            return false;
-        }
-
-        return true;
-    }
-
-    protected function getFullPath($path)
-    {
-        return $this->getAssetsPath().'/'.ltrim($path, '/');
-    }
-
     public function onLoadNewDirPopup()
     {
         $this->validateRequestTheme();
@@ -576,35 +303,6 @@ class AssetList extends WidgetBase
         $this->vars['selectedList'] = base64_encode(json_encode(array_keys($selectedList)));
 
         return $this->makePartial('move_form');
-    }
-
-    protected function listDestinationDirectories(&$result, $excludeList, $startDir = null, $level = 0)
-    {
-        if ($startDir === null) {
-            $startDir = $this->getAssetsPath();
-
-            $result['/'] = 'assets';
-            $level = 1;
-        }
-
-        $dirs = new DirectoryIterator($startDir);
-        foreach ($dirs as $node) {
-            if (substr($node->getFileName(), 0, 1) == '.') {
-                continue;
-            }
-
-            if ($node->isDir() && !$node->isDot()) {
-                $fullPath = $node->getPathname();
-                $relativePath = $this->getRelativePath($fullPath);
-                if (array_key_exists($relativePath, $excludeList)) {
-                    continue;
-                }
-
-                $result[$relativePath] = str_repeat('&nbsp;', $level*4).$node->getFilename();
-
-                $this->listDestinationDirectories($result, $excludeList, $fullPath, $level+1);
-            }
-        }
     }
 
     public function onMove()
@@ -697,18 +395,183 @@ class AssetList extends WidgetBase
         return $this->onRefresh();
     }
 
-    /**
-     * @inheritDoc
+    /*
+     * Methods for the internal use
      */
-    protected function loadAssets()
+
+    protected function getData()
     {
-        $this->addCss('css/assetlist.css', 'core');
-        $this->addJs('js/assetlist.js', 'core');
+        $assetsPath = $this->getAssetsPath();
+
+        if (!file_exists($assetsPath) || !is_dir($assetsPath)) {
+            if (!File::makeDirectory($assetsPath)) {
+                throw new ApplicationException(Lang::get(
+                    'cms::lang.cms_object.error_creating_directory',
+                    ['name' => $assetsPath]
+                ));
+            }
+        }
+
+        $searchTerm = Str::lower($this->getSearchTerm());
+
+        if (!strlen($searchTerm)) {
+            $currentPath = $this->getCurrentPath();
+            return $this->getDirectoryContents(
+                new DirectoryIterator($currentPath)
+            );
+        }
+
+        return $this->findFiles();
+    }
+
+    protected function getAssetsPath()
+    {
+        return $this->theme->getPath().'/assets';
     }
 
     protected function getThemeFileUrl($path)
     {
         return Url::to('themes/'.$this->theme->getDirName().'/assets'.$path);
+    }
+
+    public function getCurrentRelativePath()
+    {
+        $path = $this->getSession('currentPath', '/');
+
+        if (!$this->validatePath($path)) {
+            return null;
+        }
+
+        if ($path == '.') {
+            return null;
+        }
+
+        return ltrim($path, '/');
+    }
+
+    protected function getCurrentPath()
+    {
+        $assetsPath = $this->getAssetsPath();
+
+        $path = $assetsPath.'/'.$this->getCurrentRelativePath();
+        if (!is_dir($path)) {
+            return $assetsPath;
+        }
+
+        return $path;
+    }
+
+    protected function getRelativePath($path)
+    {
+        $prefix = $this->getAssetsPath();
+
+        if (substr($path, 0, strlen($prefix)) == $prefix) {
+            $path = substr($path, strlen($prefix));
+        }
+
+        return $path;
+    }
+
+    protected function getFullPath($path)
+    {
+        return $this->getAssetsPath().'/'.ltrim($path, '/');
+    }
+
+    protected function validatePath($path)
+    {
+        if (!preg_match('/^[0-9a-z\.\s_\-\/]+$/i', $path)) {
+            return false;
+        }
+
+        if (strpos($path, '..') !== false || strpos($path, './') !== false) {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function validateName($name)
+    {
+        if (!preg_match('/^[0-9a-z\.\s_\-]+$/i', $name)) {
+            return false;
+        }
+
+        if (strpos($name, '..') !== false) {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function getDirectoryContents($dir)
+    {
+        $editableAssetTypes = Asset::getEditableExtensions();
+
+        $result = [];
+        $files = [];
+
+        foreach ($dir as $node) {
+            if (substr($node->getFileName(), 0, 1) == '.') {
+                continue;
+            }
+
+            if ($node->isDir() && !$node->isDot()) {
+                $result[$node->getFilename()] = (object)[
+                    'type'     => 'directory',
+                    'path'     => File::normalizePath($this->getRelativePath($node->getPathname())),
+                    'name'     => $node->getFilename(),
+                    'editable' => false
+                ];
+            }
+            elseif ($node->isFile()) {
+                $files[] = (object)[
+                    'type'     => 'file',
+                    'path'     => File::normalizePath($this->getRelativePath($node->getPathname())),
+                    'name'     => $node->getFilename(),
+                    'editable' => in_array(strtolower($node->getExtension()), $editableAssetTypes)
+                ];
+            }
+        }
+
+        foreach ($files as $file) {
+            $result[] = $file;
+        }
+
+        return $result;
+    }
+
+    protected function listDestinationDirectories(&$result, $excludeList, $startDir = null, $level = 0)
+    {
+        if ($startDir === null) {
+            $startDir = $this->getAssetsPath();
+
+            $result['/'] = 'assets';
+            $level = 1;
+        }
+
+        $dirs = new DirectoryIterator($startDir);
+        foreach ($dirs as $node) {
+            if (substr($node->getFileName(), 0, 1) == '.') {
+                continue;
+            }
+
+            if ($node->isDir() && !$node->isDot()) {
+                $fullPath = $node->getPathname();
+                $relativePath = $this->getRelativePath($fullPath);
+                if (array_key_exists($relativePath, $excludeList)) {
+                    continue;
+                }
+
+                $result[$relativePath] = str_repeat('&nbsp;', $level*4).$node->getFilename();
+
+                $this->listDestinationDirectories($result, $excludeList, $fullPath, $level+1);
+            }
+        }
+    }
+
+    protected function getSearchTerm()
+    {
+        return $this->searchTerm !== false ? $this->searchTerm : $this->getSession('search');
     }
 
     protected function isSearchMode()
@@ -729,5 +592,146 @@ class AssetList extends WidgetBase
         }
 
         return dirname($path);
+    }
+
+    protected function validateRequestTheme()
+    {
+        if ($this->theme->getDirName() != Request::input('theme')) {
+            throw new ApplicationException(trans('cms::lang.theme.edit.not_match'));
+        }
+    }
+
+    /**
+     * Check for valid asset file extension
+     * @param string
+     * @return bool
+     */
+    protected function validateFileType($name)
+    {
+        $extension = strtolower(File::extension($name));
+
+        if (!in_array($extension, $this->assetExtensions)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Checks the current request to see if it is a postback containing a file upload
+     * for this particular widget.
+     */
+    protected function checkUploadPostback()
+    {
+        $fileName = null;
+
+        try {
+            $uploadedFile = Input::file('file_data');
+
+            if (!is_object($uploadedFile)) {
+                return;
+            }
+
+            $fileName = $uploadedFile->getClientOriginalName();
+
+            /*
+             * Check valid upload
+             */
+            if (!$uploadedFile->isValid()) {
+                throw new ApplicationException(Lang::get('cms::lang.asset.file_not_valid'));
+            }
+
+            /*
+             * Check file size
+             */
+            $maxSize = UploadedFile::getMaxFilesize();
+            if ($uploadedFile->getSize() > $maxSize) {
+                throw new ApplicationException(Lang::get(
+                    'cms::lang.asset.too_large',
+                    ['max_size' => File::sizeToString($maxSize)]
+                ));
+            }
+
+            /*
+             * Check for valid file extensions
+             */
+            if (!$this->validateFileType($fileName)) {
+                throw new ApplicationException(Lang::get(
+                    'cms::lang.asset.type_not_allowed',
+                    ['allowed_types' => implode(', ', $this->assetExtensions)]
+                ));
+            }
+
+            /*
+             * Accept the uploaded file
+             */
+            $uploadedFile->move($this->getCurrentPath(), $uploadedFile->getClientOriginalName());
+
+            die('success');
+        }
+        catch (Exception $ex) {
+            $message = $fileName !== null
+                ? Lang::get('cms::lang.asset.error_uploading_file', ['name' => $fileName, 'error' => $ex->getMessage()])
+                : $ex->getMessage();
+
+            die($message);
+        }
+    }
+
+    protected function setSearchTerm($term)
+    {
+        $this->searchTerm = trim($term);
+        $this->putSession('search', $this->searchTerm);
+    }
+
+    protected function findFiles()
+    {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($this->getAssetsPath(), RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST,
+            RecursiveIteratorIterator::CATCH_GET_CHILD
+        );
+
+        $editableAssetTypes = Asset::getEditableExtensions();
+        $searchTerm = Str::lower($this->getSearchTerm());
+        $words = explode(' ', $searchTerm);
+
+        $result = [];
+        foreach ($iterator as $item) {
+            if (!$item->isDir()) {
+                if (substr($item->getFileName(), 0, 1) == '.') {
+                    continue;
+                }
+
+                $path = $this->getRelativePath($item->getPathname());
+
+                if ($this->pathMatchesSearch($words, $path)) {
+                    $result[] = (object)[
+                        'type'     => 'file',
+                        'path'     => File::normalizePath($path),
+                        'name'     => $item->getFilename(),
+                        'editable' => in_array(strtolower($item->getExtension()), $editableAssetTypes)
+                    ];
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    protected function pathMatchesSearch(&$words, $path)
+    {
+        foreach ($words as $word) {
+            $word = trim($word);
+            if (!strlen($word)) {
+                continue;
+            }
+
+            if (!Str::contains(Str::lower($path), $word)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

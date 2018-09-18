@@ -1,13 +1,12 @@
 /*
  * Inspector dictionary editor class.
  */
-+function ($) {
-    "use strict";
++function ($) { "use strict";
 
     var Base = $.oc.inspector.propertyEditors.popupBase,
         BaseProto = Base.prototype
 
-    var DictionaryEditor = function (inspector, propertyDefinition, containerCell, group) {
+    var DictionaryEditor = function(inspector, propertyDefinition, containerCell, group) {
         this.keyValidationSet = null
         this.valueValidationSet = null
 
@@ -17,22 +16,22 @@
     DictionaryEditor.prototype = Object.create(BaseProto)
     DictionaryEditor.prototype.constructor = Base
 
-    DictionaryEditor.prototype.dispose = function () {
+    DictionaryEditor.prototype.dispose = function() {
         this.disposeValidators()
-
+        
         this.keyValidationSet = null
         this.valueValidationSet = null
 
         BaseProto.dispose.call(this)
     }
 
-    DictionaryEditor.prototype.init = function () {
+    DictionaryEditor.prototype.init = function() {
         this.initValidators()
 
         BaseProto.init.call(this)
     }
 
-    DictionaryEditor.prototype.supportsExternalParameterEditor = function () {
+    DictionaryEditor.prototype.supportsExternalParameterEditor = function() {
         return false
     }
 
@@ -40,9 +39,9 @@
     // Popup editor methods
     //
 
-    DictionaryEditor.prototype.setLinkText = function (link, value) {
-        var value = value !== undefined ? value
-            : this.inspector.getPropertyValue(this.propertyDefinition.property)
+    DictionaryEditor.prototype.setLinkText = function(link, value) {
+        var value = value !== undefined ? value 
+                : this.inspector.getPropertyValue(this.propertyDefinition.property)
 
         if (value === undefined) {
             value = this.propertyDefinition.default
@@ -71,7 +70,7 @@
         }
     }
 
-    DictionaryEditor.prototype.getPopupContent = function () {
+    DictionaryEditor.prototype.getPopupContent = function() {
         return '<form>                                                                                  \
                 <div class="modal-header">                                                              \
                     <button type="button" class="close" data-dismiss="popup">&times;</button>           \
@@ -121,13 +120,13 @@
                 </form>'
     }
 
-    DictionaryEditor.prototype.configurePopup = function (popup) {
+    DictionaryEditor.prototype.configurePopup = function(popup) {
         this.buildItemsTable(popup.get(0))
 
         this.focusFirstInput()
     }
 
-    DictionaryEditor.prototype.handleSubmit = function ($form) {
+    DictionaryEditor.prototype.handleSubmit = function($form) {
         return this.applyValues()
     }
 
@@ -135,7 +134,7 @@
     // Building and row management
     //
 
-    DictionaryEditor.prototype.buildItemsTable = function (popup) {
+    DictionaryEditor.prototype.buildItemsTable = function(popup) {
         var table = popup.querySelector('table.inspector-dictionary-table'),
             tbody = document.createElement('tbody'),
             items = this.inspector.getPropertyValue(this.propertyDefinition.property),
@@ -162,7 +161,7 @@
         this.updateScrollpads()
     }
 
-    DictionaryEditor.prototype.buildTableRow = function (key, value) {
+    DictionaryEditor.prototype.buildTableRow = function(key, value) {
         var row = document.createElement('tr'),
             keyCell = document.createElement('td'),
             valueCell = document.createElement('td')
@@ -176,11 +175,11 @@
         return row
     }
 
-    DictionaryEditor.prototype.buildEmptyRow = function () {
+    DictionaryEditor.prototype.buildEmptyRow = function() {
         return this.buildTableRow(null, null)
     }
 
-    DictionaryEditor.prototype.createInput = function (container, value) {
+    DictionaryEditor.prototype.createInput = function(container, value) {
         var input = document.createElement('input'),
             controlContainer = document.createElement('div')
 
@@ -192,10 +191,10 @@
         container.appendChild(controlContainer)
     }
 
-    DictionaryEditor.prototype.setActiveCell = function (input) {
+    DictionaryEditor.prototype.setActiveCell = function(input) {
         var activeCells = this.popup.querySelectorAll('td.active')
 
-        for (var i = activeCells.length - 1; i >= 0; i--) {
+        for (var i = activeCells.length-1; i >= 0; i--) {
             $.oc.foundation.element.removeClass(activeCells[i], 'active')
         }
 
@@ -203,7 +202,7 @@
         $.oc.foundation.element.addClass(activeCell, 'active')
     }
 
-    DictionaryEditor.prototype.createItem = function () {
+    DictionaryEditor.prototype.createItem = function() {
         var activeRow = this.getActiveRow(),
             newRow = this.buildEmptyRow(),
             tbody = this.getTableBody(),
@@ -215,7 +214,7 @@
         this.updateScrollpads()
     }
 
-    DictionaryEditor.prototype.deleteItem = function () {
+    DictionaryEditor.prototype.deleteItem = function() {
         var activeRow = this.getActiveRow(),
             tbody = this.getTableBody()
 
@@ -235,11 +234,11 @@
             tbody.appendChild(newSelectedRow)
         }
 
-        this.focusAndMakeActive(newSelectedRow.querySelector('input'))
+        this.focusAndMakeActive(newSelectedRow .querySelector('input'))
         this.updateScrollpads()
     }
 
-    DictionaryEditor.prototype.applyValues = function () {
+    DictionaryEditor.prototype.applyValues = function() {
         var tbody = this.getTableBody(),
             dataRows = tbody.querySelectorAll('tr'),
             link = this.getLink(),
@@ -273,7 +272,7 @@
                 this.focusAndMakeActive(keyInput)
                 return false
             }
-
+        
             var validationResult = this.keyValidationSet.validate(key)
             if (validationResult !== null) {
                 $.oc.flashMsg({text: validationResult, 'class': 'error', 'interval': 5})
@@ -297,7 +296,7 @@
     // Helpers
     //
 
-    DictionaryEditor.prototype.getValueKeys = function (value) {
+    DictionaryEditor.prototype.getValueKeys = function(value) {
         var result = []
 
         for (var key in value) {
@@ -307,7 +306,7 @@
         return result
     }
 
-    DictionaryEditor.prototype.getActiveRow = function () {
+    DictionaryEditor.prototype.getActiveRow = function() {
         var activeCell = this.popup.querySelector('td.active')
 
         if (!activeCell) {
@@ -317,15 +316,15 @@
         return activeCell.parentNode
     }
 
-    DictionaryEditor.prototype.getTableBody = function () {
+    DictionaryEditor.prototype.getTableBody = function() {
         return this.popup.querySelector('table.inspector-dictionary-table tbody')
     }
 
-    DictionaryEditor.prototype.updateScrollpads = function () {
+    DictionaryEditor.prototype.updateScrollpads = function() {
         $('.control-scrollpad', this.popup).scrollpad('update')
     }
 
-    DictionaryEditor.prototype.focusFirstInput = function () {
+    DictionaryEditor.prototype.focusFirstInput = function() {
         var input = this.popup.querySelector('td input')
 
         if (input) {
@@ -334,20 +333,20 @@
         }
     }
 
-    DictionaryEditor.prototype.getEditorCell = function (cell) {
+    DictionaryEditor.prototype.getEditorCell = function(cell) {
         return cell.parentNode.parentNode // cell / div / td
     }
 
-    DictionaryEditor.prototype.getEditorRow = function (cell) {
+    DictionaryEditor.prototype.getEditorRow = function(cell) {
         return cell.parentNode.parentNode.parentNode // cell / div / td / tr
     }
 
-    DictionaryEditor.prototype.focusAndMakeActive = function (input) {
+    DictionaryEditor.prototype.focusAndMakeActive = function(input) {
         input.focus()
         this.setActiveCell(input)
     }
 
-    DictionaryEditor.prototype.getRowInputByIndex = function (row, index) {
+    DictionaryEditor.prototype.getRowInputByIndex = function(row, index) {
         return row.cells[index].querySelector('input')
     }
 
@@ -355,7 +354,7 @@
     // Navigation
     //
 
-    DictionaryEditor.prototype.navigateDown = function (ev) {
+    DictionaryEditor.prototype.navigateDown = function(ev) {
         var cell = this.getEditorCell(ev.currentTarget),
             row = this.getEditorRow(ev.currentTarget),
             nextRow = row.nextElementSibling
@@ -369,7 +368,7 @@
         this.focusAndMakeActive(newActiveEditor)
     }
 
-    DictionaryEditor.prototype.navigateUp = function (ev) {
+    DictionaryEditor.prototype.navigateUp = function(ev) {
         var cell = this.getEditorCell(ev.currentTarget),
             row = this.getEditorRow(ev.currentTarget),
             prevRow = row.previousElementSibling
@@ -387,17 +386,17 @@
     // Validation
     //
 
-    DictionaryEditor.prototype.initValidators = function () {
+    DictionaryEditor.prototype.initValidators = function() {
         this.keyValidationSet = new $.oc.inspector.validationSet({
             validation: this.propertyDefinition.validationKey
-        }, this.propertyDefinition.property + '.validationKey')
+        }, this.propertyDefinition.property+'.validationKey')
 
         this.valueValidationSet = new $.oc.inspector.validationSet({
             validation: this.propertyDefinition.validationValue
-        }, this.propertyDefinition.property + '.validationValue')
+        }, this.propertyDefinition.property+'.validationValue')
     }
 
-    DictionaryEditor.prototype.disposeValidators = function () {
+    DictionaryEditor.prototype.disposeValidators = function() {
         this.keyValidationSet.dispose()
         this.valueValidationSet.dispose()
     }
@@ -406,39 +405,39 @@
     // Event handlers
     //
 
-    DictionaryEditor.prototype.onPopupShown = function (ev, link, popup) {
-        BaseProto.onPopupShown.call(this, ev, link, popup)
+    DictionaryEditor.prototype.onPopupShown = function(ev, link, popup) {
+        BaseProto.onPopupShown.call(this,ev, link, popup )
 
         popup.on('focus.inspector', 'td input', this.proxy(this.onFocus))
         popup.on('keydown.inspector', 'td input', this.proxy(this.onKeyDown))
         popup.on('click.inspector', '[data-cmd]', this.proxy(this.onCommand))
     }
 
-    DictionaryEditor.prototype.onPopupHidden = function (ev, link, popup) {
+    DictionaryEditor.prototype.onPopupHidden = function(ev, link, popup) {
         popup.off('.inspector', 'td input')
         popup.off('.inspector', '[data-cmd]', this.proxy(this.onCommand))
 
         BaseProto.onPopupHidden.call(this, ev, link, popup)
     }
 
-    DictionaryEditor.prototype.onFocus = function (ev) {
+    DictionaryEditor.prototype.onFocus = function(ev) {
         this.setActiveCell(ev.currentTarget)
     }
 
-    DictionaryEditor.prototype.onCommand = function (ev) {
+    DictionaryEditor.prototype.onCommand = function(ev) {
         var command = ev.currentTarget.getAttribute('data-cmd')
 
         switch (command) {
-            case 'create-item' :
+            case 'create-item' : 
                 this.createItem()
-                break;
-            case 'delete-item' :
+            break;
+            case 'delete-item' : 
                 this.deleteItem()
-                break;
+            break;
         }
     }
 
-    DictionaryEditor.prototype.onKeyDown = function (ev) {
+    DictionaryEditor.prototype.onKeyDown = function(ev) {
         if (ev.keyCode == 40) {
             return this.navigateDown(ev)
         }

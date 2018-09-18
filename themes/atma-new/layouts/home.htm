@@ -14,7 +14,7 @@ default = 0
     </head>
     <body>
 
-            {% partial "header" %}
+            {% partial "header" %}  
 
                 {% partial "nav" %}
        {% partial "home-slideshow" %}
@@ -22,11 +22,11 @@ default = 0
 <div class="container">
       <!-- Marketing Icons Section -->
       <div class="row">
-              <div class="col-lg-4 mb-4 left-block">   
+              <div class="col-lg-3 mb-4 left-block">   
                           {% partial "current-events-sidebar" %}
 
 </div>
- <div class="col-lg-8 mb-4">
+ <div class="col-lg-9 mb-4">
           <div class="right-block">
                               {% partial "title" %}
                         {% page %}
@@ -34,9 +34,31 @@ default = 0
           </div>
           </div>
       </div>
-      
+
+<div class="grey-block">
+      <div class="container">
+      <div class="row">
+        <div class="col-lg-4 col-sm-6 portfolio-item">
+             
+                        {% partial "news-slider" %}
+                      
+         </div>
+        <div class="col-lg-4 col-sm-6 portfolio-item"> 
+            {% partial "gallary-slider" %}
+        </div>
+        <div class="col-lg-4 col-sm-6 portfolio-item">
+              {% partial "video-slider" %}
+        </div>
+     </div>
+      <!-- /.row -->
+    </div>
+</div>  
+      <!-- /.row -->
+    </div>
+</div>        
       </div>
-      
+            {% partial "footer" %}
+
         <!-- Scripts -->
         {% partial 'scripts' %}
     </body>

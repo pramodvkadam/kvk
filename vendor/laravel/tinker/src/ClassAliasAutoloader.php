@@ -22,6 +22,20 @@ class ClassAliasAutoloader
     protected $classes = [];
 
     /**
+     * Register a new alias loader instance.
+     *
+     * @param  \Psy\Shell  $shell
+     * @param  string  $classMapPath
+     * @return static
+     */
+    public static function register(Shell $shell, $classMapPath)
+    {
+        return tap(new static($shell, $classMapPath), function ($loader) {
+            spl_autoload_register([$loader, 'aliasClass']);
+        });
+    }
+
+    /**
      * Create a new alias loader instance.
      *
      * @param  \Psy\Shell  $shell
@@ -36,8 +50,16 @@ class ClassAliasAutoloader
 
         $classes = require $classMapPath;
 
+        $excludedAliases = collect(config('tinker.dont_alias', []));
+
         foreach ($classes as $class => $path) {
             if (! Str::contains($class, '\\') || Str::startsWith($path, $vendorPath)) {
+                continue;
+            }
+
+            if (! $excludedAliases->filter(function ($alias) use ($class) {
+                return Str::startsWith($class, $alias);
+            })->isEmpty()) {
                 continue;
             }
 
@@ -47,20 +69,6 @@ class ClassAliasAutoloader
                 $this->classes[$name] = $class;
             }
         }
-    }
-
-    /**
-     * Register a new alias loader instance.
-     *
-     * @param  \Psy\Shell  $shell
-     * @param  string  $classMapPath
-     * @return static
-     */
-    public static function register(Shell $shell, $classMapPath)
-    {
-        return tap(new static($shell, $classMapPath), function ($loader) {
-            spl_autoload_register([$loader, 'aliasClass']);
-        });
     }
 
     /**
@@ -87,16 +95,6 @@ class ClassAliasAutoloader
     }
 
     /**
-     * Handle the destruction of the instance.
-     *
-     * @return void
-     */
-    public function __destruct()
-    {
-        $this->unregister();
-    }
-
-    /**
      * Unregister the alias loader instance.
      *
      * @return void
@@ -104,5 +102,15 @@ class ClassAliasAutoloader
     public function unregister()
     {
         spl_autoload_unregister([$this, 'aliasClass']);
+    }
+
+    /**
+     * Handle the destruction of the instance.
+     *
+     * @return void
+     */
+    public function __destruct()
+    {
+        $this->unregister();
     }
 }

@@ -62,6 +62,26 @@ class RouteRegistrar
     }
 
     /**
+     * Set the value for a given attribute.
+     *
+     * @param  string  $key
+     * @param  mixed  $value
+     * @return $this
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function attribute($key, $value)
+    {
+        if (! in_array($key, $this->allowedAttributes)) {
+            throw new InvalidArgumentException("Attribute [{$key}] does not exist.");
+        }
+
+        $this->attributes[Arr::get($this->aliases, $key, $key)] = $value;
+
+        return $this;
+    }
+
+    /**
      * Route a resource to a controller.
      *
      * @param  string  $name
@@ -96,6 +116,23 @@ class RouteRegistrar
     public function match($methods, $uri, $action = null)
     {
         return $this->router->match($methods, $uri, $this->compileAction($action));
+    }
+
+    /**
+     * Register a new route with the router.
+     *
+     * @param  string  $method
+     * @param  string  $uri
+     * @param  \Closure|array|string|null  $action
+     * @return \Illuminate\Routing\Route
+     */
+    protected function registerRoute($method, $uri, $action = null)
+    {
+        if (! is_array($action)) {
+            $action = array_merge($this->attributes, $action ? ['uses' => $action] : []);
+        }
+
+        return $this->router->{$method}($uri, $this->compileAction($action));
     }
 
     /**
@@ -139,42 +176,5 @@ class RouteRegistrar
         }
 
         throw new BadMethodCallException("Method [{$method}] does not exist.");
-    }
-
-    /**
-     * Register a new route with the router.
-     *
-     * @param  string  $method
-     * @param  string  $uri
-     * @param  \Closure|array|string|null  $action
-     * @return \Illuminate\Routing\Route
-     */
-    protected function registerRoute($method, $uri, $action = null)
-    {
-        if (! is_array($action)) {
-            $action = array_merge($this->attributes, $action ? ['uses' => $action] : []);
-        }
-
-        return $this->router->{$method}($uri, $this->compileAction($action));
-    }
-
-    /**
-     * Set the value for a given attribute.
-     *
-     * @param  string  $key
-     * @param  mixed  $value
-     * @return $this
-     *
-     * @throws \InvalidArgumentException
-     */
-    public function attribute($key, $value)
-    {
-        if (! in_array($key, $this->allowedAttributes)) {
-            throw new InvalidArgumentException("Attribute [{$key}] does not exist.");
-        }
-
-        $this->attributes[Arr::get($this->aliases, $key, $key)] = $value;
-
-        return $this;
     }
 }

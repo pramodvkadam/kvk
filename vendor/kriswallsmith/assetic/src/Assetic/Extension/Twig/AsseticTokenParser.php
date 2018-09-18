@@ -136,6 +136,16 @@ class AsseticTokenParser extends \Twig_TokenParser
         return $this->createBodyNode($asset, $body, $inputs, $filters, $name, $attributes, $token->getLine(), $this->getTag());
     }
 
+    public function getTag()
+    {
+        return $this->tag;
+    }
+
+    public function testEndTag(\Twig_Token $token)
+    {
+        return $token->test(array('end'.$this->getTag()));
+    }
+
     /**
      * @param AssetInterface $asset
      * @param \Twig_Node     $body
@@ -184,15 +194,5 @@ class AsseticTokenParser extends \Twig_TokenParser
         }
 
         return new AsseticNode($asset, $body, $inputs, $filters, $name, $attributes, $lineno, $tag);
-    }
-
-    public function getTag()
-    {
-        return $this->tag;
-    }
-
-    public function testEndTag(\Twig_Token $token)
-    {
-        return $token->test(array('end'.$this->getTag()));
     }
 }

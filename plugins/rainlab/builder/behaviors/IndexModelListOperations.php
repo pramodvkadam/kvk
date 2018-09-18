@@ -51,15 +51,6 @@ class IndexModelListOperations extends IndexOperationsBehaviorBase
         return $result;
     }
 
-    protected function getTabId($modelClass, $fileName)
-    {
-        if (!strlen($fileName)) {
-            return 'modelForm-'.uniqid(time());
-        }
-
-        return 'modelList-'.$modelClass.'-'.$fileName;
-    }
-
     public function onModelListSave()
     {
         $model = $this->loadOrCreateListFromPost();
@@ -80,54 +71,6 @@ class IndexModelListOperations extends IndexOperationsBehaviorBase
         $this->mergeRegistryDataIntoResult($result, $model, $modelClass);
 
         return $result;
-    }
-
-    protected function loadOrCreateListFromPost()
-    {
-        $pluginCode = Request::input('plugin_code');
-        $modelClass = Input::get('model_class');
-        $fileName = Input::get('file_name');
-
-        $options = [
-            'pluginCode' => $pluginCode,
-            'modelClass' => $modelClass
-        ];
-
-        return $this->loadOrCreateBaseModel($fileName, $options);
-    }
-
-    protected function loadOrCreateBaseModel($fileName, $options = [])
-    {
-        $model = new ModelListModel();
-
-        if (isset($options['pluginCode']) && isset($options['modelClass'])) {
-            $model->setPluginCode($options['pluginCode']);
-            $model->setModelClassName($options['modelClass']);
-        }
-
-        if (!$fileName) {
-            $model->initDefaults();
-
-            return $model;
-        }
-
-        $model->loadForm($fileName);
-        return $model;
-    }
-
-    protected function mergeRegistryDataIntoResult(&$result, $model, $modelClass)
-    {
-        if (!array_key_exists('builderResponseData', $result)) {
-            $result['builderResponseData'] = [];
-        }
-
-        $fullClassName = $model->getPluginCodeObj()->toPluginNamespace().'\\Models\\'.$modelClass;
-        $pluginCode = $model->getPluginCodeObj()->toCode();
-        $result['builderResponseData']['registryData'] = [
-            'lists' => ModelListModel::getPluginRegistryData($pluginCode, $modelClass),
-            'pluginCode' => $pluginCode,
-            'modelClass' => $fullClassName
-        ];
     }
 
     public function onModelListDelete()
@@ -171,6 +114,63 @@ class IndexModelListOperations extends IndexOperationsBehaviorBase
             'responseData' => [
                 'columns' => $columns
             ]
+        ];
+    }
+
+    protected function loadOrCreateListFromPost()
+    {
+        $pluginCode = Request::input('plugin_code');
+        $modelClass = Input::get('model_class');
+        $fileName = Input::get('file_name');
+
+        $options = [
+            'pluginCode' => $pluginCode,
+            'modelClass' => $modelClass
+        ];
+
+        return $this->loadOrCreateBaseModel($fileName, $options);
+    }
+
+    protected function getTabId($modelClass, $fileName)
+    {
+        if (!strlen($fileName)) {
+            return 'modelForm-'.uniqid(time());
+        }
+
+        return 'modelList-'.$modelClass.'-'.$fileName;
+    }
+
+    protected function loadOrCreateBaseModel($fileName, $options = [])
+    {
+        $model = new ModelListModel();
+
+        if (isset($options['pluginCode']) && isset($options['modelClass'])) {
+            $model->setPluginCode($options['pluginCode']);
+            $model->setModelClassName($options['modelClass']);
+        }
+
+        if (!$fileName) {
+            $model->initDefaults();
+
+            return $model;
+        }
+
+        $model->loadForm($fileName);
+        return $model;
+    }
+
+    protected function mergeRegistryDataIntoResult(&$result, $model, $modelClass)
+    {
+        if (!array_key_exists('builderResponseData', $result)) {
+            $result['builderResponseData'] = [];
+        }
+
+        $fullClassName = $model->getPluginCodeObj()->toPluginNamespace().'\\Models\\'.$modelClass;
+        $pluginCode = $model->getPluginCodeObj()->toCode();
+        $result['builderResponseData']['registryData'] = [
+            'lists' => ModelListModel::getPluginRegistryData($pluginCode, $modelClass),
+            'pluginCode' => $pluginCode,
+            'modelClass' => $fullClassName
         ];
     }
 }

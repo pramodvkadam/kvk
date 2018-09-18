@@ -91,31 +91,6 @@ class WindowsPipes extends AbstractPipes
     /**
      * {@inheritdoc}
      */
-    public function close()
-    {
-        parent::close();
-        foreach ($this->fileHandles as $handle) {
-            fclose($handle);
-        }
-        $this->fileHandles = array();
-    }
-
-    /**
-     * Removes temporary files.
-     */
-    private function removeFiles()
-    {
-        foreach ($this->files as $filename) {
-            if (file_exists($filename)) {
-                @unlink($filename);
-            }
-        }
-        $this->files = array();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function getDescriptors()
     {
         if (!$this->haveReadSupport) {
@@ -192,5 +167,30 @@ class WindowsPipes extends AbstractPipes
     public function areOpen()
     {
         return $this->pipes && $this->fileHandles;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function close()
+    {
+        parent::close();
+        foreach ($this->fileHandles as $handle) {
+            fclose($handle);
+        }
+        $this->fileHandles = array();
+    }
+
+    /**
+     * Removes temporary files.
+     */
+    private function removeFiles()
+    {
+        foreach ($this->files as $filename) {
+            if (file_exists($filename)) {
+                @unlink($filename);
+            }
+        }
+        $this->files = array();
     }
 }

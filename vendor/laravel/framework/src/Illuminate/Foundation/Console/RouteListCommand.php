@@ -76,17 +76,6 @@ class RouteListCommand extends Command
     }
 
     /**
-     * Display the route information on the console.
-     *
-     * @param  array  $routes
-     * @return void
-     */
-    protected function displayRoutes(array $routes)
-    {
-        $this->table($this->headers, $routes);
-    }
-
-    /**
      * Compile the routes into a displayable format.
      *
      * @return array
@@ -127,20 +116,28 @@ class RouteListCommand extends Command
     }
 
     /**
-     * Filter the route by URI and / or name.
+     * Sort the routes by a given element.
      *
-     * @param  array  $route
-     * @return array|null
+     * @param  string  $sort
+     * @param  array  $routes
+     * @return array
      */
-    protected function filterRoute(array $route)
+    protected function sortRoutes($sort, $routes)
     {
-        if (($this->option('name') && ! Str::contains($route['name'], $this->option('name'))) ||
-             $this->option('path') && ! Str::contains($route['uri'], $this->option('path')) ||
-             $this->option('method') && ! Str::contains($route['method'], $this->option('method'))) {
-            return;
-        }
+        return Arr::sort($routes, function ($route) use ($sort) {
+            return $route[$sort];
+        });
+    }
 
-        return $route;
+    /**
+     * Display the route information on the console.
+     *
+     * @param  array  $routes
+     * @return void
+     */
+    protected function displayRoutes(array $routes)
+    {
+        $this->table($this->headers, $routes);
     }
 
     /**
@@ -157,17 +154,20 @@ class RouteListCommand extends Command
     }
 
     /**
-     * Sort the routes by a given element.
+     * Filter the route by URI and / or name.
      *
-     * @param  string  $sort
-     * @param  array  $routes
-     * @return array
+     * @param  array  $route
+     * @return array|null
      */
-    protected function sortRoutes($sort, $routes)
+    protected function filterRoute(array $route)
     {
-        return Arr::sort($routes, function ($route) use ($sort) {
-            return $route[$sort];
-        });
+        if (($this->option('name') && ! Str::contains($route['name'], $this->option('name'))) ||
+             $this->option('path') && ! Str::contains($route['uri'], $this->option('path')) ||
+             $this->option('method') && ! Str::contains($route['method'], strtoupper($this->option('method')))) {
+            return;
+        }
+
+        return $route;
     }
 
     /**

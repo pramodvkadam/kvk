@@ -34,15 +34,16 @@ trait Validation
      */
 
     /**
+     * @var \Illuminate\Support\MessageBag The message bag instance containing validation error messages
+     */
+    protected $validationErrors;
+
+    /**
      * The validator instance.
      *
      * @var \Illuminate\Validation\Validator
      */
     protected static $validator;
-    /**
-     * @var \Illuminate\Support\MessageBag The message bag instance containing validation error messages
-     */
-    protected $validationErrors;
 
     /**
      * Boot the validation trait for this model.
@@ -79,44 +80,22 @@ trait Validation
     }
 
     /**
-     * Create a new native event for handling beforeValidate().
-     * @param Closure|string $callback
-     * @return void
+     * Returns the model data used for validation.
+     * @return array
      */
-    public static function validating($callback)
+    protected function getValidationAttributes()
     {
-        static::registerModelEvent('validating', $callback);
+        return $this->getAttributes();
     }
 
     /**
-     * Create a new native event for handling afterValidate().
-     * @param Closure|string $callback
-     * @return void
+     * Instantiates the validator used by the validation process, depending if the class is being used inside or
+     * outside of Laravel.
+     * @return \Illuminate\Validation\Validator
      */
-    public static function validated($callback)
+    protected static function makeValidator($data, $rules, $customMessages, $attributeNames)
     {
-        static::registerModelEvent('validated', $callback);
-    }
-
-    /**
-     * Set the validator instance.
-     *
-     * @param  \Illuminate\Validation\Validator
-     * @return void
-     */
-    public static function setModelValidator($validator)
-    {
-        static::$validator = $validator;
-    }
-
-    /**
-     * Unset the validator for models.
-     *
-     * @return void
-     */
-    public static function unsetModelValidator()
-    {
-        static::$validator = null;
+        return static::getModelValidator()->make($data, $rules, $customMessages, $attributeNames);
     }
 
     /**
@@ -297,39 +276,6 @@ trait Validation
     }
 
     /**
-     * Returns the model data used for validation.
-     * @return array
-     */
-    protected function getValidationAttributes()
-    {
-        return $this->getAttributes();
-    }
-
-    /**
-     * Get the validator instance.
-     *
-     * @return \Illuminate\Validation\Validator
-     */
-    public static function getModelValidator()
-    {
-        if (static::$validator === null) {
-            static::$validator = Validator::getFacadeRoot();
-        }
-
-        return static::$validator;
-    }
-
-    /**
-     * Instantiates the validator used by the validation process, depending if the class is being used inside or
-     * outside of Laravel.
-     * @return \Illuminate\Validation\Validator
-     */
-    protected static function makeValidator($data, $rules, $customMessages, $attributeNames)
-    {
-        return static::getModelValidator()->make($data, $rules, $customMessages, $attributeNames);
-    }
-
-    /**
      * Determines if an attribute is required based on the validation rules.
      * @param  string  $attribute
      * @return boolean
@@ -370,5 +316,60 @@ trait Validation
     public function errors()
     {
         return $this->validationErrors;
+    }
+
+    /**
+     * Create a new native event for handling beforeValidate().
+     * @param Closure|string $callback
+     * @return void
+     */
+    public static function validating($callback)
+    {
+        static::registerModelEvent('validating', $callback);
+    }
+
+    /**
+     * Create a new native event for handling afterValidate().
+     * @param Closure|string $callback
+     * @return void
+     */
+    public static function validated($callback)
+    {
+        static::registerModelEvent('validated', $callback);
+    }
+
+    /**
+     * Get the validator instance.
+     *
+     * @return \Illuminate\Validation\Validator
+     */
+    public static function getModelValidator()
+    {
+        if (static::$validator === null) {
+            static::$validator = Validator::getFacadeRoot();
+        }
+
+        return static::$validator;
+    }
+
+    /**
+     * Set the validator instance.
+     *
+     * @param  \Illuminate\Validation\Validator
+     * @return void
+     */
+    public static function setModelValidator($validator)
+    {
+        static::$validator = $validator;
+    }
+
+    /**
+     * Unset the validator for models.
+     *
+     * @return void
+     */
+    public static function unsetModelValidator()
+    {
+        static::$validator = null;
     }
 }

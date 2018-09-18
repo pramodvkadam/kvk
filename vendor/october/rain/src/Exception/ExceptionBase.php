@@ -14,13 +14,15 @@ use Exception;
 class ExceptionBase extends Exception
 {
     /**
-     * @var string Hint Message to help the user with troubleshooting the error (optional).
-     */
-    public $hint;
-    /**
      * @var Exception If this exception is acting as a mask, this property stores the face exception.
      */
     protected $mask;
+
+    /**
+     * @var string Hint Message to help the user with troubleshooting the error (optional).
+     */
+    public $hint;
+
     /**
      * @var array File content relating to the exception, each value of the array is a file line number.
      */
@@ -63,6 +65,24 @@ class ExceptionBase extends Exception
     }
 
     /**
+     * Returns the class name of the called Exception.
+     * @return string
+     */
+    public function getClassName()
+    {
+        return $this->className;
+    }
+
+    /**
+     * Returns the error type derived from the error code used.
+     * @return string
+     */
+    public function getErrorType()
+    {
+        return $this->errorType;
+    }
+
+    /**
      * Masks an exception with the called class. This should catch fatal and php errors.
      * It should always be followed by the unmask() method to remove the mask.
      * @param string $message Error message.
@@ -83,24 +103,6 @@ class ExceptionBase extends Exception
     public static function unmask()
     {
         ErrorHandler::removeMask();
-    }
-
-    /**
-     * Returns the class name of the called Exception.
-     * @return string
-     */
-    public function getClassName()
-    {
-        return $this->className;
-    }
-
-    /**
-     * Returns the error type derived from the error code used.
-     * @return string
-     */
-    public function getErrorType()
-    {
-        return $this->errorType;
     }
 
     /**
@@ -129,17 +131,17 @@ class ExceptionBase extends Exception
     }
 
     /**
-     * Returns an array of line numbers used for highlighting the problem area of code.
-     * This will be six (6) lines before and after the error line number.
-     * @return array Array of code lines.
+     * If this exception is acting as a mask, return the face exception. Otherwise return
+     * this exception as the true one. 
+     * @return Exception The underlying exception, or this exception if no mask is applied.
      */
-    public function getHighlightLines()
+    public function getTrueException()
     {
-        $lines = $this->getHighlight()->lines;
-        foreach ($lines as $index => $line) {
-            $lines[$index] = strlen(trim($line)) ? htmlentities($line) : '&nbsp;'.PHP_EOL;
+        if ($this->mask !== null) {
+            return $this->mask;
         }
-        return $lines;
+
+        return $this;
     }
 
     /**
@@ -190,6 +192,20 @@ class ExceptionBase extends Exception
         return $this->highlight = (object)$result;
     }
     
+    /**
+     * Returns an array of line numbers used for highlighting the problem area of code.
+     * This will be six (6) lines before and after the error line number.
+     * @return array Array of code lines.
+     */
+    public function getHighlightLines()
+    {
+        $lines = $this->getHighlight()->lines;
+        foreach ($lines as $index => $line) {
+            $lines[$index] = strlen(trim($line)) ? htmlentities($line) : '&nbsp;'.PHP_EOL;
+        }
+        return $lines;
+    }
+
     /**
      * Returns the call stack as an array of values containing a stack information object.
      * @return Array with stack information, each value will be an object with these values:
@@ -286,20 +302,6 @@ class ExceptionBase extends Exception
         }
 
         return $filterResult;
-    }
-
-    /**
-     * If this exception is acting as a mask, return the face exception. Otherwise return
-     * this exception as the true one.
-     * @return Exception The underlying exception, or this exception if no mask is applied.
-     */
-    public function getTrueException()
-    {
-        if ($this->mask !== null) {
-            return $this->mask;
-        }
-
-        return $this;
     }
 
     /**

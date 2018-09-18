@@ -6,8 +6,9 @@ use Ramsey\Uuid\Uuid;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Assert as PHPUnit;
 use Illuminate\Contracts\Notifications\Factory as NotificationFactory;
+use Illuminate\Contracts\Notifications\Dispatcher as NotificationDispatcher;
 
-class NotificationFake implements NotificationFactory
+class NotificationFake implements NotificationFactory, NotificationDispatcher
 {
     /**
      * All of the notifications that have been sent.
@@ -58,6 +59,40 @@ class NotificationFake implements NotificationFactory
             ($count = $this->sent($notifiable, $notification)->count()) === $times,
             "The expected [{$notification}] notification was sent {$count} times instead of {$times} times."
         );
+    }
+
+    /**
+     * Determine if a notification was sent based on a truth-test callback.
+     *
+     * @param  mixed  $notifiable
+     * @param  string  $notification
+     * @param  callable|null  $callback
+     * @return void
+     */
+    public function assertNotSentTo($notifiable, $notification, $callback = null)
+    {
+        if (is_array($notifiable) || $notifiable instanceof Collection) {
+            foreach ($notifiable as $singleNotifiable) {
+                $this->assertNotSentTo($singleNotifiable, $notification, $callback);
+            }
+
+            return;
+        }
+
+        PHPUnit::assertTrue(
+            $this->sent($notifiable, $notification, $callback)->count() === 0,
+            "The unexpected [{$notification}] notification was sent."
+        );
+    }
+
+    /**
+     * Assert that no notifications were sent.
+     *
+     * @return void
+     */
+    public function assertNothingSent()
+    {
+        PHPUnit::assertEmpty($this->notifications, 'Notifications were sent unexpectedly.');
     }
 
     /**
@@ -114,40 +149,6 @@ class NotificationFake implements NotificationFactory
     }
 
     /**
-     * Determine if a notification was sent based on a truth-test callback.
-     *
-     * @param  mixed  $notifiable
-     * @param  string  $notification
-     * @param  callable|null  $callback
-     * @return void
-     */
-    public function assertNotSentTo($notifiable, $notification, $callback = null)
-    {
-        if (is_array($notifiable) || $notifiable instanceof Collection) {
-            foreach ($notifiable as $singleNotifiable) {
-                $this->assertNotSentTo($singleNotifiable, $notification, $callback);
-            }
-
-            return;
-        }
-
-        PHPUnit::assertTrue(
-            $this->sent($notifiable, $notification, $callback)->count() === 0,
-            "The unexpected [{$notification}] notification was sent."
-        );
-    }
-
-    /**
-     * Assert that no notifications were sent.
-     *
-     * @return void
-     */
-    public function assertNothingSent()
-    {
-        PHPUnit::assertEmpty($this->notifications, 'Notifications were sent unexpectedly.');
-    }
-
-    /**
      * Send the given notification to the given notifiable entities.
      *
      * @param  \Illuminate\Support\Collection|array|mixed  $notifiables
@@ -173,7 +174,9 @@ class NotificationFake implements NotificationFactory
         }
 
         foreach ($notifiables as $notifiable) {
-            $notification->id = Uuid::uuid4()->toString();
+            if (! $notification->id) {
+                $notification->id = Uuid::uuid4()->toString();
+            }
 
             $this->notifications[get_class($notifiable)][$notifiable->getKey()][get_class($notification)][] = [
                 'notification' => $notification,

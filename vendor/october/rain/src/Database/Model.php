@@ -340,7 +340,7 @@ class Model extends EloquentModel
         }
 
         return Argon::createFromFormat(
-            $this->getDateFormat(), $value
+            str_replace('.v', '.u', $this->getDateFormat()), $value
         );
     }
 
@@ -516,7 +516,7 @@ class Model extends EloquentModel
          */
         foreach ($this->attributes as $attribute => $value) {
             if (is_array($value)) {
-                throw new Exception(sprintf('Unexpected type of array, should attribute "%s" be jsonable?', $attribute));
+                throw new Exception(sprintf('Unexpected type of array when attempting to save attribute "%s", try adding it to the $jsonable property.', $attribute));
             }
         }
 
@@ -672,6 +672,17 @@ class Model extends EloquentModel
     //
     // Adders
     //
+    
+    /**
+     * Add attribute casts for the model.
+     * 
+     * @param  array $attributes
+     * @return void
+     */
+    public function addCasts($attributes)
+    {
+        $this->casts = array_merge($this->casts, $attributes);
+    }
 
     /**
      * Adds a datetime attribute to convert to an instance of Carbon/DateTime object.

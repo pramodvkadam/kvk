@@ -37,26 +37,31 @@ class Filter extends WidgetBase
     //
     // Object properties
     //
-    /**
-     * @var array List of CSS classes to apply to the filter container element
-     */
-    public $cssClasses = [];
+
     /**
      * @inheritDoc
      */
     protected $defaultAlias = 'filter';
+
     /**
      * @var boolean Determines if scope definitions have been created.
      */
     protected $scopesDefined = false;
+
     /**
      * @var array Collection of all scopes used in this filter.
      */
     protected $allScopes = [];
+
     /**
      * @var array Collection of all scopes models used in this filter.
      */
     protected $scopeModels = [];
+
+    /**
+     * @var array List of CSS classes to apply to the filter container element
+     */
+    public $cssClasses = [];
 
     /**
      * Initialize the widget, called by the constructor and free from its parameters.
@@ -86,157 +91,6 @@ class Filter extends WidgetBase
         $this->defineFilterScopes();
         $this->vars['cssClasses'] = implode(' ', $this->cssClasses);
         $this->vars['scopes'] = $this->allScopes;
-    }
-
-    /**
-     * Creates a flat array of filter scopes from the configuration.
-     */
-    protected function defineFilterScopes()
-    {
-        if ($this->scopesDefined) {
-            return;
-        }
-
-        /*
-         * Extensibility
-         */
-        $this->fireSystemEvent('backend.filter.extendScopesBefore');
-
-        /*
-         * All scopes
-         */
-        if (!isset($this->scopes) || !is_array($this->scopes)) {
-            $this->scopes = [];
-        }
-
-        $this->addScopes($this->scopes);
-
-        /*
-         * Extensibility
-         */
-        $this->fireSystemEvent('backend.filter.extendScopes');
-
-        $this->scopesDefined = true;
-    }
-
-    //
-    // AJAX
-    //
-
-    /**
-     * Programatically add scopes, used internally and for extensibility.
-     */
-    public function addScopes(array $scopes)
-    {
-        foreach ($scopes as $name => $config) {
-
-            $scopeObj = $this->makeFilterScope($name, $config);
-
-            /*
-             * Check that the filter scope matches the active context
-             */
-            if ($scopeObj->context !== null) {
-                $context = (is_array($scopeObj->context)) ? $scopeObj->context : [$scopeObj->context];
-                if (!in_array($this->getContext(), $context)) {
-                    continue;
-                }
-            }
-
-            /*
-             * Validate scope model
-             */
-            if (isset($config['modelClass'])) {
-                $class = $config['modelClass'];
-                $model = new $class;
-                $this->scopeModels[$name] = $model;
-            }
-
-            /*
-             * Ensure scope type options are set
-             */
-            $scopeProperties = [];
-            switch ($scopeObj->type) {
-                case 'date':
-                case 'daterange':
-                    $scopeProperties = [
-                        'minDate'   => '2000-01-01',
-                        'maxDate'   => '2099-12-31',
-                        'firstDay'  => 0,
-                        'yearRange' => 10,
-                    ];
-
-                    break;
-            }
-
-            foreach ($scopeProperties as $property => $value) {
-                if (isset($config[$property])) {
-                    $value = $config[$property];
-                }
-
-                $scopeObj->{$property} = $value;
-            }
-
-            $this->allScopes[$name] = $scopeObj;
-        }
-    }
-
-    /**
-     * Creates a filter scope object from name and configuration.
-     */
-    protected function makeFilterScope($name, $config)
-    {
-        $label = (isset($config['label'])) ? $config['label'] : null;
-        $scopeType = isset($config['type']) ? $config['type'] : null;
-
-        $scope = new FilterScope($name, $label);
-        $scope->displayAs($scopeType, $config);
-
-        /*
-         * Set scope value
-         */
-        $scope->value = $this->getScopeValue($scope, @$config['default']);
-
-        return $scope;
-    }
-
-    //
-    // Internals
-    //
-
-    /**
-     * Returns a scope value for this widget instance.
-     */
-    public function getScopeValue($scope, $default = null)
-    {
-        if (is_string($scope)) {
-            $scope = $this->getScope($scope);
-        }
-
-        $cacheKey = 'scope-'.$scope->scopeName;
-        return $this->getSession($cacheKey, $default);
-    }
-
-    /**
-     * Get a specified scope object
-     * @param  string $scope
-     * @return mixed
-     */
-    public function getScope($scope)
-    {
-        if (!isset($this->allScopes[$scope])) {
-            throw new ApplicationException('No definition for scope ' . $scope);
-        }
-
-        return $this->allScopes[$scope];
-    }
-
-    /**
-     * Returns the active context for displaying the filter.
-     * @return string
-     */
-    public function getContext()
-    {
-        return $this->context;
     }
 
     /**
@@ -315,6 +169,10 @@ class Filter extends WidgetBase
 
         return $this->makePartial('scope_'.$scope->type, $params);
     }
+
+    //
+    // AJAX
+    //
 
     /**
      * Update a filter scope value.
@@ -429,114 +287,6 @@ class Filter extends WidgetBase
     }
 
     /**
-     * Convert a named array to a key/pair array
-     * @param  array $options
-     * @return array
-     */
-    protected function optionsFromAjax($options)
-    {
-        $processed = [];
-        if (!is_array($options)) {
-            return $processed;
-        }
-
-        foreach ($options as $option) {
-            $id = array_get($option, 'id');
-            if ($id === null) {
-                continue;
-            }
-            $processed[$id] = array_get($option, 'name');
-        }
-        return $processed;
-    }
-
-    /**
-     * Sets an scope value for this widget instance.
-     */
-    public function setScopeValue($scope, $value)
-    {
-        if (is_string($scope)) {
-            $scope = $this->getScope($scope);
-        }
-
-        $cacheKey = 'scope-'.$scope->scopeName;
-        $this->putSession($cacheKey, $value);
-
-        $scope->value = $value;
-    }
-
-    /**
-     * Convert an array from the posted dates
-     *
-     * @param  array $dates
-     *
-     * @return array
-     */
-    protected function datesFromAjax($ajaxDates)
-    {
-        $dates = [];
-        $dateRegex = '/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/';
-
-        if (null !== $ajaxDates) {
-            if (!is_array($ajaxDates)) {
-                if(preg_match($dateRegex, $ajaxDates)) {
-                    $dates = [$ajaxDates];
-                }
-            } else {
-                foreach ($ajaxDates as $i => $date) {
-                    if (preg_match($dateRegex, $date)) {
-                        $dates[] = Carbon::createFromFormat('Y-m-d H:i:s', $date);
-                    } elseif (empty($date)) {
-                        if($i == 0) {
-                            $dates[] = Carbon::createFromFormat('Y-m-d H:i:s', '0000-00-00 00:00:00');
-                        } else {
-                            $dates[] = Carbon::createFromFormat('Y-m-d H:i:s', '2999-12-31 23:59:59');
-                        }
-                    } else {
-                        $dates = [];
-                        break;
-                    }
-                }
-            }
-        }
-        return $dates;
-    }
-
-    /**
-     * Convert an array from the posted numbers
-     *
-     * @param  array $dates
-     *
-     * @return array
-     */
-    protected function numbersFromAjax($ajaxNumbers)
-    {
-        $numbers = [];
-        $numberRegex = '/\d/';
-
-        if (!empty($ajaxNumbers)) {
-            if (!is_array($ajaxNumbers) && preg_match($numberRegex, $ajaxNumbers)) {
-                $numbers = [$ajaxNumbers];
-            } else {
-                foreach ($ajaxNumbers as $i => $number) {
-                    if (preg_match($numberRegex, $number)) {
-                        $numbers[] = $number;
-                    } else {
-                        $numbers = [];
-                        break;
-                    }
-                }
-            }
-        }
-
-        return $numbers;
-    }
-
-    //
-    // Filter query logic
-    //
-
-    /**
      * Returns available options for group scope type.
      * @return array
      */
@@ -563,6 +313,10 @@ class Filter extends WidgetBase
         ];
     }
 
+    //
+    // Internals
+    //
+
     /**
      * Returns the available options a scope can use, either from the
      * model relation or from a supplied array. Optionally apply a search
@@ -587,9 +341,56 @@ class Filter extends WidgetBase
         return $available;
     }
 
-    //
-    // Access layer
-    //
+    /**
+     * Removes any already selected options from the available options, returns
+     * a newly built array.
+     * @param  array  $activeKeys
+     * @param  array  $availableOptions
+     * @return array
+     */
+    protected function filterActiveOptions(array $activeKeys, array &$availableOptions)
+    {
+        $active = [];
+        foreach ($availableOptions as $id => $option) {
+            if (!in_array($id, $activeKeys)) {
+                continue;
+            }
+
+            $active[$id] = $option;
+            unset($availableOptions[$id]);
+        }
+
+        return $active;
+    }
+
+    /**
+     * Looks at the model for defined scope items.
+     * @return Collection
+     */
+    protected function getOptionsFromModel($scope, $searchQuery = null)
+    {
+        $model = $this->scopeModels[$scope->scopeName];
+
+        $query = $model->newQuery();
+
+        /*
+         * The 'group' scope has trouble supporting more than 500 records at a time
+         * @todo Introduce a more advanced version with robust list support.
+         */
+        $query->limit(500);
+
+        /*
+         * Extensibility
+         */
+        $this->fireSystemEvent('backend.filter.extendQuery', [$query, $scope]);
+
+        if (!$searchQuery) {
+            return $query->get();
+        }
+
+        $searchFields = [$model->getKeyName(), $this->getScopeNameFrom($scope)];
+        return $query->searchWhere($searchQuery, $searchFields)->get();
+    }
 
     /**
      * Look at the defined set of options for scope items, or the model method.
@@ -680,87 +481,92 @@ class Filter extends WidgetBase
     }
 
     /**
-     * Returns the display name column for a scope.
-     * @param  string $scope
-     * @return string
+     * Creates a flat array of filter scopes from the configuration.
      */
-    public function getScopeNameFrom($scope)
+    protected function defineFilterScopes()
     {
-        if (is_string($scope)) {
-            $scope = $this->getScope($scope);
+        if ($this->scopesDefined) {
+            return;
         }
-
-        return $scope->nameFrom;
-    }
-
-    /**
-     * Looks at the model for defined scope items.
-     * @return Collection
-     */
-    protected function getOptionsFromModel($scope, $searchQuery = null)
-    {
-        $model = $this->scopeModels[$scope->scopeName];
-
-        $query = $model->newQuery();
-
-        /*
-         * The 'group' scope has trouble supporting more than 500 records at a time
-         * @todo Introduce a more advanced version with robust list support.
-         */
-        $query->limit(500);
 
         /*
          * Extensibility
          */
-        $this->fireSystemEvent('backend.filter.extendQuery', [$query, $scope]);
+        $this->fireSystemEvent('backend.filter.extendScopesBefore');
 
-        if (!$searchQuery) {
-            return $query->get();
+        /*
+         * All scopes
+         */
+        if (!isset($this->scopes) || !is_array($this->scopes)) {
+            $this->scopes = [];
         }
 
-        $searchFields = [$model->getKeyName(), $this->getScopeNameFrom($scope)];
-        return $query->searchWhere($searchQuery, $searchFields)->get();
+        $this->addScopes($this->scopes);
+
+        /*
+         * Extensibility
+         */
+        $this->fireSystemEvent('backend.filter.extendScopes');
+
+        $this->scopesDefined = true;
     }
 
     /**
-     * Removes any already selected options from the available options, returns
-     * a newly built array.
-     * @param  array  $activeKeys
-     * @param  array  $availableOptions
-     * @return array
+     * Programatically add scopes, used internally and for extensibility.
      */
-    protected function filterActiveOptions(array $activeKeys, array &$availableOptions)
+    public function addScopes(array $scopes)
     {
-        $active = [];
-        foreach ($availableOptions as $id => $option) {
-            if (!in_array($id, $activeKeys)) {
-                continue;
+        foreach ($scopes as $name => $config) {
+
+            $scopeObj = $this->makeFilterScope($name, $config);
+
+            /*
+             * Check that the filter scope matches the active context
+             */
+            if ($scopeObj->context !== null) {
+                $context = (is_array($scopeObj->context)) ? $scopeObj->context : [$scopeObj->context];
+                if (!in_array($this->getContext(), $context)) {
+                    continue;
+                }
             }
 
-            $active[$id] = $option;
-            unset($availableOptions[$id]);
+            /*
+             * Validate scope model
+             */
+            if (isset($config['modelClass'])) {
+                $class = $config['modelClass'];
+                $model = new $class;
+                $this->scopeModels[$name] = $model;
+            }
+
+            /*
+             * Ensure scope type options are set
+             */
+            $scopeProperties = [];
+            switch ($scopeObj->type) {
+                case 'date':
+                case 'daterange':
+                    $scopeProperties = [
+                        'minDate'   => '2000-01-01',
+                        'maxDate'   => '2099-12-31',
+                        'firstDay'  => 0,
+                        'yearRange' => 10,
+                    ];
+
+                    break;
+            }
+
+            foreach ($scopeProperties as $property => $value) {
+                if (isset($config[$property])) {
+                    $value = $config[$property];
+                }
+
+                $scopeObj->{$property} = $value;
+            }
+
+            $this->allScopes[$name] = $scopeObj;
         }
-
-        return $active;
     }
-
-    /**
-     * Convert a key/pair array to a named array {id: 1, name: 'Foobar'}
-     * @param  array $options
-     * @return array
-     */
-    protected function optionsToAjax($options)
-    {
-        $processed = [];
-        foreach ($options as $id => $result) {
-            $processed[] = ['id' => $id, 'name' => $result];
-        }
-        return $processed;
-    }
-
-    //
-    // Helpers
-    //
 
     /**
      * Programatically remove a scope, used for extensibility.
@@ -772,6 +578,29 @@ class Filter extends WidgetBase
             unset($this->allScopes[$scopeName]);
         }
     }
+
+    /**
+     * Creates a filter scope object from name and configuration.
+     */
+    protected function makeFilterScope($name, $config)
+    {
+        $label = (isset($config['label'])) ? $config['label'] : null;
+        $scopeType = isset($config['type']) ? $config['type'] : null;
+
+        $scope = new FilterScope($name, $label);
+        $scope->displayAs($scopeType, $config);
+
+        /*
+         * Set scope value
+         */
+        $scope->value = $this->getScopeValue($scope, @$config['default']);
+        
+        return $scope;
+    }
+
+    //
+    // Filter query logic
+    //
 
     /**
      * Applies all scopes to a DB query.
@@ -962,6 +791,38 @@ class Filter extends WidgetBase
         return $query;
     }
 
+    //
+    // Access layer
+    //
+
+    /**
+     * Returns a scope value for this widget instance.
+     */
+    public function getScopeValue($scope, $default = null)
+    {
+        if (is_string($scope)) {
+            $scope = $this->getScope($scope);
+        }
+
+        $cacheKey = 'scope-'.$scope->scopeName;
+        return $this->getSession($cacheKey, $default);
+    }
+
+    /**
+     * Sets an scope value for this widget instance.
+     */
+    public function setScopeValue($scope, $value)
+    {
+        if (is_string($scope)) {
+            $scope = $this->getScope($scope);
+        }
+
+        $cacheKey = 'scope-'.$scope->scopeName;
+        $this->putSession($cacheKey, $value);
+
+        $scope->value = $value;
+    }
+
     /**
      * Get all the registered scopes for the instance.
      * @return array
@@ -969,6 +830,150 @@ class Filter extends WidgetBase
     public function getScopes()
     {
         return $this->allScopes;
+    }
+
+    /**
+     * Get a specified scope object
+     * @param  string $scope
+     * @return mixed
+     */
+    public function getScope($scope)
+    {
+        if (!isset($this->allScopes[$scope])) {
+            throw new ApplicationException('No definition for scope ' . $scope);
+        }
+
+        return $this->allScopes[$scope];
+    }
+
+    /**
+     * Returns the display name column for a scope.
+     * @param  string $scope
+     * @return string
+     */
+    public function getScopeNameFrom($scope)
+    {
+        if (is_string($scope)) {
+            $scope = $this->getScope($scope);
+        }
+
+        return $scope->nameFrom;
+    }
+
+    /**
+     * Returns the active context for displaying the filter.
+     * @return string
+     */
+    public function getContext()
+    {
+        return $this->context;
+    }
+
+    //
+    // Helpers
+    //
+
+    /**
+     * Convert a key/pair array to a named array {id: 1, name: 'Foobar'}
+     * @param  array $options
+     * @return array
+     */
+    protected function optionsToAjax($options)
+    {
+        $processed = [];
+        foreach ($options as $id => $result) {
+            $processed[] = ['id' => $id, 'name' => $result];
+        }
+        return $processed;
+    }
+
+    /**
+     * Convert a named array to a key/pair array
+     * @param  array $options
+     * @return array
+     */
+    protected function optionsFromAjax($options)
+    {
+        $processed = [];
+        if (!is_array($options)) {
+            return $processed;
+        }
+
+        foreach ($options as $option) {
+            $id = array_get($option, 'id');
+            if ($id === null) {
+                continue;
+            }
+            $processed[$id] = array_get($option, 'name');
+        }
+        return $processed;
+    }
+
+    /**
+     * Convert an array from the posted dates
+     *
+     * @param  array $dates
+     *
+     * @return array
+     */
+    protected function datesFromAjax($ajaxDates)
+    {
+        $dates = [];
+        $dateRegex = '/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/';
+
+        if (null !== $ajaxDates) {
+            if (!is_array($ajaxDates)) {
+                if(preg_match($dateRegex, $ajaxDates)) {
+                    $dates = [$ajaxDates];
+                }
+            } else {
+                foreach ($ajaxDates as $i => $date) {
+                    if (preg_match($dateRegex, $date)) {
+                        $dates[] = Carbon::createFromFormat('Y-m-d H:i:s', $date);
+                    } elseif (empty($date)) {
+                        if($i == 0) {
+                            $dates[] = Carbon::createFromFormat('Y-m-d H:i:s', '0000-00-00 00:00:00');
+                        } else {
+                            $dates[] = Carbon::createFromFormat('Y-m-d H:i:s', '2999-12-31 23:59:59');
+                        }
+                    } else {
+                        $dates = [];
+                        break;
+                    }
+                }
+            }
+        }
+        return $dates;
+    }
+
+    /**
+     * Convert an array from the posted numbers
+     *
+     * @param  array $dates
+     *
+     * @return array
+     */
+    protected function numbersFromAjax($ajaxNumbers)
+    {
+        $numbers = [];
+        $numberRegex = '/\d/';
+
+        if (!empty($ajaxNumbers)) {
+            if (!is_array($ajaxNumbers) && preg_match($numberRegex, $ajaxNumbers)) {
+                $numbers = [$ajaxNumbers];
+            } else {
+                foreach ($ajaxNumbers as $i => $number) {
+                    if (preg_match($numberRegex, $number)) {
+                        $numbers[] = $number;
+                    } else {
+                        $numbers = [];
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $numbers;
     }
 
     /**

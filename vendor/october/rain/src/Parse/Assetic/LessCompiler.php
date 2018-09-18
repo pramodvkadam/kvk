@@ -64,6 +64,20 @@ class LessCompiler implements FilterInterface, HashableInterface, DependencyExtr
         return md5(implode('|', $modifieds));
     }
 
+    public function setHash($hash)
+    {
+        $this->lastHash = $hash;
+    }
+
+    /**
+     * Generates a hash for the object
+     * @return string
+     */
+    public function hash()
+    {
+        return $this->lastHash ?: serialize($this);
+    }
+
     /**
      * Load children recusive
      */
@@ -77,19 +91,5 @@ class LessCompiler implements FilterInterface, HashableInterface, DependencyExtr
         }
 
         return $children;
-    }
-
-    public function setHash($hash)
-    {
-        $this->lastHash = $hash;
-    }
-
-    /**
-     * Generates a hash for the object
-     * @return string
-     */
-    public function hash()
-    {
-        return $this->lastHash ?: serialize($this);
     }
 }

@@ -20,6 +20,7 @@ use Symfony\Component\Process\Exception\RuntimeException;
  */
 class InputStream implements \IteratorAggregate
 {
+    /** @var null|callable */
     private $onEmpty = null;
     private $input = array();
     private $open = true;
@@ -33,11 +34,36 @@ class InputStream implements \IteratorAggregate
     }
 
     /**
+     * Appends an input to the write buffer.
+     *
+     * @param resource|string|int|float|bool|\Traversable|null The input to append as scalar,
+     *                                                         stream resource or \Traversable
+     */
+    public function write($input)
+    {
+        if (null === $input) {
+            return;
+        }
+        if ($this->isClosed()) {
+            throw new RuntimeException(sprintf('%s is closed', static::class));
+        }
+        $this->input[] = ProcessUtils::validateInput(__METHOD__, $input);
+    }
+
+    /**
      * Closes the write buffer.
      */
     public function close()
     {
         $this->open = false;
+    }
+
+    /**
+     * Tells whether the write buffer is closed or not.
+     */
+    public function isClosed()
+    {
+        return !$this->open;
     }
 
     public function getIterator()
@@ -62,29 +88,5 @@ class InputStream implements \IteratorAggregate
                 $this->write($onEmpty($this));
             }
         }
-    }
-
-    /**
-     * Appends an input to the write buffer.
-     *
-     * @param resource|scalar|\Traversable|null The input to append as stream resource, scalar or \Traversable
-     */
-    public function write($input)
-    {
-        if (null === $input) {
-            return;
-        }
-        if ($this->isClosed()) {
-            throw new RuntimeException(sprintf('%s is closed', static::class));
-        }
-        $this->input[] = ProcessUtils::validateInput(__METHOD__, $input);
-    }
-
-    /**
-     * Tells whether the write buffer is closed or not.
-     */
-    public function isClosed()
-    {
-        return !$this->open;
     }
 }

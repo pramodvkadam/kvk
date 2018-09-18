@@ -17,6 +17,21 @@ class Twig_Tests_Cache_FilesystemTest extends \PHPUnit\Framework\TestCase
     private $directory;
     private $cache;
 
+    protected function setUp()
+    {
+        $nonce = hash('sha256', uniqid(mt_rand(), true));
+        $this->classname = '__Twig_Tests_Cache_FilesystemTest_Template_'.$nonce;
+        $this->directory = sys_get_temp_dir().'/twig-test';
+        $this->cache = new Twig_Cache_Filesystem($this->directory);
+    }
+
+    protected function tearDown()
+    {
+        if (file_exists($this->directory)) {
+            Twig_Tests_FilesystemHelper::removeDir($this->directory);
+        }
+    }
+
     public function testLoad()
     {
         $key = $this->directory.'/cache/cachefile.php';
@@ -32,13 +47,6 @@ class Twig_Tests_Cache_FilesystemTest extends \PHPUnit\Framework\TestCase
         $this->cache->load($key);
 
         $this->assertTrue(class_exists($this->classname, false));
-    }
-
-    private function generateSource()
-    {
-        return strtr('<?php class {{classname}} {}', array(
-            '{{classname}}' => $this->classname,
-        ));
     }
 
     public function testLoadMissing()
@@ -176,18 +184,10 @@ class Twig_Tests_Cache_FilesystemTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    protected function setUp()
+    private function generateSource()
     {
-        $nonce = hash('sha256', uniqid(mt_rand(), true));
-        $this->classname = '__Twig_Tests_Cache_FilesystemTest_Template_'.$nonce;
-        $this->directory = sys_get_temp_dir().'/twig-test';
-        $this->cache = new Twig_Cache_Filesystem($this->directory);
-    }
-
-    protected function tearDown()
-    {
-        if (file_exists($this->directory)) {
-            Twig_Tests_FilesystemHelper::removeDir($this->directory);
-        }
+        return strtr('<?php class {{classname}} {}', array(
+            '{{classname}}' => $this->classname,
+        ));
     }
 }
