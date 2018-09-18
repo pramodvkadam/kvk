@@ -42,19 +42,6 @@ class AcceptHeader
     }
 
     /**
-     * Adds an item.
-     *
-     * @return $this
-     */
-    public function add(AcceptHeaderItem $item)
-    {
-        $this->items[$item->getValue()] = $item;
-        $this->sorted = false;
-
-        return $this;
-    }
-
-    /**
      * Builds an AcceptHeader instance from a string.
      *
      * @param string $headerValue
@@ -108,6 +95,19 @@ class AcceptHeader
     }
 
     /**
+     * Adds an item.
+     *
+     * @return $this
+     */
+    public function add(AcceptHeaderItem $item)
+    {
+        $this->items[$item->getValue()] = $item;
+        $this->sorted = false;
+
+        return $this;
+    }
+
+    /**
      * Returns all items.
      *
      * @return AcceptHeaderItem[]
@@ -117,27 +117,6 @@ class AcceptHeader
         $this->sort();
 
         return $this->items;
-    }
-
-    /**
-     * Sorts items by descending quality.
-     */
-    private function sort()
-    {
-        if (!$this->sorted) {
-            uasort($this->items, function (AcceptHeaderItem $a, AcceptHeaderItem $b) {
-                $qA = $a->getQuality();
-                $qB = $b->getQuality();
-
-                if ($qA === $qB) {
-                    return $a->getIndex() > $b->getIndex() ? 1 : -1;
-                }
-
-                return $qA > $qB ? -1 : 1;
-            });
-
-            $this->sorted = true;
-        }
     }
 
     /**
@@ -164,5 +143,26 @@ class AcceptHeader
         $this->sort();
 
         return !empty($this->items) ? reset($this->items) : null;
+    }
+
+    /**
+     * Sorts items by descending quality.
+     */
+    private function sort()
+    {
+        if (!$this->sorted) {
+            uasort($this->items, function (AcceptHeaderItem $a, AcceptHeaderItem $b) {
+                $qA = $a->getQuality();
+                $qB = $b->getQuality();
+
+                if ($qA === $qB) {
+                    return $a->getIndex() > $b->getIndex() ? 1 : -1;
+                }
+
+                return $qA > $qB ? -1 : 1;
+            });
+
+            $this->sorted = true;
+        }
     }
 }

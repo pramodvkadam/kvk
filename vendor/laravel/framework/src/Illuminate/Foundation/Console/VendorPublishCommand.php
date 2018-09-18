@@ -212,36 +212,6 @@ class VendorPublishCommand extends Command
     }
 
     /**
-     * Create the directory to house the published files if needed.
-     *
-     * @param  string  $directory
-     * @return void
-     */
-    protected function createParentDirectory($directory)
-    {
-        if (! $this->files->isDirectory($directory)) {
-            $this->files->makeDirectory($directory, 0755, true);
-        }
-    }
-
-    /**
-     * Write a status message to the console.
-     *
-     * @param  string  $from
-     * @param  string  $to
-     * @param  string  $type
-     * @return void
-     */
-    protected function status($from, $to, $type)
-    {
-        $from = str_replace(base_path(), '', realpath($from));
-
-        $to = str_replace(base_path(), '', realpath($to));
-
-        $this->line('<info>Copied '.$type.'</info> <comment>['.$from.']</comment> <info>To</info> <comment>['.$to.']</comment>');
-    }
-
-    /**
      * Publish the directory to the given directory.
      *
      * @param  string  $from
@@ -271,5 +241,35 @@ class VendorPublishCommand extends Command
                 $manager->put('to://'.$file['path'], $manager->read('from://'.$file['path']));
             }
         }
+    }
+
+    /**
+     * Create the directory to house the published files if needed.
+     *
+     * @param  string  $directory
+     * @return void
+     */
+    protected function createParentDirectory($directory)
+    {
+        if (! $this->files->isDirectory($directory)) {
+            $this->files->makeDirectory($directory, 0755, true);
+        }
+    }
+
+    /**
+     * Write a status message to the console.
+     *
+     * @param  string  $from
+     * @param  string  $to
+     * @param  string  $type
+     * @return void
+     */
+    protected function status($from, $to, $type)
+    {
+        $from = str_replace(base_path(), '', realpath($from));
+
+        $to = str_replace(base_path(), '', realpath($to));
+
+        $this->line('<info>Copied '.$type.'</info> <comment>['.$from.']</comment> <info>To</info> <comment>['.$to.']</comment>');
     }
 }

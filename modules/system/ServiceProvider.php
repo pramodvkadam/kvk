@@ -27,6 +27,7 @@ use System\Classes\CombineAssets;
 use Backend\Classes\WidgetManager;
 use October\Rain\Support\ModuleServiceProvider;
 use October\Rain\Router\Helper as RouterHelper;
+use Illuminate\Support\Facades\Schema;
 
 class ServiceProvider extends ModuleServiceProvider
 {
@@ -75,6 +76,26 @@ class ServiceProvider extends ModuleServiceProvider
             $this->registerBackendPermissions();
             $this->registerBackendSettings();
         }
+    }
+
+    /**
+     * Bootstrap the module events.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        // Fix UTF8MB4 support for MariaDB < 10.2 and MySQL < 5.7
+        if (Config::get('database.connections.mysql.charset') === 'utf8mb4') {
+            Schema::defaultStringLength(191);
+        }
+        
+        /*
+         * Boot plugins
+         */
+        PluginManager::instance()->bootAll();
+
+        parent::boot('system');
     }
 
     /**
@@ -130,147 +151,9 @@ class ServiceProvider extends ModuleServiceProvider
         }
     }
 
-    /**
-     * Register command line specifics
-     */
-    protected function registerConsole()
-    {
-        /*
-         * Allow plugins to use the scheduler
-         */
-        Event::listen('console.schedule', function ($schedule) {
-            $plugins = PluginManager::instance()->getPlugins();
-            foreach ($plugins as $plugin) {
-                if (method_exists($plugin, 'registerSchedule')) {
-                    $plugin->registerSchedule($schedule);
-                }
-            }
-        });
-
-        /*
-         * Add CMS based cache clearing to native command
-         */
-        Event::listen('cache:cleared', function () {
-            \System\Helpers\Cache::clearInternal();
-        });
-
-        /*
-         * Register console commands
-         */
-        $this->registerConsoleCommand('october.up', 'System\Console\OctoberUp');
-        $this->registerConsoleCommand('october.down', 'System\Console\OctoberDown');
-        $this->registerConsoleCommand('october.update', 'System\Console\OctoberUpdate');
-        $this->registerConsoleCommand('october.util', 'System\Console\OctoberUtil');
-        $this->registerConsoleCommand('october.mirror', 'System\Console\OctoberMirror');
-        $this->registerConsoleCommand('october.fresh', 'System\Console\OctoberFresh');
-        $this->registerConsoleCommand('october.env', 'System\Console\OctoberEnv');
-        $this->registerConsoleCommand('october.install', 'System\Console\OctoberInstall');
-
-        $this->registerConsoleCommand('plugin.install', 'System\Console\PluginInstall');
-        $this->registerConsoleCommand('plugin.remove', 'System\Console\PluginRemove');
-        $this->registerConsoleCommand('plugin.refresh', 'System\Console\PluginRefresh');
-
-        $this->registerConsoleCommand('theme.install', 'System\Console\ThemeInstall');
-        $this->registerConsoleCommand('theme.remove', 'System\Console\ThemeRemove');
-        $this->registerConsoleCommand('theme.list', 'System\Console\ThemeList');
-        $this->registerConsoleCommand('theme.use', 'System\Console\ThemeUse');
-    }
-
     /*
      * Register markup tags
      */
-
-    protected function registerErrorHandler()
-    {
-        Event::listen('exception.beforeRender', function ($exception, $httpCode, $request) {
-            $handler = new ErrorHandler;
-            return $handler->handleException($exception);
-        });
-    }
-
-    protected function registerLogging()
-    {
-        Event::listen(\Illuminate\Log\Events\MessageLogged::class, function ($event) {
-            if (EventLog::useLogging()) {
-                EventLog::add($event->message, $event->level);
-            }
-        });
-    }
-
-    /*
-     * Error handling for uncaught Exceptions
-     */
-
-    protected function registerTwigParser()
-    {
-        /*
-         * Register system Twig environment
-         */
-        App::singleton('twig.environment', function ($app) {
-            $twig = new Twig_Environment(new TwigLoader, ['auto_reload' => true]);
-            $twig->addExtension(new TwigExtension);
-            return $twig;
-        });
-
-        /*
-         * Register .htm extension for Twig views
-         */
-        App::make('view')->addExtension('htm', 'twig', function () {
-            return new TwigEngine(App::make('twig.environment'));
-        });
-    }
-
-    /*
-     * Write all log events to the database
-     */
-
-    /**
-     * Register mail templating and settings override.
-     */
-    protected function registerMailer()
-    {
-        /*
-         * Register system layouts
-         */
-        MailManager::instance()->registerCallback(function ($manager) {
-            $manager->registerMailLayouts([
-                'default' => 'system::mail.layout-default',
-                'system' => 'system::mail.layout-system',
-            ]);
-
-            $manager->registerMailPartials([
-                'header' => 'system::mail.partial-header',
-                'footer' => 'system::mail.partial-footer',
-                'button' => 'system::mail.partial-button',
-                'panel' => 'system::mail.partial-panel',
-                'table' => 'system::mail.partial-table',
-                'subcopy' => 'system::mail.partial-subcopy',
-                'promotion' => 'system::mail.partial-promotion',
-            ]);
-        });
-
-        /*
-         * Override system mailer with mail settings
-         */
-        Event::listen('mailer.beforeRegister', function () {
-            if (MailSetting::isConfigured()) {
-                MailSetting::applyConfigValues();
-            }
-        });
-
-        /*
-         * Override standard Mailer content with template
-         */
-        Event::listen('mailer.beforeAddContent', function ($mailer, $message, $view, $data, $raw) {
-            $method = $raw === null ? 'addContentToMailer' : 'addRawContentToMailer';
-            return !MailManager::instance()->$method($message, $raw ?: $view, $data);
-        });
-    }
-
-    /*
-     * Register text twig parser
-     */
-
     protected function registerMarkupTags()
     {
         MarkupManager::instance()->registerCallback(function ($manager) {
@@ -318,58 +201,142 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * Register asset bundles
+     * Register command line specifics
      */
-    protected function registerAssetBundles()
+    protected function registerConsole()
     {
         /*
-         * Register asset bundles
+         * Allow plugins to use the scheduler
          */
-        CombineAssets::registerCallback(function ($combiner) {
-            $combiner->registerBundle('~/modules/system/assets/less/styles.less');
-            $combiner->registerBundle('~/modules/system/assets/ui/storm.less');
-            $combiner->registerBundle('~/modules/system/assets/ui/storm.js');
+        Event::listen('console.schedule', function ($schedule) {
+            $plugins = PluginManager::instance()->getPlugins();
+            foreach ($plugins as $plugin) {
+                if (method_exists($plugin, 'registerSchedule')) {
+                    $plugin->registerSchedule($schedule);
+                }
+            }
+        });
+
+        /*
+         * Add CMS based cache clearing to native command
+         */
+        Event::listen('cache:cleared', function () {
+            \System\Helpers\Cache::clearInternal();
+        });
+
+        /*
+         * Register console commands
+         */
+        $this->registerConsoleCommand('october.up', 'System\Console\OctoberUp');
+        $this->registerConsoleCommand('october.down', 'System\Console\OctoberDown');
+        $this->registerConsoleCommand('october.update', 'System\Console\OctoberUpdate');
+        $this->registerConsoleCommand('october.util', 'System\Console\OctoberUtil');
+        $this->registerConsoleCommand('october.mirror', 'System\Console\OctoberMirror');
+        $this->registerConsoleCommand('october.fresh', 'System\Console\OctoberFresh');
+        $this->registerConsoleCommand('october.env', 'System\Console\OctoberEnv');
+        $this->registerConsoleCommand('october.install', 'System\Console\OctoberInstall');
+
+        $this->registerConsoleCommand('plugin.install', 'System\Console\PluginInstall');
+        $this->registerConsoleCommand('plugin.remove', 'System\Console\PluginRemove');
+        $this->registerConsoleCommand('plugin.refresh', 'System\Console\PluginRefresh');
+
+        $this->registerConsoleCommand('theme.install', 'System\Console\ThemeInstall');
+        $this->registerConsoleCommand('theme.remove', 'System\Console\ThemeRemove');
+        $this->registerConsoleCommand('theme.list', 'System\Console\ThemeList');
+        $this->registerConsoleCommand('theme.use', 'System\Console\ThemeUse');
+    }
+
+    /*
+     * Error handling for uncaught Exceptions
+     */
+    protected function registerErrorHandler()
+    {
+        Event::listen('exception.beforeRender', function ($exception, $httpCode, $request) {
+            $handler = new ErrorHandler;
+            return $handler->handleException($exception);
+        });
+    }
+
+    /*
+     * Write all log events to the database
+     */
+    protected function registerLogging()
+    {
+        Event::listen(\Illuminate\Log\Events\MessageLogged::class, function ($event) {
+            if (EventLog::useLogging()) {
+                EventLog::add($event->message, $event->level);
+            }
+        });
+    }
+
+    /*
+     * Register text twig parser
+     */
+    protected function registerTwigParser()
+    {
+        /*
+         * Register system Twig environment
+         */
+        App::singleton('twig.environment', function ($app) {
+            $twig = new Twig_Environment(new TwigLoader, ['auto_reload' => true]);
+            $twig->addExtension(new TwigExtension);
+            return $twig;
+        });
+
+        /*
+         * Register .htm extension for Twig views
+         */
+        App::make('view')->addExtension('htm', 'twig', function () {
+            return new TwigEngine(App::make('twig.environment'));
+        });
+    }
+
+    /**
+     * Register mail templating and settings override.
+     */
+    protected function registerMailer()
+    {
+        /*
+         * Register system layouts
+         */
+        MailManager::instance()->registerCallback(function ($manager) {
+            $manager->registerMailLayouts([
+                'default' => 'system::mail.layout-default',
+                'system' => 'system::mail.layout-system',
+            ]);
+
+            $manager->registerMailPartials([
+                'header' => 'system::mail.partial-header',
+                'footer' => 'system::mail.partial-footer',
+                'button' => 'system::mail.partial-button',
+                'panel' => 'system::mail.partial-panel',
+                'table' => 'system::mail.partial-table',
+                'subcopy' => 'system::mail.partial-subcopy',
+                'promotion' => 'system::mail.partial-promotion',
+            ]);
+        });
+
+        /*
+         * Override system mailer with mail settings
+         */
+        Event::listen('mailer.beforeRegister', function () {
+            if (MailSetting::isConfigured()) {
+                MailSetting::applyConfigValues();
+            }
+        });
+
+        /*
+         * Override standard Mailer content with template
+         */
+        Event::listen('mailer.beforeAddContent', function ($mailer, $message, $view, $data, $raw) {
+            $method = $raw === null ? 'addContentToMailer' : 'addRawContentToMailer';
+            return !MailManager::instance()->$method($message, $raw ?: $view, $data);
         });
     }
 
     /*
      * Register navigation
      */
-
-    /**
-     * Extends the validator with custom rules
-     */
-    protected function registerValidator()
-    {
-        $this->app->resolving('validator', function($validator) {
-            /*
-             * Allowed file extensions, as opposed to mime types.
-             * - extensions: png,jpg,txt
-             */
-            $validator->extend('extensions', function ($attribute, $value, $parameters) {
-                $extension = strtolower($value->getClientOriginalExtension());
-                return in_array($extension, $parameters);
-            });
-
-            $validator->replacer('extensions', function ($message, $attribute, $rule, $parameters) {
-                return strtr($message, [':values' => implode(', ', $parameters)]);
-            });
-        });
-    }
-
-    /*
-     * Register report widgets
-     */
-
-    protected function registerGlobalViewVars()
-    {
-        View::share('appName', Config::get('app.name'));
-    }
-
-    /*
-     * Register permissions
-     */
-
     protected function registerBackendNavigation()
     {
         BackendMenu::registerCallback(function ($manager) {
@@ -408,9 +375,8 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /*
-     * Register settings
+     * Register report widgets
      */
-
     protected function registerBackendReportWidgets()
     {
         WidgetManager::instance()->registerReportWidgets(function ($manager) {
@@ -421,6 +387,9 @@ class ServiceProvider extends ModuleServiceProvider
         });
     }
 
+    /*
+     * Register permissions
+     */
     protected function registerBackendPermissions()
     {
         BackendAuth::registerCallback(function ($manager) {
@@ -445,6 +414,9 @@ class ServiceProvider extends ModuleServiceProvider
         });
     }
 
+    /*
+     * Register settings
+     */
     protected function registerBackendSettings()
     {
         Event::listen('system.settings.extendItems', function ($manager) {
@@ -532,17 +504,43 @@ class ServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * Bootstrap the module events.
-     *
-     * @return void
+     * Register asset bundles
      */
-    public function boot()
+    protected function registerAssetBundles()
     {
         /*
-         * Boot plugins
+         * Register asset bundles
          */
-        PluginManager::instance()->bootAll();
+        CombineAssets::registerCallback(function ($combiner) {
+            $combiner->registerBundle('~/modules/system/assets/less/styles.less');
+            $combiner->registerBundle('~/modules/system/assets/ui/storm.less');
+            $combiner->registerBundle('~/modules/system/assets/ui/storm.js');
+        });
+    }
 
-        parent::boot('system');
+    /**
+     * Extends the validator with custom rules
+     */
+    protected function registerValidator()
+    {
+        $this->app->resolving('validator', function($validator) {
+            /*
+             * Allowed file extensions, as opposed to mime types.
+             * - extensions: png,jpg,txt
+             */
+            $validator->extend('extensions', function ($attribute, $value, $parameters) {
+                $extension = strtolower($value->getClientOriginalExtension());
+                return in_array($extension, $parameters);
+            });
+
+            $validator->replacer('extensions', function ($message, $attribute, $rule, $parameters) {
+                return strtr($message, [':values' => implode(', ', $parameters)]);
+            });
+        });
+    }
+
+    protected function registerGlobalViewVars()
+    {
+        View::share('appName', Config::get('app.name'));
     }
 }

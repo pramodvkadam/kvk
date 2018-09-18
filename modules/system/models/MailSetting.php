@@ -46,6 +46,39 @@ class MailSetting extends Model
         'sender_email' => 'required|email'
     ];
 
+    /**
+     * Initialize the seed data for this model. This only executes when the
+     * model is first created or reset to default.
+     * @return void
+     */
+    public function initSettingsData()
+    {
+        $config = App::make('config');
+        $this->send_mode = $config->get('mail.driver', static::MODE_MAIL);
+        $this->sender_name = $config->get('mail.from.name', 'Your Site');
+        $this->sender_email = $config->get('mail.from.address', 'admin@domain.tld');
+        $this->sendmail_path = $config->get('mail.sendmail', '/usr/sbin/sendmail');
+        $this->smtp_address = $config->get('mail.host');
+        $this->smtp_port = $config->get('mail.port', 587);
+        $this->smtp_user = $config->get('mail.username');
+        $this->smtp_password = $config->get('mail.password');
+        $this->smtp_authorization = !!strlen($this->smtp_user);
+        $this->smtp_encryption = $config->get('mail.encryption');
+    }
+
+    public function getSendModeOptions()
+    {
+        return [
+            static::MODE_LOG      => 'system::lang.mail.log_file',
+            static::MODE_MAIL     => 'system::lang.mail.php_mail',
+            static::MODE_SENDMAIL => 'system::lang.mail.sendmail',
+            static::MODE_SMTP     => 'system::lang.mail.smtp',
+            static::MODE_MAILGUN  => 'system::lang.mail.mailgun',
+            static::MODE_MANDRILL => 'system::lang.mail.mandrill',
+            static::MODE_SES      => 'system::lang.mail.ses',
+        ];
+    }
+
     public static function applyConfigValues()
     {
         $config = App::make('config');
@@ -97,38 +130,6 @@ class MailSetting extends Model
 
     }
 
-    /**
-     * Initialize the seed data for this model. This only executes when the
-     * model is first created or reset to default.
-     * @return void
-     */
-    public function initSettingsData()
-    {
-        $config = App::make('config');
-        $this->send_mode = $config->get('mail.driver', static::MODE_MAIL);
-        $this->sender_name = $config->get('mail.from.name', 'Your Site');
-        $this->sender_email = $config->get('mail.from.address', 'admin@domain.tld');
-        $this->sendmail_path = $config->get('mail.sendmail', '/usr/sbin/sendmail');
-        $this->smtp_address = $config->get('mail.host');
-        $this->smtp_port = $config->get('mail.port', 587);
-        $this->smtp_user = $config->get('mail.username');
-        $this->smtp_password = $config->get('mail.password');
-        $this->smtp_authorization = !!strlen($this->smtp_user);
-        $this->smtp_encryption = $config->get('mail.encryption');
-    }
-
-    public function getSendModeOptions()
-    {
-        return [
-            static::MODE_LOG      => 'system::lang.mail.log_file',
-            static::MODE_MAIL     => 'system::lang.mail.php_mail',
-            static::MODE_SENDMAIL => 'system::lang.mail.sendmail',
-            static::MODE_SMTP     => 'system::lang.mail.smtp',
-            static::MODE_MAILGUN  => 'system::lang.mail.mailgun',
-            static::MODE_MANDRILL => 'system::lang.mail.mandrill',
-            static::MODE_SES      => 'system::lang.mail.ses',
-        ];
-    }
 
     /**
      * @return array smtp_encryption options values

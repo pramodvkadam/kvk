@@ -21,15 +21,6 @@ trait CollapsableWidget
     protected $collapseGroupStatusCache = false;
 
     /**
-     * @deprecated  onGroupStatusUpdate is deprecated. Please update onSetCollapseStatus instead.
-     */
-    public function onGroupStatusUpdate()
-    {
-        traceLog('onGroupStatusUpdate is deprecated. Please update onSetCollapseStatus instead. Class: '.get_class($this));
-        $this->onSetCollapseStatus();
-    }
-
-    /**
      * AJAX handler to toggle a collapsed state. This should take two post variables:
      * - group: The collapsible group name
      * - status: The state of the group. Usually a 1 or a 0.
@@ -39,23 +30,6 @@ trait CollapsableWidget
     public function onSetCollapseStatus()
     {
         $this->setCollapseStatus(post('group'), post('status'));
-    }
-
-    /**
-     * Sets a collapsed state.
-     *
-     * @param string $group
-     * @param string $status
-     */
-    protected function setCollapseStatus($group, $status)
-    {
-        $statuses = $this->getCollapseStatuses();
-
-        $statuses[$group] = $status;
-
-        $this->collapseGroupStatusCache = $statuses;
-
-        $this->putSession($this->collapseSessionKey, $statuses);
     }
 
     /**
@@ -78,9 +52,53 @@ trait CollapsableWidget
         return $this->collapseGroupStatusCache = $groups;
     }
 
+    /**
+     * Sets a collapsed state.
+     *
+     * @param string $group
+     * @param string $status
+     */
+    protected function setCollapseStatus($group, $status)
+    {
+        $statuses = $this->getCollapseStatuses();
+
+        $statuses[$group] = $status;
+
+        $this->collapseGroupStatusCache = $statuses;
+
+        $this->putSession($this->collapseSessionKey, $statuses);
+    }
+
+    /**
+     * Gets a collapsed state.
+     *
+     * @param string $group
+     * @param bool $default
+     * @return bool|string
+     */
+    protected function getCollapseStatus($group, $default = true)
+    {
+        $statuses = $this->getCollapseStatuses();
+
+        if (array_key_exists($group, $statuses)) {
+            return $statuses[$group];
+        }
+
+        return $default;
+    }
+
     //
     // Deprecations, remove if year >= 2019
     //
+
+    /**
+     * @deprecated  onGroupStatusUpdate is deprecated. Please update onSetCollapseStatus instead.
+     */
+    public function onGroupStatusUpdate()
+    {
+        traceLog('onGroupStatusUpdate is deprecated. Please update onSetCollapseStatus instead. Class: '.get_class($this));
+        $this->onSetCollapseStatus();
+    }
 
     /**
      * @deprecated - getGroupStatuses is deprecated. Please update getCollapseStatuses instead.
@@ -107,23 +125,5 @@ trait CollapsableWidget
     {
         traceLog('getGroupStatus is deprecated. Please update getCollapseStatus instead. Class: '.get_class($this));
         return $this->getCollapseStatus($group, $default);
-    }
-
-    /**
-     * Gets a collapsed state.
-     *
-     * @param string $group
-     * @param bool $default
-     * @return bool|string
-     */
-    protected function getCollapseStatus($group, $default = true)
-    {
-        $statuses = $this->getCollapseStatuses();
-
-        if (array_key_exists($group, $statuses)) {
-            return $statuses[$group];
-        }
-
-        return $default;
     }
 }

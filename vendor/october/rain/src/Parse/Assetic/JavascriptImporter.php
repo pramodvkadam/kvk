@@ -89,14 +89,6 @@ class JavascriptImporter implements FilterInterface
     }
 
     /**
-     * Directive to process mandatory script includes
-     */
-    protected function directiveRequire($data)
-    {
-        return $this->directiveInclude($data, true);
-    }
-
-    /**
      * Directive to process script includes
      */
     protected function directiveInclude($data, $required = false)
@@ -160,6 +152,14 @@ class JavascriptImporter implements FilterInterface
         }
 
         return $result;
+    }
+
+    /**
+     * Directive to process mandatory script includes
+     */
+    protected function directiveRequire($data)
+    {
+        return $this->directiveInclude($data, true);
     }
 
     /**

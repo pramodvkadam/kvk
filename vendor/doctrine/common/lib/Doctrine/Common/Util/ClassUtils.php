@@ -31,18 +31,6 @@ use Doctrine\Common\Persistence\Proxy;
 class ClassUtils
 {
     /**
-     * Gets the real parent class name of a class or object.
-     *
-     * @param string $className
-     *
-     * @return string
-     */
-    public static function getParentClass($className)
-    {
-        return get_parent_class( self::getRealClass( $className ) );
-    }
-
-    /**
      * Gets the real class name of a class name that could be a proxy.
      *
      * @param string $class
@@ -59,15 +47,27 @@ class ClassUtils
     }
 
     /**
-     * Creates a new reflection object.
+     * Gets the real class name of an object (even if its a proxy).
      *
      * @param object $object
      *
-     * @return \ReflectionObject
+     * @return string
      */
-    public static function newReflectionObject($object)
+    public static function getClass($object)
     {
-        return self::newReflectionClass( self::getClass( $object ) );
+        return self::getRealClass(get_class($object));
+    }
+
+    /**
+     * Gets the real parent class name of a class or object.
+     *
+     * @param string $className
+     *
+     * @return string
+     */
+    public static function getParentClass($className)
+    {
+        return get_parent_class( self::getRealClass( $className ) );
     }
 
     /**
@@ -83,15 +83,15 @@ class ClassUtils
     }
 
     /**
-     * Gets the real class name of an object (even if its a proxy).
+     * Creates a new reflection object.
      *
      * @param object $object
      *
-     * @return string
+     * @return \ReflectionObject
      */
-    public static function getClass($object)
+    public static function newReflectionObject($object)
     {
-        return self::getRealClass(get_class($object));
+        return self::newReflectionClass( self::getClass( $object ) );
     }
 
     /**

@@ -21,12 +21,46 @@ use Symfony\Component\HttpFoundation\Session\Storage\Handler\MongoDbSessionHandl
  */
 class MongoDbSessionHandlerTest extends TestCase
 {
-    public $options;
     /**
      * @var \PHPUnit_Framework_MockObject_MockObject
      */
     private $mongo;
     private $storage;
+    public $options;
+
+    protected function setUp()
+    {
+        parent::setUp();
+
+        if (extension_loaded('mongodb')) {
+            if (!class_exists('MongoDB\Client')) {
+                $this->markTestSkipped('The mongodb/mongodb package is required.');
+            }
+        } elseif (!extension_loaded('mongo')) {
+            $this->markTestSkipped('The Mongo or MongoDB extension is required.');
+        }
+
+        if (phpversion('mongodb')) {
+            $mongoClass = 'MongoDB\Client';
+        } else {
+            $mongoClass = version_compare(phpversion('mongo'), '1.3.0', '<') ? 'Mongo' : 'MongoClient';
+        }
+
+        $this->mongo = $this->getMockBuilder($mongoClass)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->options = array(
+            'id_field' => '_id',
+            'data_field' => 'data',
+            'time_field' => 'time',
+            'expiry_field' => 'expires_at',
+            'database' => 'sf2-test',
+            'collection' => 'session-test',
+        );
+
+        $this->storage = new MongoDbSessionHandler($this->mongo, $this->options);
+    }
 
     /**
      * @expectedException \InvalidArgumentException
@@ -100,20 +134,6 @@ class MongoDbSessionHandlerTest extends TestCase
             }));
 
         $this->assertEquals('bar', $this->storage->read('foo'));
-    }
-
-    private function createMongoCollectionMock()
-    {
-        $collectionClass = 'MongoCollection';
-        if (phpversion('mongodb')) {
-            $collectionClass = 'MongoDB\Collection';
-        }
-
-        $collection = $this->getMockBuilder($collectionClass)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        return $collection;
     }
 
     public function testWrite()
@@ -297,37 +317,17 @@ class MongoDbSessionHandlerTest extends TestCase
         $this->assertInstanceOf($mongoClass, $method->invoke($this->storage));
     }
 
-    protected function setUp()
+    private function createMongoCollectionMock()
     {
-        parent::setUp();
-
-        if (extension_loaded('mongodb')) {
-            if (!class_exists('MongoDB\Client')) {
-                $this->markTestSkipped('The mongodb/mongodb package is required.');
-            }
-        } elseif (!extension_loaded('mongo')) {
-            $this->markTestSkipped('The Mongo or MongoDB extension is required.');
-        }
-
+        $collectionClass = 'MongoCollection';
         if (phpversion('mongodb')) {
-            $mongoClass = 'MongoDB\Client';
-        } else {
-            $mongoClass = version_compare(phpversion('mongo'), '1.3.0', '<') ? 'Mongo' : 'MongoClient';
+            $collectionClass = 'MongoDB\Collection';
         }
 
-        $this->mongo = $this->getMockBuilder($mongoClass)
+        $collection = $this->getMockBuilder($collectionClass)
             ->disableOriginalConstructor()
             ->getMock();
 
-        $this->options = array(
-            'id_field' => '_id',
-            'data_field' => 'data',
-            'time_field' => 'time',
-            'expiry_field' => 'expires_at',
-            'database' => 'sf2-test',
-            'collection' => 'session-test',
-        );
-
-        $this->storage = new MongoDbSessionHandler($this->mongo, $this->options);
+        return $collection;
     }
 }

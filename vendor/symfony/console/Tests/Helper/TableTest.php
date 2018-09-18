@@ -22,6 +22,17 @@ class TableTest extends TestCase
 {
     protected $stream;
 
+    protected function setUp()
+    {
+        $this->stream = fopen('php://memory', 'r+');
+    }
+
+    protected function tearDown()
+    {
+        fclose($this->stream);
+        $this->stream = null;
+    }
+
     /**
      * @dataProvider renderProvider
      */
@@ -36,18 +47,6 @@ class TableTest extends TestCase
         $table->render();
 
         $this->assertEquals($expected, $this->getOutputContent($output));
-    }
-
-    protected function getOutputStream($decorated = false)
-    {
-        return new StreamOutput($this->stream, StreamOutput::VERBOSITY_NORMAL, $decorated);
-    }
-
-    protected function getOutputContent(StreamOutput $output)
-    {
-        rewind($output->getStream());
-
-        return str_replace(PHP_EOL, "\n", stream_get_contents($output->getStream()));
     }
 
     /**
@@ -727,6 +726,22 @@ TABLE;
         $this->assertEquals($expected, $this->getOutputContent($output));
     }
 
+    /**
+     * @expectedException \Symfony\Component\Console\Exception\InvalidArgumentException
+     * @expectedExceptionMessage A cell must be a TableCell, a scalar or an object implementing __toString, array given.
+     */
+    public function testThrowsWhenTheCellInAnArray()
+    {
+        $table = new Table($output = $this->getOutputStream());
+        $table
+            ->setHeaders(array('ISBN', 'Title', 'Author', 'Price'))
+            ->setRows(array(
+                array('99921-58-10-7', array(), 'Dante Alighieri', '9.95'),
+            ));
+
+        $table->render();
+    }
+
     public function testColumnWith()
     {
         $table = new Table($output = $this->getOutputStream());
@@ -809,14 +824,15 @@ TABLE;
         Table::getStyleDefinition('absent');
     }
 
-    protected function setUp()
+    protected function getOutputStream($decorated = false)
     {
-        $this->stream = fopen('php://memory', 'r+');
+        return new StreamOutput($this->stream, StreamOutput::VERBOSITY_NORMAL, $decorated);
     }
 
-    protected function tearDown()
+    protected function getOutputContent(StreamOutput $output)
     {
-        fclose($this->stream);
-        $this->stream = null;
+        rewind($output->getStream());
+
+        return str_replace(PHP_EOL, "\n", stream_get_contents($output->getStream()));
     }
 }

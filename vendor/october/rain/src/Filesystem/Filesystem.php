@@ -93,6 +93,17 @@ class Filesystem extends FilesystemBase
 
         if (strpos($path, $publicPath) === 0) {
             $result = str_replace("\\", "/", substr($path, strlen($publicPath)));
+        } else {
+            // Attempt to support first level symlinks
+            if ($directories = self::glob($publicPath . '/*', GLOB_NOSORT | GLOB_ONLYDIR)) {
+                foreach ($directories as $dir) {
+                    if (is_link($dir) && strpos($path, readlink($dir)) === 0) {
+                        // Get the path of the requested path relative to the symlink in the public path
+                        $relativeLinkedPath = substr($path, strlen(readlink($dir)));
+                        return str_replace("\\", "/", substr($dir, strlen($publicPath)) . $relativeLinkedPath);
+                    }
+                }
+            }
         }
 
         return $result;
@@ -159,7 +170,7 @@ class Filesystem extends FilesystemBase
     }
 
     /**
-     * Converts a path using path symbol. Returns the original path if 
+     * Converts a path using path symbol. Returns the original path if
      * no symbol is used and no default is specified.
      * @param  string $path
      * @param  mixed $default
@@ -201,49 +212,6 @@ class Filesystem extends FilesystemBase
         $result = parent::put($path, $contents, $lock);
         $this->chmod($path);
         return $result;
-    }
-
-    /**
-     * Modify file/folder permissions
-     * @param  string $path
-     * @param  octal $mask
-     * @return void
-     */
-    public function chmod($path, $mask = null)
-    {
-        if (!$mask) {
-            $mask = $this->isDirectory($path)
-                ? $this->getFolderPermissions()
-                : $this->getFilePermissions();
-        }
-
-        if (!$mask) {
-            return;
-        }
-
-        return @chmod($path, $mask);
-    }
-
-    /**
-     * Returns the default folder permission mask to use.
-     * @return string Permission mask as octal (0777) or null
-     */
-    public function getFolderPermissions()
-    {
-        return $this->folderPermissions
-            ? octdec($this->folderPermissions)
-            : null;
-    }
-
-    /**
-     * Returns the default file permission mask to use.
-     * @return string Permission mask as octal (0777) or null
-     */
-    public function getFilePermissions()
-    {
-        return $this->filePermissions
-            ? octdec($this->filePermissions)
-            : null;
     }
 
     /**
@@ -308,6 +276,27 @@ class Filesystem extends FilesystemBase
     }
 
     /**
+     * Modify file/folder permissions
+     * @param  string $path
+     * @param  octal $mask
+     * @return void
+     */
+    public function chmod($path, $mask = null)
+    {
+        if (!$mask) {
+            $mask = $this->isDirectory($path)
+                ? $this->getFolderPermissions()
+                : $this->getFilePermissions();
+        }
+
+        if (!$mask) {
+            return;
+        }
+
+        return @chmod($path, $mask);
+    }
+
+    /**
      * Modify file/folder permissions recursively
      * @param  string $path
      * @param  octal $fileMask
@@ -343,6 +332,28 @@ class Filesystem extends FilesystemBase
                 $this->chmod($item->getPathname(), $fileMask);
             }
         }
+    }
+
+    /**
+     * Returns the default file permission mask to use.
+     * @return string Permission mask as octal (0777) or null
+     */
+    public function getFilePermissions()
+    {
+        return $this->filePermissions
+            ? octdec($this->filePermissions)
+            : null;
+    }
+
+    /**
+     * Returns the default folder permission mask to use.
+     * @return string Permission mask as octal (0777) or null
+     */
+    public function getFolderPermissions()
+    {
+        return $this->folderPermissions
+            ? octdec($this->folderPermissions)
+            : null;
     }
 
     /**

@@ -75,18 +75,6 @@ class ConsoleColor
     }
 
     /**
-     * @return bool
-     */
-    public function isSupported()
-    {
-        if (DIRECTORY_SEPARATOR === '\\') {
-            return getenv('ANSICON') !== false || getenv('ConEmuANSI') === 'ON';
-        }
-
-        return function_exists('posix_isatty') && @posix_isatty(STDOUT);
-    }
-
-    /**
      * @param string|array $style
      * @param string $text
      * @return string
@@ -130,77 +118,6 @@ class ConsoleColor
     }
 
     /**
-     * @return bool
-     */
-    public function isStyleForced()
-    {
-        return $this->forceStyle;
-    }
-
-    /**
-     * @param string $name
-     * @return string
-     * @throws InvalidStyleException
-     */
-    private function themeSequence($name)
-    {
-        $sequences = array();
-        foreach ($this->themes[$name] as $style) {
-            $sequences[] = $this->styleSequence($style);
-        }
-        return $sequences;
-    }
-
-    /**
-     * @param string $style
-     * @return string
-     * @throws InvalidStyleException
-     */
-    private function styleSequence($style)
-    {
-        if (array_key_exists($style, $this->styles)) {
-            return $this->styles[$style];
-        }
-
-        if (!$this->are256ColorsSupported()) {
-            return null;
-        }
-
-        preg_match(self::COLOR256_REGEXP, $style, $matches);
-
-        $type = $matches[1] === 'bg_' ? self::BACKGROUND : self::FOREGROUND;
-        $value = $matches[2];
-
-        return "$type;5;$value";
-    }
-
-    /**
-     * @return bool
-     */
-    public function are256ColorsSupported()
-    {
-        return DIRECTORY_SEPARATOR === '/' && strpos(getenv('TERM'), '256color') !== false;
-    }
-
-    /**
-     * @param string $style
-     * @return bool
-     */
-    private function isValidStyle($style)
-    {
-        return array_key_exists($style, $this->styles) || preg_match(self::COLOR256_REGEXP, $style);
-    }
-
-    /**
-     * @param string|int $value
-     * @return string
-     */
-    private function escSequence($value)
-    {
-        return "\033[{$value}m";
-    }
-
-    /**
      * @param bool $forceStyle
      */
     public function setForceStyle($forceStyle)
@@ -209,11 +126,11 @@ class ConsoleColor
     }
 
     /**
-     * @return array
+     * @return bool
      */
-    public function getThemes()
+    public function isStyleForced()
     {
-        return $this->themes;
+        return $this->forceStyle;
     }
 
     /**
@@ -254,6 +171,14 @@ class ConsoleColor
     }
 
     /**
+     * @return array
+     */
+    public function getThemes()
+    {
+        return $this->themes;
+    }
+
+    /**
      * @param string $name
      * @return bool
      */
@@ -271,10 +196,85 @@ class ConsoleColor
     }
 
     /**
+     * @return bool
+     */
+    public function isSupported()
+    {
+        if (DIRECTORY_SEPARATOR === '\\') {
+            return getenv('ANSICON') !== false || getenv('ConEmuANSI') === 'ON';
+        }
+
+        return function_exists('posix_isatty') && @posix_isatty(STDOUT);
+    }
+
+    /**
+     * @return bool
+     */
+    public function are256ColorsSupported()
+    {
+        return DIRECTORY_SEPARATOR === '/' && strpos(getenv('TERM'), '256color') !== false;
+    }
+
+    /**
      * @return array
      */
     public function getPossibleStyles()
     {
         return array_keys($this->styles);
+    }
+
+    /**
+     * @param string $name
+     * @return string
+     * @throws InvalidStyleException
+     */
+    private function themeSequence($name)
+    {
+        $sequences = array();
+        foreach ($this->themes[$name] as $style) {
+            $sequences[] = $this->styleSequence($style);
+        }
+        return $sequences;
+    }
+
+    /**
+     * @param string $style
+     * @return string
+     * @throws InvalidStyleException
+     */
+    private function styleSequence($style)
+    {
+        if (array_key_exists($style, $this->styles)) {
+            return $this->styles[$style];
+        }
+
+        if (!$this->are256ColorsSupported()) {
+            return null;
+        }
+
+        preg_match(self::COLOR256_REGEXP, $style, $matches);
+
+        $type = $matches[1] === 'bg_' ? self::BACKGROUND : self::FOREGROUND;
+        $value = $matches[2];
+
+        return "$type;5;$value";
+    }
+
+    /**
+     * @param string $style
+     * @return bool
+     */
+    private function isValidStyle($style)
+    {
+        return array_key_exists($style, $this->styles) || preg_match(self::COLOR256_REGEXP, $style);
+    }
+
+    /**
+     * @param string|int $value
+     * @return string
+     */
+    private function escSequence($value)
+    {
+        return "\033[{$value}m";
     }
 }

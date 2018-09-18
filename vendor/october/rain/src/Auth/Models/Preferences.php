@@ -11,30 +11,24 @@ class Preferences extends Model
 {
     use \October\Rain\Support\Traits\KeyParser;
 
-    protected static $cache = [];
-    public $timestamps = false;
-    /**
-     * @var \October\Rain\Auth\Models\User A user who owns the preferences
-     */
-    public $userContext;
     /**
      * @var string The database table used by the model.
      */
     protected $table = 'preferences';
+
+    public $timestamps = false;
+
+    protected static $cache = [];
+
     /**
      * @var array List of attribute names which are json encoded and decoded from the database.
      */
     protected $jsonable = ['value'];
 
     /**
-     * Creates this object and sets the user context
+     * @var \October\Rain\Auth\Models\User A user who owns the preferences
      */
-    public static function forUser($user = null)
-    {
-        $self = new static;
-        $self->userContext = $user ?: $self->resolveUser($user);
-        return $self;
-    }
+    public $userContext;
 
     /**
      * Checks for a supplied user or uses the default logged in. You should override this method.
@@ -49,6 +43,16 @@ class Preferences extends Model
         }
 
         return $user;
+    }
+
+    /**
+     * Creates this object and sets the user context
+     */
+    public static function forUser($user = null)
+    {
+        $self = new static;
+        $self->userContext = $user ?: $self->resolveUser($user);
+        return $self;
     }
 
     /**
@@ -75,24 +79,6 @@ class Preferences extends Model
         }
 
         return static::$cache[$cacheKey] = $record->value;
-    }
-
-    /**
-     * Builds a cache key for the preferences record.
-     * @return string
-     */
-    protected function getCacheKey($item, $user)
-    {
-        return $user->id . '-' . $item;
-    }
-
-    /**
-     * Returns a record
-     * @return self
-     */
-    public static function findRecord($key, $user = null)
-    {
-        return static::applyKeyAndUser($key, $user)->first();
     }
 
     /**
@@ -152,6 +138,15 @@ class Preferences extends Model
     }
 
     /**
+     * Returns a record
+     * @return self
+     */
+    public static function findRecord($key, $user = null)
+    {
+        return static::applyKeyAndUser($key, $user)->first();
+    }
+
+    /**
      * Scope to find a setting record for the specified module (or plugin) name, setting name and user.
      * @param string $key Specifies the setting key value, for example 'backend:items.perpage'
      * @param mixed $default The default value to return if the setting doesn't exist in the DB.
@@ -172,5 +167,14 @@ class Preferences extends Model
         }
 
         return $query;
+    }
+
+    /**
+     * Builds a cache key for the preferences record.
+     * @return string
+     */
+    protected function getCacheKey($item, $user)
+    {
+        return $user->id . '-' . $item;
     }
 }

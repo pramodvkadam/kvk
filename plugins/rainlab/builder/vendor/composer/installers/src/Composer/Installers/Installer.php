@@ -122,38 +122,6 @@ class Installer extends LibraryInstaller
         return $installer->getInstallPath($package, $frameworkType);
     }
 
-    /**
-     * Finds a supported framework type if it exists and returns it
-     *
-     * @param  string $type
-     * @return string
-     */
-    protected function findFrameworkType($type)
-    {
-        $frameworkType = false;
-
-        krsort($this->supportedTypes);
-
-        foreach ($this->supportedTypes as $key => $val) {
-            if ($key === substr($type, 0, strlen($key))) {
-                $frameworkType = substr($type, 0, strlen($key));
-                break;
-            }
-        }
-
-        return $frameworkType;
-    }
-
-    /**
-     * Get I/O object
-     *
-     * @return IOInterface
-     */
-    private function getIO()
-    {
-        return $this->io;
-    }
-
     public function uninstall(InstalledRepositoryInterface $repo, PackageInterface $package)
     {
         parent::uninstall($repo, $package);
@@ -178,6 +146,28 @@ class Installer extends LibraryInstaller
     }
 
     /**
+     * Finds a supported framework type if it exists and returns it
+     *
+     * @param  string $type
+     * @return string
+     */
+    protected function findFrameworkType($type)
+    {
+        $frameworkType = false;
+
+        krsort($this->supportedTypes);
+
+        foreach ($this->supportedTypes as $key => $val) {
+            if ($key === substr($type, 0, strlen($key))) {
+                $frameworkType = substr($type, 0, strlen($key));
+                break;
+            }
+        }
+
+        return $frameworkType;
+    }
+
+    /**
      * Get the second part of the regular expression to check for support of a
      * package type
      *
@@ -196,5 +186,15 @@ class Installer extends LibraryInstaller
         }
 
         return $pattern ? : '(\w+)';
+    }
+
+    /**
+     * Get I/O object
+     *
+     * @return IOInterface
+     */
+    private function getIO()
+    {
+        return $this->io;
     }
 }

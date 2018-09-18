@@ -1,6 +1,7 @@
 <?php namespace System\ReportWidgets;
 
 use Lang;
+use Config;
 use BackendAuth;
 use System\Models\Parameter;
 use System\Classes\UpdateManager;
@@ -39,6 +40,19 @@ class Status extends ReportWidgetBase
         return $this->makePartial('widget');
     }
 
+    public function defineProperties()
+    {
+        return [
+            'title' => [
+                'title'             => 'backend::lang.dashboard.widget_title_label',
+                'default'           => 'backend::lang.dashboard.status.widget_title_default',
+                'type'              => 'string',
+                'validationPattern' => '^.+$',
+                'validationMessage' => 'backend::lang.dashboard.widget_title_error',
+            ]
+        ];
+    }
+
     protected function loadData()
     {
         $manager = UpdateManager::instance();
@@ -51,6 +65,12 @@ class Status extends ReportWidgetBase
         $this->vars['appBirthday'] = PluginVersion::orderBy('created_at')->value('created_at');
     }
 
+    public function onLoadWarningsForm()
+    {
+        $this->vars['warnings'] = $this->getSystemWarnings();
+        return $this->makePartial('warnings_form');
+    }
+
     protected function getSystemWarnings()
     {
         $warnings = [];
@@ -59,7 +79,6 @@ class Status extends ReportWidgetBase
 
         $writablePaths = [
             temp_path(),
-            themes_path(),
             storage_path(),
             storage_path('app'),
             storage_path('logs'),
@@ -69,6 +88,10 @@ class Status extends ReportWidgetBase
             storage_path('cms/twig'),
             storage_path('cms/combiner'),
         ];
+        
+        if (in_array('Cms', Config::get('cms.loadModules', []))) {
+            $writablePaths[] = themes_path();
+        }
 
         $requiredExtensions = [
             'GD' => extension_loaded('gd'),
@@ -95,24 +118,5 @@ class Status extends ReportWidgetBase
         }
 
         return $warnings;
-    }
-
-    public function defineProperties()
-    {
-        return [
-            'title' => [
-                'title'             => 'backend::lang.dashboard.widget_title_label',
-                'default'           => 'backend::lang.dashboard.status.widget_title_default',
-                'type'              => 'string',
-                'validationPattern' => '^.+$',
-                'validationMessage' => 'backend::lang.dashboard.widget_title_error',
-            ]
-        ];
-    }
-
-    public function onLoadWarningsForm()
-    {
-        $this->vars['warnings'] = $this->getSystemWarnings();
-        return $this->makePartial('warnings_form');
     }
 }

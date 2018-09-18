@@ -33,12 +33,24 @@ class NativeSessionStorageTest extends TestCase
 {
     private $savePath;
 
-    public function testBag()
+    protected function setUp()
     {
-        $storage = $this->getStorage();
-        $bag = new FlashBag();
-        $storage->registerBag($bag);
-        $this->assertSame($bag, $storage->getBag($bag->getName()));
+        $this->iniSet('session.save_handler', 'files');
+        $this->iniSet('session.save_path', $this->savePath = sys_get_temp_dir().'/sf2test');
+        if (!is_dir($this->savePath)) {
+            mkdir($this->savePath);
+        }
+    }
+
+    protected function tearDown()
+    {
+        session_write_close();
+        array_map('unlink', glob($this->savePath.'/*'));
+        if (is_dir($this->savePath)) {
+            rmdir($this->savePath);
+        }
+
+        $this->savePath = null;
     }
 
     /**
@@ -50,6 +62,14 @@ class NativeSessionStorageTest extends TestCase
         $storage->registerBag(new AttributeBag());
 
         return $storage;
+    }
+
+    public function testBag()
+    {
+        $storage = $this->getStorage();
+        $bag = new FlashBag();
+        $storage->registerBag($bag);
+        $this->assertSame($bag, $storage->getBag($bag->getName()));
     }
 
     /**
@@ -162,6 +182,23 @@ class NativeSessionStorageTest extends TestCase
         $this->assertEquals($options, $gco);
     }
 
+    public function testSessionOptions()
+    {
+        if (defined('HHVM_VERSION')) {
+            $this->markTestSkipped('HHVM is not handled in this test case.');
+        }
+
+        $options = array(
+            'url_rewriter.tags' => 'a=href',
+            'cache_expire' => '200',
+        );
+
+        $this->getStorage($options);
+
+        $this->assertSame('a=href', ini_get('url_rewriter.tags'));
+        $this->assertSame('200', ini_get('session.cache_expire'));
+    }
+
     /**
      * @expectedException \InvalidArgumentException
      */
@@ -207,7 +244,7 @@ class NativeSessionStorageTest extends TestCase
         $this->assertFalse($storage->isStarted());
 
         $key = $storage->getMetadataBag()->getStorageKey();
-        $this->assertFalse(isset($_SESSION[$key]));
+        $this->assertArrayNotHasKey($key, $_SESSION);
         $storage->start();
     }
 
@@ -253,25 +290,5 @@ class NativeSessionStorageTest extends TestCase
         $storage->registerBag($bag);
 
         $this->assertEquals($storage->getBag('flashes'), $bag);
-    }
-
-    protected function setUp()
-    {
-        $this->iniSet('session.save_handler', 'files');
-        $this->iniSet('session.save_path', $this->savePath = sys_get_temp_dir().'/sf2test');
-        if (!is_dir($this->savePath)) {
-            mkdir($this->savePath);
-        }
-    }
-
-    protected function tearDown()
-    {
-        session_write_close();
-        array_map('unlink', glob($this->savePath.'/*'));
-        if (is_dir($this->savePath)) {
-            rmdir($this->savePath);
-        }
-
-        $this->savePath = null;
     }
 }

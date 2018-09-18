@@ -21,6 +21,16 @@ require_once __DIR__.'/HeaderMock.php';
 
 class ExceptionHandlerTest extends TestCase
 {
+    protected function setUp()
+    {
+        testHeader();
+    }
+
+    protected function tearDown()
+    {
+        testHeader();
+    }
+
     public function testDebug()
     {
         $handler = new ExceptionHandler(false);
@@ -119,15 +129,5 @@ class ExceptionHandlerTest extends TestCase
         });
 
         $handler->handle($exception);
-    }
-
-    protected function setUp()
-    {
-        testHeader();
-    }
-
-    protected function tearDown()
-    {
-        testHeader();
     }
 }

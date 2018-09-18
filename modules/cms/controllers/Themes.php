@@ -17,6 +17,7 @@ use Cms\Classes\ThemeManager;
 use System\Classes\SettingsManager;
 use Backend\Classes\Controller;
 use Exception;
+use Backend\Widgets\Form;
 
 /**
  * Theme selector controller
@@ -57,44 +58,15 @@ class Themes extends Controller
         /*
          * Enable AJAX for Form widgets
          */
-        if (post('mode') == 'import') {
+        if (post('mode') === 'import') {
             $this->makeImportFormWidget($this->findThemeObject())->bindToController();
         }
-    }
-
-    protected function makeImportFormWidget($theme)
-    {
-        $widgetConfig = $this->makeConfig('~/modules/cms/models/themeimport/fields.yaml');
-        $widgetConfig->alias = 'form'.studly_case($theme->getDirName());
-        $widgetConfig->model = new ThemeImport;
-        $widgetConfig->model->theme = $theme;
-        $widgetConfig->arrayName = 'ThemeImport';
-
-        $widget = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
-        return $widget;
-    }
-
-    protected function findThemeObject($name = null)
-    {
-        if ($name === null) {
-            $name = post('theme');
-        }
-
-        if (!$name || (!$theme = CmsTheme::load($name))) {
-            throw new ApplicationException(trans('cms::lang.theme.not_found_name', ['name' => $name]));
-        }
-
-        return $theme;
     }
 
     public function index()
     {
         $this->bodyClass = 'compact-container';
     }
-
-    //
-    // Theme properties
-    //
 
     public function index_onSetActiveTheme()
     {
@@ -113,6 +85,10 @@ class Themes extends Controller
         return Redirect::refresh();
     }
 
+    //
+    // Theme properties
+    //
+
     public function index_onLoadFieldsForm()
     {
         $theme = $this->findThemeObject();
@@ -120,24 +96,6 @@ class Themes extends Controller
         $this->vars['themeDir'] = $theme->getDirName();
 
         return $this->makePartial('theme_fields_form');
-    }
-
-    //
-    // Create theme
-    //
-
-    protected function makeFieldsFormWidget($theme)
-    {
-        $widgetConfig = $this->makeConfig('~/modules/cms/classes/theme/fields.yaml');
-        $widgetConfig->alias = 'form'.studly_case($theme->getDirName());
-        $widgetConfig->model = $theme;
-        $widgetConfig->data = $theme->getConfig();
-        $widgetConfig->data['dir_name'] = $theme->getDirName();
-        $widgetConfig->arrayName = 'Theme';
-        $widgetConfig->context = 'update';
-
-        $widget = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
-        return $widget;
     }
 
     public function index_onSaveFields()
@@ -149,26 +107,28 @@ class Themes extends Controller
         return ['#themeListItem-'.$theme->getId() => $this->makePartial('theme_list_item', ['theme' => $theme])];
     }
 
+    protected function makeFieldsFormWidget($theme)
+    {
+        $widgetConfig = $this->makeConfig('~/modules/cms/classes/theme/fields.yaml');
+        $widgetConfig->alias = 'form'.studly_case($theme->getDirName());
+        $widgetConfig->model = $theme;
+        $widgetConfig->data = $theme->getConfig();
+        $widgetConfig->data['dir_name'] = $theme->getDirName();
+        $widgetConfig->arrayName = 'Theme';
+        $widgetConfig->context = 'update';
+
+        $widget = $this->makeWidget(Form::class, $widgetConfig);
+        return $widget;
+    }
+
+    //
+    // Create theme
+    //
+
     public function index_onLoadCreateForm()
     {
         $this->vars['widget'] = $this->makeCreateFormWidget();
         return $this->makePartial('theme_create_form');
-    }
-
-    //
-    // Duplicate
-    //
-
-    protected function makeCreateFormWidget()
-    {
-        $widgetConfig = $this->makeConfig('~/modules/cms/classes/theme/fields.yaml');
-        $widgetConfig->alias = 'formCreateTheme';
-        $widgetConfig->model = new CmsTheme;
-        $widgetConfig->arrayName = 'Theme';
-        $widgetConfig->context = 'create';
-
-        $widget = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
-        return $widget;
     }
 
     public function index_onCreate()
@@ -207,8 +167,20 @@ class Themes extends Controller
         return Redirect::refresh();
     }
 
+    protected function makeCreateFormWidget()
+    {
+        $widgetConfig = $this->makeConfig('~/modules/cms/classes/theme/fields.yaml');
+        $widgetConfig->alias = 'formCreateTheme';
+        $widgetConfig->model = new CmsTheme;
+        $widgetConfig->arrayName = 'Theme';
+        $widgetConfig->context = 'create';
+
+        $widget = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
+        return $widget;
+    }
+
     //
-    // Theme export
+    // Duplicate
     //
 
     public function index_onLoadDuplicateForm()
@@ -243,6 +215,10 @@ class Themes extends Controller
         return Redirect::refresh();
     }
 
+    //
+    // Theme export
+    //
+
     public function index_onLoadExportForm()
     {
         $theme = $this->findThemeObject();
@@ -251,22 +227,6 @@ class Themes extends Controller
 
         return $this->makePartial('theme_export_form');
     }
-
-    protected function makeExportFormWidget($theme)
-    {
-        $widgetConfig = $this->makeConfig('~/modules/cms/models/themeexport/fields.yaml');
-        $widgetConfig->alias = 'form'.studly_case($theme->getDirName());
-        $widgetConfig->model = new ThemeExport;
-        $widgetConfig->model->theme = $theme;
-        $widgetConfig->arrayName = 'ThemeExport';
-
-        $widget = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
-        return $widget;
-    }
-
-    //
-    // Theme import
-    //
 
     public function index_onExport()
     {
@@ -290,6 +250,22 @@ class Themes extends Controller
         }
     }
 
+    protected function makeExportFormWidget($theme)
+    {
+        $widgetConfig = $this->makeConfig('~/modules/cms/models/themeexport/fields.yaml');
+        $widgetConfig->alias = 'form'.studly_case($theme->getDirName());
+        $widgetConfig->model = new ThemeExport;
+        $widgetConfig->model->theme = $theme;
+        $widgetConfig->arrayName = 'ThemeExport';
+
+        $widget = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
+        return $widget;
+    }
+
+    //
+    // Theme import
+    //
+
     public function index_onLoadImportForm()
     {
         $theme = $this->findThemeObject();
@@ -298,10 +274,6 @@ class Themes extends Controller
 
         return $this->makePartial('theme_import_form');
     }
-
-    //
-    // Helpers
-    //
 
     public function index_onImport()
     {
@@ -313,5 +285,34 @@ class Themes extends Controller
 
         Flash::success(trans('cms::lang.theme.import_theme_success'));
         return Redirect::refresh();
+    }
+
+    protected function makeImportFormWidget($theme)
+    {
+        $widgetConfig = $this->makeConfig('~/modules/cms/models/themeimport/fields.yaml');
+        $widgetConfig->alias = 'form'.studly_case($theme->getDirName());
+        $widgetConfig->model = new ThemeImport;
+        $widgetConfig->model->theme = $theme;
+        $widgetConfig->arrayName = 'ThemeImport';
+
+        $widget = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
+        return $widget;
+    }
+
+    //
+    // Helpers
+    //
+
+    protected function findThemeObject($name = null)
+    {
+        if ($name === null) {
+            $name = post('theme');
+        }
+
+        if (!$name || (!$theme = CmsTheme::load($name))) {
+            throw new ApplicationException(trans('cms::lang.theme.not_found_name', ['name' => $name]));
+        }
+
+        return $theme;
     }
 }

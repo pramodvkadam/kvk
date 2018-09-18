@@ -39,52 +39,6 @@ trait SoftDelete
     }
 
     /**
-     * Register a restoring model event with the dispatcher.
-     *
-     * @param  \Closure|string  $callback
-     * @return void
-     */
-    public static function restoring($callback)
-    {
-        static::registerModelEvent('restoring', $callback);
-    }
-
-    /**
-     * Register a restored model event with the dispatcher.
-     *
-     * @param  \Closure|string  $callback
-     * @return void
-     */
-    public static function restored($callback)
-    {
-        static::registerModelEvent('restored', $callback);
-    }
-
-    /**
-     * Get a new query builder that only includes soft deletes.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder|static
-     */
-    public static function onlyTrashed()
-    {
-        $instance = new static;
-
-        $column = $instance->getQualifiedDeletedAtColumn();
-
-        return $instance->newQueryWithoutScope(new SoftDeletingScope)->whereNotNull($column);
-    }
-
-    /**
-     * Get the fully qualified "deleted at" column.
-     *
-     * @return string
-     */
-    public function getQualifiedDeletedAtColumn()
-    {
-        return $this->getTable().'.'.$this->getDeletedAtColumn();
-    }
-
-    /**
      * Helper method to check if the model is currently
      * being hard or soft deleted, useful in events.
      *
@@ -107,6 +61,66 @@ trait SoftDelete
         $this->delete();
 
         $this->forceDeleting = false;
+    }
+
+    /**
+     * Perform the actual delete query on this model instance.
+     *
+     * @return mixed
+     */
+    protected function performDeleteOnModel()
+    {
+        if ($this->forceDeleting) {
+            $this->performDeleteOnRelations();
+            return $this->withTrashed()->where($this->getKeyName(), $this->getKey())->forceDelete();
+        }
+
+        $this->performSoftDeleteOnRelations();
+        return $this->runSoftDelete();
+    }
+
+    /**
+     * Locates relations with softDelete flag and cascades the delete event.
+     *
+     * @return void
+     */
+    protected function performSoftDeleteOnRelations()
+    {
+        $definitions = $this->getRelationDefinitions();
+        foreach ($definitions as $type => $relations) {
+            foreach ($relations as $name => $options) {
+                if (!array_get($options, 'softDelete', false)) {
+                    continue;
+                }
+
+                if (!$relation = $this->{$name}) {
+                    continue;
+                }
+
+                if ($relation instanceof EloquentModel) {
+                    $relation->delete();
+                }
+                elseif ($relation instanceof CollectionBase) {
+                    $relation->each(function($model) {
+                        $model->delete();
+                    });
+                }
+            }
+        }
+    }
+
+    /**
+     * Perform the actual delete query on this model instance.
+     *
+     * @return void
+     */
+    protected function runSoftDelete()
+    {
+        $query = $this->newQuery()->where($this->getKeyName(), $this->getKey());
+
+        $this->{$this->getDeletedAtColumn()} = $time = $this->freshTimestamp();
+
+        $query->update(array($this->getDeletedAtColumn() => $this->fromDateTime($time)));
     }
 
     /**
@@ -179,22 +193,6 @@ trait SoftDelete
     }
 
     /**
-     * Perform the actual delete query on this model instance.
-     *
-     * @return mixed
-     */
-    protected function performDeleteOnModel()
-    {
-        if ($this->forceDeleting) {
-            $this->performDeleteOnRelations();
-            return $this->withTrashed()->where($this->getKeyName(), $this->getKey())->forceDelete();
-        }
-
-        $this->performSoftDeleteOnRelations();
-        return $this->runSoftDelete();
-    }
-
-    /**
      * Get a new query builder that includes soft deletes.
      *
      * @return \Illuminate\Database\Eloquent\Builder|static
@@ -205,47 +203,39 @@ trait SoftDelete
     }
 
     /**
-     * Locates relations with softDelete flag and cascades the delete event.
+     * Get a new query builder that only includes soft deletes.
      *
-     * @return void
+     * @return \Illuminate\Database\Eloquent\Builder|static
      */
-    protected function performSoftDeleteOnRelations()
+    public static function onlyTrashed()
     {
-        $definitions = $this->getRelationDefinitions();
-        foreach ($definitions as $type => $relations) {
-            foreach ($relations as $name => $options) {
-                if (!array_get($options, 'softDelete', false)) {
-                    continue;
-                }
+        $instance = new static;
 
-                if (!$relation = $this->{$name}) {
-                    continue;
-                }
+        $column = $instance->getQualifiedDeletedAtColumn();
 
-                if ($relation instanceof EloquentModel) {
-                    $relation->delete();
-                }
-                elseif ($relation instanceof CollectionBase) {
-                    $relation->each(function($model) {
-                        $model->delete();
-                    });
-                }
-            }
-        }
+        return $instance->newQueryWithoutScope(new SoftDeletingScope)->whereNotNull($column);
     }
 
     /**
-     * Perform the actual delete query on this model instance.
+     * Register a restoring model event with the dispatcher.
      *
+     * @param  \Closure|string  $callback
      * @return void
      */
-    protected function runSoftDelete()
+    public static function restoring($callback)
     {
-        $query = $this->newQuery()->where($this->getKeyName(), $this->getKey());
+        static::registerModelEvent('restoring', $callback);
+    }
 
-        $this->{$this->getDeletedAtColumn()} = $time = $this->freshTimestamp();
-
-        $query->update(array($this->getDeletedAtColumn() => $this->fromDateTime($time)));
+    /**
+     * Register a restored model event with the dispatcher.
+     *
+     * @param  \Closure|string  $callback
+     * @return void
+     */
+    public static function restored($callback)
+    {
+        static::registerModelEvent('restored', $callback);
     }
 
     /**
@@ -256,6 +246,16 @@ trait SoftDelete
     public function getDeletedAtColumn()
     {
         return defined('static::DELETED_AT') ? static::DELETED_AT : 'deleted_at';
+    }
+
+    /**
+     * Get the fully qualified "deleted at" column.
+     *
+     * @return string
+     */
+    public function getQualifiedDeletedAtColumn()
+    {
+        return $this->getTable().'.'.$this->getDeletedAtColumn();
     }
 
 }

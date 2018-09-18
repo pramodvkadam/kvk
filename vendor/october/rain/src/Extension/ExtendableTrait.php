@@ -18,21 +18,6 @@ use Exception;
 trait ExtendableTrait
 {
     /**
-     * @var array Used to extend the constructor of an extendable class. Eg:
-     *
-     *     Class::extend(function($obj) { })
-     *
-     */
-    protected static $extendableCallbacks = [];
-    /**
-     * @var array Collection of static methods used by behaviors.
-     */
-    protected static $extendableStaticMethods = [];
-    /**
-     * @var bool Indicates if dynamic properties can be created.
-     */
-    protected static $extendableGuardProperties = true;
-    /**
      * @var array Class reflection information, including behaviors.
      */
     protected $extensionData = [
@@ -42,100 +27,22 @@ trait ExtendableTrait
     ];
 
     /**
-     * Helper method for `::extend()` static method
-     * @param  callable $callback
-     * @return void
+     * @var array Used to extend the constructor of an extendable class. Eg:
+     *
+     *     Class::extend(function($obj) { })
+     *
      */
-    public static function extendableExtendCallback($callback)
-    {
-        $class = get_called_class();
-        if (
-            !isset(self::$extendableCallbacks[$class]) ||
-            !is_array(self::$extendableCallbacks[$class])
-        ) {
-            self::$extendableCallbacks[$class] = [];
-        }
-
-        self::$extendableCallbacks[$class][] = $callback;
-    }
+    protected static $extendableCallbacks = [];
 
     /**
-     * Clear the list of extended classes so they will be re-extended.
-     * @return void
+     * @var array Collection of static methods used by behaviors.
      */
-    public static function clearExtendedClasses()
-    {
-        self::$extendableCallbacks = [];
-    }
+    protected static $extendableStaticMethods = [];
 
     /**
-     * Magic method for `__callStatic()`
-     * @param  string $name
-     * @param  array  $params
-     * @return mixed
+     * @var bool Indicates if dynamic properties can be created.
      */
-    public static function extendableCallStatic($name, $params = null)
-    {
-        $className = get_called_class();
-
-        if (!array_key_exists($className, self::$extendableStaticMethods)) {
-
-            self::$extendableStaticMethods[$className] = [];
-
-            $class = new ReflectionClass($className);
-            $defaultProperties = $class->getDefaultProperties();
-            if (
-                array_key_exists('implement', $defaultProperties) &&
-                ($implement = $defaultProperties['implement'])
-            ) {
-                /*
-                 * Apply extensions
-                 */
-                if (is_string($implement)) {
-                    $uses = explode(',', $implement);
-                }
-                elseif (is_array($implement)) {
-                    $uses = $implement;
-                }
-                else {
-                    throw new Exception(sprintf('Class %s contains an invalid $implement value', $className));
-                }
-
-                foreach ($uses as $use) {
-                    $useClassName = str_replace('.', '\\', trim($use));
-
-                    $useClass = new ReflectionClass($useClassName);
-                    $staticMethods = $useClass->getMethods(ReflectionMethod::IS_STATIC);
-                    foreach ($staticMethods as $method) {
-                        self::$extendableStaticMethods[$className][$method->getName()] = $useClassName;
-                    }
-                }
-            }
-
-        }
-
-        if (isset(self::$extendableStaticMethods[$className][$name])) {
-            $extension = self::$extendableStaticMethods[$className][$name];
-
-            if (method_exists($extension, $name) && is_callable([$extension, $name])) {
-                $extension::$extendableStaticCalledClass = $className;
-                $result = forward_static_call_array(array($extension, $name), $params);
-                $extension::$extendableStaticCalledClass = null;
-                return $result;
-            }
-        }
-
-        // $parent = get_parent_class($className);
-        // if ($parent !== false && method_exists($parent, '__callStatic')) {
-        //    return parent::__callStatic($name, $params);
-        // }
-
-        throw new BadMethodCallException(sprintf(
-            'Call to undefined method %s::%s()',
-            $className,
-            $name
-        ));
-    }
+    protected static $extendableGuardProperties = true;
 
     /**
      * This method should be called as part of the constructor.
@@ -187,27 +94,30 @@ trait ExtendableTrait
     }
 
     /**
-     * Dynamically extend a class with a specified behavior
-     * @param  string $extensionName
+     * Helper method for `::extend()` static method
+     * @param  callable $callback
      * @return void
      */
-    public function extendClassWith($extensionName)
+    public static function extendableExtendCallback($callback)
     {
-        if (!strlen($extensionName)) {
-            return $this;
+        $class = get_called_class();
+        if (
+            !isset(self::$extendableCallbacks[$class]) ||
+            !is_array(self::$extendableCallbacks[$class])
+        ) {
+            self::$extendableCallbacks[$class] = [];
         }
 
-        if (isset($this->extensionData['extensions'][$extensionName])) {
-            throw new Exception(sprintf(
-                'Class %s has already been extended with %s',
-                get_class($this),
-                $extensionName
-            ));
-        }
+        self::$extendableCallbacks[$class][] = $callback;
+    }
 
-        $this->extensionData['extensions'][$extensionName] = $extensionObject = new $extensionName($this);
-        $this->extensionExtractMethods($extensionName, $extensionObject);
-        $extensionObject->extensionApplyInitCallbacks();
+    /**
+     * Clear the list of extended classes so they will be re-extended.
+     * @return void
+     */
+    public static function clearExtendedClasses()
+    {
+        self::$extendableCallbacks = [];
     }
 
     /**
@@ -259,22 +169,6 @@ trait ExtendableTrait
     }
 
     /**
-     * Returns a behavior object from an extendable class, example:
-     *
-     *     $this->getClassExtension('Backend.Behaviors.FormController')
-     *
-     * @param  string $name Fully qualified behavior name
-     * @return mixed
-     */
-    public function getClassExtension($name)
-    {
-        $name = str_replace('.', '\\', trim($name));
-        return (isset($this->extensionData['extensions'][$name]))
-            ? $this->extensionData['extensions'][$name]
-            : null;
-    }
-
-    /**
      * Programatically adds a property to the extendable class
      * @param string   $dynamicName
      * @param string   $value
@@ -291,6 +185,30 @@ trait ExtendableTrait
     }
 
     /**
+     * Dynamically extend a class with a specified behavior
+     * @param  string $extensionName
+     * @return void
+     */
+    public function extendClassWith($extensionName)
+    {
+        if (!strlen($extensionName)) {
+            return $this;
+        }
+
+        if (isset($this->extensionData['extensions'][$extensionName])) {
+            throw new Exception(sprintf(
+                'Class %s has already been extended with %s',
+                get_class($this),
+                $extensionName
+            ));
+        }
+
+        $this->extensionData['extensions'][$extensionName] = $extensionObject = new $extensionName($this);
+        $this->extensionExtractMethods($extensionName, $extensionObject);
+        $extensionObject->extensionApplyInitCallbacks();
+    }
+
+    /**
      * Check if extendable class is extended with a behavior object
      * @param  string $name Fully qualified behavior name
      * @return boolean
@@ -299,6 +217,22 @@ trait ExtendableTrait
     {
         $name = str_replace('.', '\\', trim($name));
         return isset($this->extensionData['extensions'][$name]);
+    }
+
+    /**
+     * Returns a behavior object from an extendable class, example:
+     *
+     *     $this->getClassExtension('Backend.Behaviors.FormController')
+     *
+     * @param  string $name Fully qualified behavior name
+     * @return mixed
+     */
+    public function getClassExtension($name)
+    {
+        $name = str_replace('.', '\\', trim($name));
+        return (isset($this->extensionData['extensions'][$name]))
+            ? $this->extensionData['extensions'][$name]
+            : null;
     }
 
     /**
@@ -462,6 +396,75 @@ trait ExtendableTrait
         throw new BadMethodCallException(sprintf(
             'Call to undefined method %s::%s()',
             get_class($this),
+            $name
+        ));
+    }
+
+    /**
+     * Magic method for `__callStatic()`
+     * @param  string $name
+     * @param  array  $params
+     * @return mixed
+     */
+    public static function extendableCallStatic($name, $params = null)
+    {
+        $className = get_called_class();
+
+        if (!array_key_exists($className, self::$extendableStaticMethods)) {
+
+            self::$extendableStaticMethods[$className] = [];
+
+            $class = new ReflectionClass($className);
+            $defaultProperties = $class->getDefaultProperties();
+            if (
+                array_key_exists('implement', $defaultProperties) &&
+                ($implement = $defaultProperties['implement'])
+            ) {
+                /*
+                 * Apply extensions
+                 */
+                if (is_string($implement)) {
+                    $uses = explode(',', $implement);
+                }
+                elseif (is_array($implement)) {
+                    $uses = $implement;
+                }
+                else {
+                    throw new Exception(sprintf('Class %s contains an invalid $implement value', $className));
+                }
+
+                foreach ($uses as $use) {
+                    $useClassName = str_replace('.', '\\', trim($use));
+
+                    $useClass = new ReflectionClass($useClassName);
+                    $staticMethods = $useClass->getMethods(ReflectionMethod::IS_STATIC);
+                    foreach ($staticMethods as $method) {
+                        self::$extendableStaticMethods[$className][$method->getName()] = $useClassName;
+                    }
+                }
+            }
+
+        }
+
+        if (isset(self::$extendableStaticMethods[$className][$name])) {
+            $extension = self::$extendableStaticMethods[$className][$name];
+
+            if (method_exists($extension, $name) && is_callable([$extension, $name])) {
+                $extension::$extendableStaticCalledClass = $className;
+                $result = forward_static_call_array(array($extension, $name), $params);
+                $extension::$extendableStaticCalledClass = null;
+                return $result;
+            }
+        }
+
+        // $parent = get_parent_class($className);
+        // if ($parent !== false && method_exists($parent, '__callStatic')) {
+        //    return parent::__callStatic($name, $params);
+        // }
+
+        throw new BadMethodCallException(sprintf(
+            'Call to undefined method %s::%s()',
+            $className,
             $name
         ));
     }

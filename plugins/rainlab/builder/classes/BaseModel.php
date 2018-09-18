@@ -15,13 +15,17 @@ use Validator;
  */
 abstract class BaseModel
 {
-    protected static $fillable = [];
     /**
      * @var boolean This property is used by the system internally.
      */
     public $exists = false;
+
     protected $validationRules = [];
+
     protected $validationMessages = [];
+
+    protected static $fillable = [];
+
     protected $updatedData = [];
 
     /**
@@ -81,10 +85,6 @@ abstract class BaseModel
         return $this->exists === false;
     }
 
-    protected function validateBeforeCreate()
-    {
-    }
-
     /**
      * Sets a string code of a plugin the model is associated with
      * @param string $code Specifies the plugin code
@@ -92,6 +92,19 @@ abstract class BaseModel
     public function setPluginCode($code)
     {
         $this->pluginCodeObj = new PluginCode($code);
+    }
+
+    /**
+     * Sets a code object of a plugin the model is associated with
+     * @param PluginCode $obj Specifies the plugin code object
+     */
+    public function setPluginCodeObj($obj)
+    {
+        $this->pluginCodeObj = $obj;
+    }
+
+    protected function validateBeforeCreate()
+    {
     }
 
     public function getModelPluginName()
@@ -114,14 +127,5 @@ abstract class BaseModel
         }
 
         return $this->pluginCodeObj;
-    }
-
-    /**
-     * Sets a code object of a plugin the model is associated with
-     * @param PluginCode $obj Specifies the plugin code object
-     */
-    public function setPluginCodeObj($obj)
-    {
-        $this->pluginCodeObj = $obj;
     }
 }

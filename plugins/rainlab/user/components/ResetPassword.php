@@ -74,7 +74,8 @@ class ResetPassword extends ComponentBase
             throw new ValidationException($validation);
         }
 
-        if (!$user = UserModel::findByEmail(post('email'))) {
+        $user = UserModel::findByEmail(post('email'));
+        if (!$user || $user->is_guest) {
             throw new ApplicationException(Lang::get(/*A user was not found with the given credentials.*/'rainlab.user::lang.account.invalid_user'));
         }
 
@@ -92,34 +93,6 @@ class ResetPassword extends ComponentBase
             $message->to($user->email, $user->full_name);
         });
     }
-
-    /**
-     * Returns a link used to reset the user account.
-     * @return string
-     */
-    protected function makeResetUrl($code)
-    {
-        $params = [
-            $this->property('paramCode') => $code
-        ];
-
-        if ($pageName = $this->property('resetPage')) {
-            $url = $this->pageUrl($pageName, $params);
-        }
-        else {
-            $url = $this->currentPageUrl($params);
-        }
-
-        if (strpos($url, $code) === false) {
-            $url .= '?reset=' . $code;
-        }
-
-        return $url;
-    }
-
-    //
-    // Helpers
-    //
 
     /**
      * Perform the password reset
@@ -159,5 +132,33 @@ class ResetPassword extends ComponentBase
         if (!$user->attemptResetPassword($code, post('password'))) {
             throw new ValidationException($errorFields);
         }
+    }
+
+    //
+    // Helpers
+    //
+
+    /**
+     * Returns a link used to reset the user account.
+     * @return string
+     */
+    protected function makeResetUrl($code)
+    {
+        $params = [
+            $this->property('paramCode') => $code
+        ];
+
+        if ($pageName = $this->property('resetPage')) {
+            $url = $this->pageUrl($pageName, $params);
+        }
+        else {
+            $url = $this->currentPageUrl($params);
+        }
+
+        if (strpos($url, $code) === false) {
+            $url .= '?reset=' . $code;
+        }
+
+        return $url;
     }
 }

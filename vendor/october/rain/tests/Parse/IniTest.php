@@ -41,13 +41,6 @@ class IniTest extends TestCase
         $this->assertEquals($content, $result);
     }
 
-   protected function getContents($path)
-   {
-        $content = file_get_contents($path);
-        $content = preg_replace('~\R~u', PHP_EOL, $content); // Normalize EOL
-        return $content;
-   }
-
     public function testArray()
     {
         $path = __DIR__.'/../fixtures/parse/array.ini';
@@ -242,9 +235,36 @@ class IniTest extends TestCase
         $this->assertEquals($content, $result);
     }
 
-   //
-   // Helpers
-   //
+    public function testMultilinesValues()
+    {
+        $path = __DIR__.'/../fixtures/parse/multilines-value.ini';
+        $this->assertFileExists($path);
+        $content = $this->getContents($path);
+
+        $vars = [
+            'var' => "\\Test\\Path\\",
+            'editorContent' =>
+'<p>Some
+    <br>"Multi-line"
+    <br>text
+</p>',
+        ];
+
+        $parser = new IniParser;
+        $result = $parser->parse($content);
+        $this->assertCount(2, $result);
+        $this->assertArrayHasKey('var', $result);
+        $this->assertArrayHasKey('editorContent', $result);
+
+        // Ensures we do not care about EOL sequences
+        str_replace('\r\n', '\n', $result['editorContent']);
+        str_replace('\r\n', '\n', $vars['editorContent']);
+
+        $this->assertEquals($vars, $result);
+
+        $result = $parser->render($vars);
+        $this->assertEquals($content, $result);
+    }
 
     public function testRender()
     {
@@ -310,6 +330,17 @@ class IniTest extends TestCase
 
         $str = $parser->render($data);
         $this->assertEquals($this->getContents($path), $str);
+   }
+
+   //
+   // Helpers
+   //
+
+   protected function getContents($path)
+   {
+        $content = file_get_contents($path);
+        $content = preg_replace('~\R~u', PHP_EOL, $content); // Normalize EOL
+        return $content;
    }
 
 }

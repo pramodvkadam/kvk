@@ -22,11 +22,6 @@ class FilesystemCacheTest extends BaseFileCacheTest
         $this->assertGreaterThan(0, $stats[Cache::STATS_MEMORY_AVAILABLE]);
     }
 
-    protected function _getCacheDriver()
-    {
-        return new FilesystemCache($this->directory);
-    }
-
     public function testCacheInSharedDirectoryIsPerExtension()
     {
         $cache1 = new FilesystemCache($this->directory, '.foo');
@@ -57,5 +52,10 @@ class FilesystemCacheTest extends BaseFileCacheTest
         $this->assertTrue($cache->flushAll());
         $this->assertFalse($cache->contains('key1'));
         $this->assertFalse($cache->contains('key2'));
+    }
+
+    protected function _getCacheDriver()
+    {
+        return new FilesystemCache($this->directory);
     }
 }

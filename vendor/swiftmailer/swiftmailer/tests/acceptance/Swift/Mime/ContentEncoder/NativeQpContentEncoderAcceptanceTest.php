@@ -9,6 +9,12 @@ class Swift_Mime_ContentEncoder_NativeQpContentEncoderAcceptanceTest extends \PH
      */
     protected $encoder;
 
+    protected function setUp()
+    {
+        $this->samplesDir = realpath(__DIR__.'/../../../../_samples/charsets');
+        $this->encoder = new Swift_Mime_ContentEncoder_NativeQpContentEncoder();
+    }
+
     public function testEncodingAndDecodingSamples()
     {
         $sampleFp = opendir($this->samplesDir);
@@ -58,13 +64,6 @@ class Swift_Mime_ContentEncoder_NativeQpContentEncoderAcceptanceTest extends \PH
         $this->assertSame('=C3=A4=C3=B6=C3=BC=C3=9F', $encoder->encodeString('äöüß'));
     }
 
-    private function createEncoderFromContainer()
-    {
-        return Swift_DependencyContainer::getInstance()
-            ->lookup('mime.nativeqpcontentencoder')
-            ;
-    }
-
     /**
      * @expectedException \RuntimeException
      */
@@ -80,9 +79,10 @@ class Swift_Mime_ContentEncoder_NativeQpContentEncoderAcceptanceTest extends \PH
         $this->assertSame('quoted-printable', $this->encoder->getName());
     }
 
-    protected function setUp()
+    private function createEncoderFromContainer()
     {
-        $this->samplesDir = realpath(__DIR__.'/../../../../_samples/charsets');
-        $this->encoder = new Swift_Mime_ContentEncoder_NativeQpContentEncoder();
+        return Swift_DependencyContainer::getInstance()
+            ->lookup('mime.nativeqpcontentencoder')
+            ;
     }
 }

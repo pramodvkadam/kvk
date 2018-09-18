@@ -99,18 +99,33 @@ EOF
         return $this->display($io, $filesInfo);
     }
 
-    private function getStdin()
+    private function validate($content, $file = null)
     {
-        if (0 !== ftell(STDIN)) {
-            return;
+        // Avoid: Warning DOMDocument::loadXML(): Empty string supplied as input
+        if ('' === trim($content)) {
+            return array('file' => $file, 'valid' => true);
         }
 
-        $inputs = '';
-        while (!feof(STDIN)) {
-            $inputs .= fread(STDIN, 1024);
+        libxml_use_internal_errors(true);
+
+        $document = new \DOMDocument();
+        $document->loadXML($content);
+        if ($document->schemaValidate(__DIR__.'/../Resources/schemas/xliff-core-1.2-strict.xsd')) {
+            return array('file' => $file, 'valid' => true);
         }
 
-        return $inputs;
+        $errorMessages = array_map(function ($error) {
+            return array(
+                'line' => $error->line,
+                'column' => $error->column,
+                'message' => trim($error->message),
+            );
+        }, libxml_get_errors());
+
+        libxml_clear_errors();
+        libxml_use_internal_errors(false);
+
+        return array('file' => $file, 'valid' => false, 'messages' => $errorMessages);
     }
 
     private function display(SymfonyStyle $io, array $files)
@@ -168,48 +183,6 @@ EOF
         return min($errors, 1);
     }
 
-    private function validate($content, $file = null)
-    {
-        // Avoid: Warning DOMDocument::loadXML(): Empty string supplied as input
-        if ('' === trim($content)) {
-            return array('file' => $file, 'valid' => true);
-        }
-
-        libxml_use_internal_errors(true);
-
-        $document = new \DOMDocument();
-        $document->loadXML($content);
-        if ($document->schemaValidate(__DIR__.'/../Resources/schemas/xliff-core-1.2-strict.xsd')) {
-            return array('file' => $file, 'valid' => true);
-        }
-
-        $errorMessages = array_map(function ($error) {
-            return array(
-                'line' => $error->line,
-                'column' => $error->column,
-                'message' => trim($error->message),
-            );
-        }, libxml_get_errors());
-
-        libxml_clear_errors();
-        libxml_use_internal_errors(false);
-
-        return array('file' => $file, 'valid' => false, 'messages' => $errorMessages);
-    }
-
-    private function isReadable($fileOrDirectory)
-    {
-        $default = function ($fileOrDirectory) {
-            return is_readable($fileOrDirectory);
-        };
-
-        if (null !== $this->isReadableProvider) {
-            return call_user_func($this->isReadableProvider, $fileOrDirectory, $default);
-        }
-
-        return $default($fileOrDirectory);
-    }
-
     private function getFiles($fileOrDirectory)
     {
         if (is_file($fileOrDirectory)) {
@@ -227,6 +200,20 @@ EOF
         }
     }
 
+    private function getStdin()
+    {
+        if (0 !== ftell(STDIN)) {
+            return;
+        }
+
+        $inputs = '';
+        while (!feof(STDIN)) {
+            $inputs .= fread(STDIN, 1024);
+        }
+
+        return $inputs;
+    }
+
     private function getDirectoryIterator($directory)
     {
         $default = function ($directory) {
@@ -241,5 +228,18 @@ EOF
         }
 
         return $default($directory);
+    }
+
+    private function isReadable($fileOrDirectory)
+    {
+        $default = function ($fileOrDirectory) {
+            return is_readable($fileOrDirectory);
+        };
+
+        if (null !== $this->isReadableProvider) {
+            return call_user_func($this->isReadableProvider, $fileOrDirectory, $default);
+        }
+
+        return $default($fileOrDirectory);
     }
 }

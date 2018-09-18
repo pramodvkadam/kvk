@@ -32,18 +32,6 @@ class InlineFragmentRendererTest extends TestCase
         $this->assertEquals('foo', $strategy->render('/', Request::create('/'))->getContent());
     }
 
-    private function getKernel($returnValue)
-    {
-        $kernel = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpKernelInterface')->getMock();
-        $kernel
-            ->expects($this->any())
-            ->method('handle')
-            ->will($returnValue)
-        ;
-
-        return $kernel;
-    }
-
     public function testRenderWithControllerReference()
     {
         $strategy = new InlineFragmentRenderer($this->getKernel($this->returnValue(new Response('foo'))));
@@ -63,22 +51,6 @@ class InlineFragmentRendererTest extends TestCase
         $strategy = new InlineFragmentRenderer($this->getKernelExpectingRequest($subRequest));
 
         $this->assertSame('foo', $strategy->render(new ControllerReference('main_controller', array('object' => $object), array()), Request::create('/'))->getContent());
-    }
-
-    /**
-     * Creates a Kernel expecting a request equals to $request
-     * Allows delta in comparison in case REQUEST_TIME changed by 1 second.
-     */
-    private function getKernelExpectingRequest(Request $request, $strict = false)
-    {
-        $kernel = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpKernelInterface')->getMock();
-        $kernel
-            ->expects($this->once())
-            ->method('handle')
-            ->with($this->equalTo($request, 1))
-            ->willReturn(new Response('foo'));
-
-        return $kernel;
     }
 
     /**
@@ -166,6 +138,18 @@ class InlineFragmentRendererTest extends TestCase
         $this->assertEquals('bar', $strategy->render('/', Request::create('/'), array('ignore_errors' => true, 'alt' => '/foo'))->getContent());
     }
 
+    private function getKernel($returnValue)
+    {
+        $kernel = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpKernelInterface')->getMock();
+        $kernel
+            ->expects($this->any())
+            ->method('handle')
+            ->will($returnValue)
+        ;
+
+        return $kernel;
+    }
+
     public function testExceptionInSubRequestsDoesNotMangleOutputBuffers()
     {
         $controllerResolver = $this->getMockBuilder('Symfony\\Component\\HttpKernel\\Controller\\ControllerResolverInterface')->getMock();
@@ -199,15 +183,6 @@ class InlineFragmentRendererTest extends TestCase
         $this->assertEquals('Foo', ob_get_clean());
     }
 
-    public function testESIHeaderIsKeptInSubrequestWithTrustedHeaderDisabled()
-    {
-        Request::setTrustedProxies(array(), 0);
-
-        $this->testESIHeaderIsKeptInSubrequest();
-
-        Request::setTrustedProxies(array(), -1);
-    }
-
     public function testESIHeaderIsKeptInSubrequest()
     {
         $expectedSubRequest = Request::create('/');
@@ -225,6 +200,15 @@ class InlineFragmentRendererTest extends TestCase
         $strategy->render('/', $request);
     }
 
+    public function testESIHeaderIsKeptInSubrequestWithTrustedHeaderDisabled()
+    {
+        Request::setTrustedProxies(array(), 0);
+
+        $this->testESIHeaderIsKeptInSubrequest();
+
+        Request::setTrustedProxies(array(), -1);
+    }
+
     public function testHeadersPossiblyResultingIn304AreNotAssignedToSubrequest()
     {
         $expectedSubRequest = Request::create('/');
@@ -236,6 +220,22 @@ class InlineFragmentRendererTest extends TestCase
         $strategy = new InlineFragmentRenderer($this->getKernelExpectingRequest($expectedSubRequest));
         $request = Request::create('/', 'GET', array(), array(), array(), array('HTTP_IF_MODIFIED_SINCE' => 'Fri, 01 Jan 2016 00:00:00 GMT', 'HTTP_IF_NONE_MATCH' => '*'));
         $strategy->render('/', $request);
+    }
+
+    /**
+     * Creates a Kernel expecting a request equals to $request
+     * Allows delta in comparison in case REQUEST_TIME changed by 1 second.
+     */
+    private function getKernelExpectingRequest(Request $request, $strict = false)
+    {
+        $kernel = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpKernelInterface')->getMock();
+        $kernel
+            ->expects($this->once())
+            ->method('handle')
+            ->with($this->equalTo($request, 1))
+            ->willReturn(new Response('foo'));
+
+        return $kernel;
     }
 }
 

@@ -8,6 +8,6 @@ navigation:
     add-staff:
         label: 'Add Staff'
         url: pramod/staffviewer/staff
-        icon: icon-plus
+        icon: icon-user-plus
         permissions:
             - add

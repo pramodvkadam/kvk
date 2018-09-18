@@ -16,21 +16,25 @@ use ApplicationException;
 class ComponentPartial extends Extendable implements CmsObjectContract
 {
     /**
+     * @var \Cms\Classes\ComponentBase A reference to the CMS component containing the object.
+     */
+    protected $component;
+
+    /**
      * @var string The component partial file name.
      */
     public $fileName;
+
     /**
      * @var string Last modified time.
      */
     public $mtime;
+
     /**
      * @var string Partial content.
      */
     public $content;
-    /**
-     * @var \Cms\Classes\ComponentBase A reference to the CMS component containing the object.
-     */
-    protected $component;
+
     /**
      * @var int The maximum allowed path nesting level. The default value is 2,
      * meaning that files can only exist in the root directory, or in a
@@ -60,6 +64,19 @@ class ComponentPartial extends Extendable implements CmsObjectContract
     }
 
     /**
+     * Loads the object from a file.
+     * This method is used in the CMS back-end. It doesn't use any caching.
+     * @param \Cms\Classes\ComponentBase $component Specifies the component the object belongs to.
+     * @param string $fileName Specifies the file name, with the extension.
+     * The file name can contain only alphanumeric symbols, dashes and dots.
+     * @return mixed Returns a CMS object instance or null if the object wasn't found.
+     */
+    public static function load($component, $fileName)
+    {
+        return (new static($component))->find($fileName);
+    }
+
+    /**
      * There is not much point caching a component partial, so this behavior
      * reverts to a regular load call.
      * @param \Cms\Classes\ComponentBase $component
@@ -72,16 +89,25 @@ class ComponentPartial extends Extendable implements CmsObjectContract
     }
 
     /**
-     * Loads the object from a file.
-     * This method is used in the CMS back-end. It doesn't use any caching.
-     * @param \Cms\Classes\ComponentBase $component Specifies the component the object belongs to.
-     * @param string $fileName Specifies the file name, with the extension.
-     * The file name can contain only alphanumeric symbols, dashes and dots.
-     * @return mixed Returns a CMS object instance or null if the object wasn't found.
+     * Checks if a partial override exists in the supplied theme and returns it.
+     * Since the beginning of time, October inconsistently checked for overrides
+     * using the component alias exactly, resulting in a folder with uppercase
+     * characters, subsequently this method checks for both variants.
+     *
+     * @param \Cms\Classes\Theme $theme
+     * @param \Cms\Classes\ComponentBase $component
+     * @param string $fileName
+     * @return mixed
      */
-    public static function load($component, $fileName)
+    public static function loadOverrideCached($theme, $component, $fileName)
     {
-        return (new static($component))->find($fileName);
+        $partial = Partial::loadCached($theme, strtolower($component->alias) . '/' . $fileName);
+
+        if ($partial === null) {
+            $partial = Partial::loadCached($theme, $component->alias . '/' . $fileName);
+        }
+
+        return $partial;
     }
 
     /**
@@ -111,76 +137,6 @@ class ComponentPartial extends Extendable implements CmsObjectContract
     }
 
     /**
-     * Checks the supplied file name for validity.
-     * @param string  $fileName
-     * @return string
-     */
-    protected function validateFileName($fileName)
-    {
-        if (!FileHelper::validatePath($fileName, $this->maxNesting)) {
-            throw new ApplicationException(Lang::get('cms::lang.cms_object.invalid_file', [
-                'name' => $fileName
-            ]));
-        }
-
-        if (!strlen(File::extension($fileName))) {
-            $fileName .= '.'.$this->defaultExtension;
-        }
-
-        return $fileName;
-    }
-
-    /**
-     * Returns the absolute file path.
-     * @param string $fileName Specifies the file name to return the path to.
-     * @return string
-     */
-    public function getFilePath($fileName = null)
-    {
-        if ($fileName === null) {
-            $fileName = $this->fileName;
-        }
-
-        $component = $this->component;
-        $path = $component->getPath().'/'.$fileName;
-
-        /*
-         * Check the shared "/partials" directory for the partial
-         */
-        if (!File::isFile($path)) {
-            $sharedDir = dirname($component->getPath()).'/partials';
-            $sharedPath = $sharedDir.'/'.$fileName;
-            if (File::isFile($sharedPath)) {
-                return $sharedPath;
-            }
-        }
-
-        return $path;
-    }
-
-    /**
-     * Checks if a partial override exists in the supplied theme and returns it.
-     * Since the beginning of time, October inconsistently checked for overrides
-     * using the component alias exactly, resulting in a folder with uppercase
-     * characters, subsequently this method checks for both variants.
-     *
-     * @param \Cms\Classes\Theme $theme
-     * @param \Cms\Classes\ComponentBase $component
-     * @param string $fileName
-     * @return mixed
-     */
-    public static function loadOverrideCached($theme, $component, $fileName)
-    {
-        $partial = Partial::loadCached($theme, strtolower($component->alias) . '/' . $fileName);
-
-        if ($partial === null) {
-            $partial = Partial::loadCached($theme, $component->alias . '/' . $fileName);
-        }
-
-        return $partial;
-    }
-
-    /**
      * Returns true if the specific component contains a matching partial.
      * @param \Cms\Classes\ComponentBase $component Specifies a component the file belongs to.
      * @param string $fileName Specifies the file name to check.
@@ -198,12 +154,23 @@ class ComponentPartial extends Extendable implements CmsObjectContract
     }
 
     /**
-     * Returns the default extension used by this template.
+     * Checks the supplied file name for validity.
+     * @param string  $fileName
      * @return string
      */
-    public function getDefaultExtension()
+    protected function validateFileName($fileName)
     {
-        return $this->defaultExtension;
+        if (!FileHelper::validatePath($fileName, $this->maxNesting)) {
+            throw new ApplicationException(Lang::get('cms::lang.cms_object.invalid_file', [
+                'name' => $fileName
+            ]));
+        }
+
+        if (!strlen(File::extension($fileName))) {
+            $fileName .= '.'.$this->defaultExtension;
+        }
+
+        return $fileName;
     }
 
     /**
@@ -243,6 +210,15 @@ class ComponentPartial extends Extendable implements CmsObjectContract
     }
 
     /**
+     * Returns the default extension used by this template.
+     * @return string
+     */
+    public function getDefaultExtension()
+    {
+        return $this->defaultExtension;
+    }
+
+    /**
      * Returns the file name without the extension.
      * @return string
      */
@@ -254,5 +230,33 @@ class ComponentPartial extends Extendable implements CmsObjectContract
         }
 
         return substr($this->fileName, 0, $pos);
+    }
+
+    /**
+     * Returns the absolute file path.
+     * @param string $fileName Specifies the file name to return the path to.
+     * @return string
+     */
+    public function getFilePath($fileName = null)
+    {
+        if ($fileName === null) {
+            $fileName = $this->fileName;
+        }
+
+        $component = $this->component;
+        $path = $component->getPath().'/'.$fileName;
+
+        /*
+         * Check the shared "/partials" directory for the partial
+         */
+        if (!File::isFile($path)) {
+            $sharedDir = dirname($component->getPath()).'/partials';
+            $sharedPath = $sharedDir.'/'.$fileName;
+            if (File::isFile($sharedPath)) {
+                return $sharedPath;
+            }
+        }
+
+        return $path;
     }
 }

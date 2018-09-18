@@ -5,6 +5,12 @@ class Swift_Encoder_Base64EncoderAcceptanceTest extends \PHPUnit\Framework\TestC
     private $samplesDir;
     private $encoder;
 
+    protected function setUp()
+    {
+        $this->samplesDir = realpath(__DIR__.'/../../../_samples/charsets');
+        $this->encoder = new Swift_Encoder_Base64Encoder();
+    }
+
     public function testEncodingAndDecodingSamples()
     {
         $sampleFp = opendir($this->samplesDir);
@@ -35,11 +41,5 @@ class Swift_Encoder_Base64EncoderAcceptanceTest extends \PHPUnit\Framework\TestC
             }
         }
         closedir($sampleFp);
-    }
-
-    protected function setUp()
-    {
-        $this->samplesDir = realpath(__DIR__.'/../../../_samples/charsets');
-        $this->encoder = new Swift_Encoder_Base64Encoder();
     }
 }

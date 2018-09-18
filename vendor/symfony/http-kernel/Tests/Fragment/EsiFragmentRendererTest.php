@@ -26,17 +26,6 @@ class EsiFragmentRendererTest extends TestCase
         $strategy->render('/', Request::create('/'));
     }
 
-    private function getInlineStrategy($called = false)
-    {
-        $inline = $this->getMockBuilder('Symfony\Component\HttpKernel\Fragment\InlineFragmentRenderer')->disableOriginalConstructor()->getMock();
-
-        if ($called) {
-            $inline->expects($this->once())->method('render');
-        }
-
-        return $inline;
-    }
-
     /**
      * @group legacy
      * @expectedDeprecation Passing non-scalar values as part of URI attributes to the ESI and SSI rendering strategies is deprecated %s.
@@ -114,5 +103,16 @@ class EsiFragmentRendererTest extends TestCase
         $request->headers->set('Surrogate-Capability', 'ESI/1.0');
 
         $strategy->render('/', $request, array('alt' => new ControllerReference('alt_controller')));
+    }
+
+    private function getInlineStrategy($called = false)
+    {
+        $inline = $this->getMockBuilder('Symfony\Component\HttpKernel\Fragment\InlineFragmentRenderer')->disableOriginalConstructor()->getMock();
+
+        if ($called) {
+            $inline->expects($this->once())->method('render');
+        }
+
+        return $inline;
     }
 }

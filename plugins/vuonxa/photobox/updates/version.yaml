@@ -1,0 +1,4 @@
+1.0.1: First version of Photobox
+1.0.2:
+    - Create table manage
+    - create_image_managers_table.php

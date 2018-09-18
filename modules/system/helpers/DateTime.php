@@ -20,6 +20,34 @@ class DateTime
     }
 
     /**
+     * Returns 24-hour time and the day using the grammatical tense
+     * of the current time. Eg: Today at 12:49, Yesterday at 4:00
+     * or 18 Sep 2015 at 14:33.
+     *
+     * @return string
+     */
+    public static function timeTense($datetime)
+    {
+        $datetime = self::makeCarbon($datetime);
+        $yesterday = $datetime->subDays(1);
+        $tomorrow = $datetime->addDays(1);
+        $time = $datetime->format('H:i');
+        $date = $datetime->format('j M Y');
+
+        if ($datetime->isToday()) {
+            $date = 'Today';
+        }
+        elseif ($datetime->isYesterday()) {
+            $date = 'Yesterday';
+        }
+        elseif ($datetime->isTomorrow()) {
+            $date = 'Tomorrow';
+        }
+
+        return $date.' at '.$time;
+    }
+
+    /**
      * Converts mixed inputs to a Carbon object.
      *
      * @return Carbon\Carbon
@@ -49,34 +77,6 @@ class DateTime
         }
 
         return $value;
-    }
-
-    /**
-     * Returns 24-hour time and the day using the grammatical tense
-     * of the current time. Eg: Today at 12:49, Yesterday at 4:00
-     * or 18 Sep 2015 at 14:33.
-     *
-     * @return string
-     */
-    public static function timeTense($datetime)
-    {
-        $datetime = self::makeCarbon($datetime);
-        $yesterday = $datetime->subDays(1);
-        $tomorrow = $datetime->addDays(1);
-        $time = $datetime->format('H:i');
-        $date = $datetime->format('j M Y');
-
-        if ($datetime->isToday()) {
-            $date = 'Today';
-        }
-        elseif ($datetime->isYesterday()) {
-            $date = 'Yesterday';
-        }
-        elseif ($datetime->isTomorrow()) {
-            $date = 'Tomorrow';
-        }
-
-        return $date.' at '.$time;
     }
 
     /**

@@ -14,19 +14,6 @@ class BlockBuilder
     protected $blocks = [];
 
     /**
-     * Sets a content of the layout block.
-     * @param string $name Specifies the block name.
-     * @param string $content Specifies the block content.
-     *
-     */
-    public function set($name, $content)
-    {
-        $this->put($name);
-        echo $content;
-        $this->endPut();
-    }
-
-    /**
      * Helper for startBlock
      * @param string $name Specifies the block name.
      * @return void
@@ -79,6 +66,19 @@ class BlockBuilder
         else {
             $this->blocks[$name] = $contents;
         }
+    }
+
+    /**
+     * Sets a content of the layout block.
+     * @param string $name Specifies the block name.
+     * @param string $content Specifies the block content.
+     * 
+     */
+    public function set($name, $content)
+    {
+        $this->put($name);
+        echo $content;
+        $this->endPut();
     }
 
     /**

@@ -22,6 +22,37 @@ class TranslatorCacheTest extends TestCase
 {
     protected $tmpDir;
 
+    protected function setUp()
+    {
+        $this->tmpDir = sys_get_temp_dir().'/sf2_translation';
+        $this->deleteTmpDir();
+    }
+
+    protected function tearDown()
+    {
+        $this->deleteTmpDir();
+    }
+
+    protected function deleteTmpDir()
+    {
+        if (!file_exists($dir = $this->tmpDir)) {
+            return;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->tmpDir), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($iterator as $path) {
+            if (preg_match('#[/\\\\]\.\.?$#', $path->__toString())) {
+                continue;
+            }
+            if ($path->isDir()) {
+                rmdir($path->__toString());
+            } else {
+                unlink($path->__toString());
+            }
+        }
+        rmdir($this->tmpDir);
+    }
+
     /**
      * @dataProvider runForDebugAndProduction
      */
@@ -42,19 +73,6 @@ class TranslatorCacheTest extends TestCase
         $translator->addLoader($format, $this->createFailingLoader());
         $translator->addResource($format, array($msgid => 'OK'), $locale);
         $this->assertEquals('OK', $translator->trans($msgid), '-> caching does not work in '.($debug ? 'debug' : 'production'));
-    }
-
-    /**
-     * @return LoaderInterface
-     */
-    private function createFailingLoader()
-    {
-        $loader = $this->getMockBuilder('Symfony\Component\Translation\Loader\LoaderInterface')->getMock();
-        $loader
-            ->expects($this->never())
-            ->method('load');
-
-        return $loader;
     }
 
     public function testCatalogueIsReloadedWhenResourcesAreNoLongerFresh()
@@ -261,35 +279,17 @@ class TranslatorCacheTest extends TestCase
         return array(array(true), array(false));
     }
 
-    protected function setUp()
+    /**
+     * @return LoaderInterface
+     */
+    private function createFailingLoader()
     {
-        $this->tmpDir = sys_get_temp_dir().'/sf2_translation';
-        $this->deleteTmpDir();
-    }
+        $loader = $this->getMockBuilder('Symfony\Component\Translation\Loader\LoaderInterface')->getMock();
+        $loader
+            ->expects($this->never())
+            ->method('load');
 
-    protected function deleteTmpDir()
-    {
-        if (!file_exists($dir = $this->tmpDir)) {
-            return;
-        }
-
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->tmpDir), \RecursiveIteratorIterator::CHILD_FIRST);
-        foreach ($iterator as $path) {
-            if (preg_match('#[/\\\\]\.\.?$#', $path->__toString())) {
-                continue;
-            }
-            if ($path->isDir()) {
-                rmdir($path->__toString());
-            } else {
-                unlink($path->__toString());
-            }
-        }
-        rmdir($this->tmpDir);
-    }
-
-    protected function tearDown()
-    {
-        $this->deleteTmpDir();
+        return $loader;
     }
 }
 

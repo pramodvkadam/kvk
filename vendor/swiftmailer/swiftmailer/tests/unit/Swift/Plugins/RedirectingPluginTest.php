@@ -47,18 +47,6 @@ class Swift_Plugins_RedirectingPluginTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($message->getBcc(), $bcc);
     }
 
-    private function createSendEvent(Swift_Mime_SimpleMessage $message)
-    {
-        $evt = $this->getMockBuilder('Swift_Events_SendEvent')
-                    ->disableOriginalConstructor()
-                    ->getMock();
-        $evt->expects($this->any())
-            ->method('getMessage')
-            ->will($this->returnValue($message));
-
-        return $evt;
-    }
-
     public function testPluginRespectsUnsetToList()
     {
         $message = (new Swift_Message())
@@ -179,5 +167,17 @@ class Swift_Plugins_RedirectingPluginTest extends \PHPUnit\Framework\TestCase
             array('fabien@example.com' => 'Fabien', 'lars-cc@internal.org' => 'Lars (Cc)')
         );
         $this->assertEquals($message->getBcc(), array('fabien@example.com' => 'Fabien'));
+    }
+
+    private function createSendEvent(Swift_Mime_SimpleMessage $message)
+    {
+        $evt = $this->getMockBuilder('Swift_Events_SendEvent')
+                    ->disableOriginalConstructor()
+                    ->getMock();
+        $evt->expects($this->any())
+            ->method('getMessage')
+            ->will($this->returnValue($message));
+
+        return $evt;
     }
 }

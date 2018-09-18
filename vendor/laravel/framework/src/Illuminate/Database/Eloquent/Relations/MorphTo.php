@@ -111,24 +111,6 @@ class MorphTo extends BelongsTo
     }
 
     /**
-     * Match the results for a given type to their parents.
-     *
-     * @param  string  $type
-     * @param  \Illuminate\Database\Eloquent\Collection  $results
-     * @return void
-     */
-    protected function matchToMorphParents($type, Collection $results)
-    {
-        foreach ($results as $result) {
-            if (isset($this->dictionary[$type][$result->getKey()])) {
-                foreach ($this->dictionary[$type][$result->getKey()] as $model) {
-                    $model->setRelation($this->relation, $result);
-                }
-            }
-        }
-    }
-
-    /**
      * Get all of the relation results for a type.
      *
      * @param  string  $type
@@ -148,34 +130,6 @@ class MorphTo extends BelongsTo
     }
 
     /**
-     * Create a new model instance by type.
-     *
-     * @param  string  $type
-     * @return \Illuminate\Database\Eloquent\Model
-     */
-    public function createModelByType($type)
-    {
-        $class = Model::getActualClassNameForMorph($type);
-
-        return new $class;
-    }
-
-    /**
-     * Replay stored macro calls on the actual related instance.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    protected function replayMacros(Builder $query)
-    {
-        foreach ($this->macroBuffer as $macro) {
-            $query->{$macro['method']}(...$macro['parameters']);
-        }
-
-        return $query;
-    }
-
-    /**
      * Gather all of the foreign keys for a given type.
      *
      * @param  string  $type
@@ -189,6 +143,19 @@ class MorphTo extends BelongsTo
     }
 
     /**
+     * Create a new model instance by type.
+     *
+     * @param  string  $type
+     * @return \Illuminate\Database\Eloquent\Model
+     */
+    public function createModelByType($type)
+    {
+        $class = Model::getActualClassNameForMorph($type);
+
+        return new $class;
+    }
+
+    /**
      * Match the eagerly loaded results to their parents.
      *
      * @param  array   $models
@@ -199,6 +166,24 @@ class MorphTo extends BelongsTo
     public function match(array $models, Collection $results, $relation)
     {
         return $models;
+    }
+
+    /**
+     * Match the results for a given type to their parents.
+     *
+     * @param  string  $type
+     * @param  \Illuminate\Database\Eloquent\Collection  $results
+     * @return void
+     */
+    protected function matchToMorphParents($type, Collection $results)
+    {
+        foreach ($results as $result) {
+            if (isset($this->dictionary[$type][$result->getKey()])) {
+                foreach ($this->dictionary[$type][$result->getKey()] as $model) {
+                    $model->setRelation($this->relation, $result);
+                }
+            }
+        }
     }
 
     /**
@@ -252,6 +237,21 @@ class MorphTo extends BelongsTo
     public function getDictionary()
     {
         return $this->dictionary;
+    }
+
+    /**
+     * Replay stored macro calls on the actual related instance.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    protected function replayMacros(Builder $query)
+    {
+        foreach ($this->macroBuffer as $macro) {
+            $query->{$macro['method']}(...$macro['parameters']);
+        }
+
+        return $query;
     }
 
     /**

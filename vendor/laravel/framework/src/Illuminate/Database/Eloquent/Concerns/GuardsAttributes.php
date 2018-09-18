@@ -7,23 +7,92 @@ use Illuminate\Support\Str;
 trait GuardsAttributes
 {
     /**
-     * Indicates if all mass assignment is enabled.
-     *
-     * @var bool
-     */
-    protected static $unguarded = false;
-    /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [];
+
     /**
      * The attributes that aren't mass assignable.
      *
      * @var array
      */
     protected $guarded = ['*'];
+
+    /**
+     * Indicates if all mass assignment is enabled.
+     *
+     * @var bool
+     */
+    protected static $unguarded = false;
+
+    /**
+     * Get the fillable attributes for the model.
+     *
+     * @return array
+     */
+    public function getFillable()
+    {
+        return $this->fillable;
+    }
+
+    /**
+     * Set the fillable attributes for the model.
+     *
+     * @param  array  $fillable
+     * @return $this
+     */
+    public function fillable(array $fillable)
+    {
+        $this->fillable = $fillable;
+
+        return $this;
+    }
+
+    /**
+     * Get the guarded attributes for the model.
+     *
+     * @return array
+     */
+    public function getGuarded()
+    {
+        return $this->guarded;
+    }
+
+    /**
+     * Set the guarded attributes for the model.
+     *
+     * @param  array  $guarded
+     * @return $this
+     */
+    public function guard(array $guarded)
+    {
+        $this->guarded = $guarded;
+
+        return $this;
+    }
+
+    /**
+     * Disable all mass assignable restrictions.
+     *
+     * @param  bool  $state
+     * @return void
+     */
+    public static function unguard($state = true)
+    {
+        static::$unguarded = $state;
+    }
+
+    /**
+     * Enable the mass assignment restrictions.
+     *
+     * @return void
+     */
+    public static function reguard()
+    {
+        static::$unguarded = false;
+    }
 
     /**
      * Determine if current state is "unguarded".
@@ -57,53 +126,6 @@ trait GuardsAttributes
     }
 
     /**
-     * Disable all mass assignable restrictions.
-     *
-     * @param  bool  $state
-     * @return void
-     */
-    public static function unguard($state = true)
-    {
-        static::$unguarded = $state;
-    }
-
-    /**
-     * Enable the mass assignment restrictions.
-     *
-     * @return void
-     */
-    public static function reguard()
-    {
-        static::$unguarded = false;
-    }
-
-    /**
-     * Set the fillable attributes for the model.
-     *
-     * @param  array  $fillable
-     * @return $this
-     */
-    public function fillable(array $fillable)
-    {
-        $this->fillable = $fillable;
-
-        return $this;
-    }
-
-    /**
-     * Set the guarded attributes for the model.
-     *
-     * @param  array  $guarded
-     * @return $this
-     */
-    public function guard(array $guarded)
-    {
-        $this->guarded = $guarded;
-
-        return $this;
-    }
-
-    /**
      * Determine if the given attribute may be mass assigned.
      *
      * @param  string  $key
@@ -134,16 +156,6 @@ trait GuardsAttributes
     }
 
     /**
-     * Get the fillable attributes for the model.
-     *
-     * @return array
-     */
-    public function getFillable()
-    {
-        return $this->fillable;
-    }
-
-    /**
      * Determine if the given key is guarded.
      *
      * @param  string  $key
@@ -152,16 +164,6 @@ trait GuardsAttributes
     public function isGuarded($key)
     {
         return in_array($key, $this->getGuarded()) || $this->getGuarded() == ['*'];
-    }
-
-    /**
-     * Get the guarded attributes for the model.
-     *
-     * @return array
-     */
-    public function getGuarded()
-    {
-        return $this->guarded;
     }
 
     /**

@@ -17,13 +17,14 @@ trait AssetMaker
 {
 
     /**
-     * @var string Specifies a path to the asset directory.
-     */
-    public $assetPath;
-    /**
      * @var array Collection of assets to display in the layout.
      */
     protected $assets = ['js'=>[], 'css'=>[], 'rss'=>[]];
+
+    /**
+     * @var string Specifies a path to the asset directory.
+     */
+    public $assetPath;
 
     /**
      * Disables the use, and subequent broadcast, of assets. This is useful
@@ -102,56 +103,6 @@ trait AssetMaker
     }
 
     /**
-     * Removes duplicate assets from the entire collection.
-     * @return void
-     */
-    protected function removeDuplicates()
-    {
-        foreach ($this->assets as $type => &$collection) {
-
-            $pathCache = [];
-            foreach ($collection as $key => $asset) {
-
-                if (!$path = array_get($asset, 'path')) {
-                    continue;
-                }
-
-                if (isset($pathCache[$path])) {
-                    array_forget($collection, $key);
-                    continue;
-                }
-
-                $pathCache[$path] = true;
-            }
-
-        }
-    }
-
-    /**
-     * Internal helper, attaches a build code to an asset path
-     * @param  array $asset Stored asset array
-     * @return string
-     */
-    protected function getAssetEntryBuildPath($asset)
-    {
-        $path = $asset['path'];
-        if (isset($asset['attributes']['build'])) {
-            $build = $asset['attributes']['build'];
-
-            if ($build == 'core') {
-                $build = 'v' . Parameter::get('system::core.build', 1);
-            }
-            elseif ($pluginVersion = PluginVersion::getVersion($build)) {
-                $build = 'v' . $pluginVersion;
-            }
-
-            $path .= '?' . $build;
-        }
-
-        return $path;
-    }
-
-    /**
      * Adds JavaScript asset to the asset list. Call $this->makeAssets() in a view
      * to output corresponding markup.
      * @param string $name Specifies a path (URL) to the script.
@@ -179,65 +130,6 @@ trait AssetMaker
         if (!in_array($jsPath, $this->assets['js'])) {
             $this->assets['js'][] = ['path' => $jsPath, 'attributes' => $attributes];
         }
-    }
-
-    /**
-     * Run the provided assets through the Asset Combiner
-     * @param array $assets Collection of assets
-     * @param string $localPath Prefix all assets with this path (optional)
-     * @return string
-     */
-    public function combineAssets(array $assets, $localPath = '')
-    {
-        // Short circuit if no assets actually provided
-	    if (empty($assets)) {
-		    return '';
-        }
-        $assetPath = !empty($localPath) ? $localPath : $this->assetPath;
-        return Url::to(CombineAssets::combine($assets, $assetPath));
-    }
-
-    /**
-     * Locates a file based on it's definition. If the file starts with
-     * a forward slash, it will be returned in context of the application public path,
-     * otherwise it will be returned in context of the asset path.
-     * @param string $fileName File to load.
-     * @param string $assetPath Explicitly define an asset path.
-     * @return string Relative path to the asset file.
-     */
-    public function getAssetPath($fileName, $assetPath = null)
-    {
-        if (starts_with($fileName, ['//', 'http://', 'https://'])) {
-            return $fileName;
-        }
-
-        if (!$assetPath) {
-            $assetPath = $this->assetPath;
-        }
-
-        if (substr($fileName, 0, 1) == '/' || $assetPath === null) {
-            return $fileName;
-        }
-
-        return $assetPath . '/' . $fileName;
-    }
-
-    /**
-     * Internal helper, get asset scheme
-     * @param string $asset Specifies a path (URL) to the asset.
-     * @return string
-     */
-    protected function getAssetScheme($asset)
-    {
-        if (starts_with($asset, ['//', 'http://', 'https://'])) {
-            return $asset;
-        }
-
-        if (substr($asset, 0, 1) == '/') {
-            $asset = Url::asset($asset);
-        }
-
-        return $asset;
     }
 
     /**
@@ -297,6 +189,22 @@ trait AssetMaker
     }
 
     /**
+     * Run the provided assets through the Asset Combiner
+     * @param array $assets Collection of assets
+     * @param string $localPath Prefix all assets with this path (optional)
+     * @return string
+     */
+    public function combineAssets(array $assets, $localPath = '')
+    {
+        // Short circuit if no assets actually provided
+        if (empty($assets)) {
+            return '';
+        }
+        $assetPath = !empty($localPath) ? $localPath : $this->assetPath;
+        return Url::to(CombineAssets::combine($assets, $assetPath));
+    }
+
+    /**
      * Returns an array of all registered asset paths.
      * @return array
      */
@@ -316,11 +224,104 @@ trait AssetMaker
     }
 
     /**
+     * Locates a file based on it's definition. If the file starts with
+     * a forward slash, it will be returned in context of the application public path,
+     * otherwise it will be returned in context of the asset path.
+     * @param string $fileName File to load.
+     * @param string $assetPath Explicitly define an asset path.
+     * @return string Relative path to the asset file.
+     */
+    public function getAssetPath($fileName, $assetPath = null)
+    {
+        if (starts_with($fileName, ['//', 'http://', 'https://'])) {
+            return $fileName;
+        }
+
+        if (!$assetPath) {
+            $assetPath = $this->assetPath;
+        }
+
+        if (substr($fileName, 0, 1) == '/' || $assetPath === null) {
+            return $fileName;
+        }
+
+        return $assetPath . '/' . $fileName;
+    }
+
+    /**
      * Returns true if assets any have been added.
      * @return bool
      */
     public function hasAssetsDefined()
     {
         return count($this->assets, COUNT_RECURSIVE) > 3;
+    }
+
+    /**
+     * Internal helper, attaches a build code to an asset path
+     * @param  array $asset Stored asset array
+     * @return string
+     */
+    protected function getAssetEntryBuildPath($asset)
+    {
+        $path = $asset['path'];
+        if (isset($asset['attributes']['build'])) {
+            $build = $asset['attributes']['build'];
+
+            if ($build == 'core') {
+                $build = 'v' . Parameter::get('system::core.build', 1);
+            }
+            elseif ($pluginVersion = PluginVersion::getVersion($build)) {
+                $build = 'v' . $pluginVersion;
+            }
+
+            $path .= '?' . $build;
+        }
+
+        return $path;
+    }
+
+    /**
+     * Internal helper, get asset scheme
+     * @param string $asset Specifies a path (URL) to the asset.
+     * @return string
+     */
+    protected function getAssetScheme($asset)
+    {
+        if (starts_with($asset, ['//', 'http://', 'https://'])) {
+            return $asset;
+        }
+
+        if (substr($asset, 0, 1) == '/') {
+            $asset = Url::asset($asset);
+        }
+
+        return $asset;
+    }
+
+    /**
+     * Removes duplicate assets from the entire collection.
+     * @return void
+     */
+    protected function removeDuplicates()
+    {
+        foreach ($this->assets as $type => &$collection) {
+
+            $pathCache = [];
+            foreach ($collection as $key => $asset) {
+
+                if (!$path = array_get($asset, 'path')) {
+                    continue;
+                }
+
+                if (isset($pathCache[$path])) {
+                    array_forget($collection, $key);
+                    continue;
+                }
+
+                $pathCache[$path] = true;
+            }
+
+        }
     }
 }

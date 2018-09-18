@@ -43,13 +43,13 @@ class StringAsset extends BaseAsset
         $this->doLoad($this->string, $additionalFilter);
     }
 
-    public function getLastModified()
-    {
-        return $this->lastModified;
-    }
-
     public function setLastModified($lastModified)
     {
         $this->lastModified = $lastModified;
+    }
+
+    public function getLastModified()
+    {
+        return $this->lastModified;
     }
 }

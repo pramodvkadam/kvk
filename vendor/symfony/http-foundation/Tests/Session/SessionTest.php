@@ -36,6 +36,18 @@ class SessionTest extends TestCase
      */
     protected $session;
 
+    protected function setUp()
+    {
+        $this->storage = new MockArraySessionStorage();
+        $this->session = new Session($this->storage, new AttributeBag(), new FlashBag());
+    }
+
+    protected function tearDown()
+    {
+        $this->storage = null;
+        $this->session = null;
+    }
+
     public function testStart()
     {
         $this->assertEquals('', $this->session->getId());
@@ -226,17 +238,5 @@ class SessionTest extends TestCase
 
         $flash->get('hello');
         $this->assertTrue($this->session->isEmpty());
-    }
-
-    protected function setUp()
-    {
-        $this->storage = new MockArraySessionStorage();
-        $this->session = new Session($this->storage, new AttributeBag(), new FlashBag());
-    }
-
-    protected function tearDown()
-    {
-        $this->storage = null;
-        $this->session = null;
     }
 }

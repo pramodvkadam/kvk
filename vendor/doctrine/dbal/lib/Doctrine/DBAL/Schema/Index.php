@@ -100,19 +100,11 @@ class Index extends AbstractAsset implements Constraint
     }
 
     /**
-     * Adds Flag for an index that translates to platform specific handling.
-     *
-     * @example $index->addFlag('CLUSTERED')
-     *
-     * @param string $flag
-     *
-     * @return Index
+     * {@inheritdoc}
      */
-    public function addFlag($flag)
+    public function getColumns()
     {
-        $this->_flags[strtolower($flag)] = true;
-
-        return $this;
+        return array_keys($this->_columns);
     }
 
     /**
@@ -130,6 +122,40 @@ class Index extends AbstractAsset implements Constraint
     }
 
     /**
+     * @return string[]
+     */
+    public function getUnquotedColumns()
+    {
+        return array_map(array($this, 'trimQuotes'), $this->getColumns());
+    }
+
+    /**
+     * Is the index neither unique nor primary key?
+     *
+     * @return boolean
+     */
+    public function isSimpleIndex()
+    {
+        return !$this->_isPrimary && !$this->_isUnique;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isUnique()
+    {
+        return $this->_isUnique;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isPrimary()
+    {
+        return $this->_isPrimary;
+    }
+
+    /**
      * @param string  $columnName
      * @param integer $pos
      *
@@ -144,19 +170,25 @@ class Index extends AbstractAsset implements Constraint
     }
 
     /**
-     * @return string[]
+     * Checks if this index exactly spans the given column names in the correct order.
+     *
+     * @param array $columnNames
+     *
+     * @return boolean
      */
-    public function getUnquotedColumns()
+    public function spansColumns(array $columnNames)
     {
-        return array_map(array($this, 'trimQuotes'), $this->getColumns());
-    }
+        $columns         = $this->getColumns();
+        $numberOfColumns = count($columns);
+        $sameColumns     = true;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getColumns()
-    {
-        return array_keys($this->_columns);
+        for ($i = 0; $i < $numberOfColumns; $i++) {
+            if ( ! isset($columnNames[$i]) || $this->trimQuotes(strtolower($columns[$i])) !== $this->trimQuotes(strtolower($columnNames[$i]))) {
+                $sameColumns = false;
+            }
+        }
+
+        return $sameColumns;
     }
 
     /**
@@ -205,83 +237,6 @@ class Index extends AbstractAsset implements Constraint
     }
 
     /**
-     * Checks if this index exactly spans the given column names in the correct order.
-     *
-     * @param array $columnNames
-     *
-     * @return boolean
-     */
-    public function spansColumns(array $columnNames)
-    {
-        $columns         = $this->getColumns();
-        $numberOfColumns = count($columns);
-        $sameColumns     = true;
-
-        for ($i = 0; $i < $numberOfColumns; $i++) {
-            if ( ! isset($columnNames[$i]) || $this->trimQuotes(strtolower($columns[$i])) !== $this->trimQuotes(strtolower($columnNames[$i]))) {
-                $sameColumns = false;
-            }
-        }
-
-        return $sameColumns;
-    }
-
-    /**
-     * Return whether the two indexes have the same partial index
-     * @param \Doctrine\DBAL\Schema\Index $other
-     *
-     * @return boolean
-     */
-    private function samePartialIndex(Index $other)
-    {
-        if ($this->hasOption('where') && $other->hasOption('where') && $this->getOption('where') == $other->getOption('where')) {
-            return true;
-        }
-
-        if ( ! $this->hasOption('where') && ! $other->hasOption('where')) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param string $name
-     *
-     * @return boolean
-     */
-    public function hasOption($name)
-    {
-        return isset($this->options[strtolower($name)]);
-    }
-
-    /**
-     * @param string $name
-     *
-     * @return mixed
-     */
-    public function getOption($name)
-    {
-        return $this->options[strtolower($name)];
-    }
-
-    /**
-     * @return boolean
-     */
-    public function isUnique()
-    {
-        return $this->_isUnique;
-    }
-
-    /**
-     * @return boolean
-     */
-    public function isPrimary()
-    {
-        return $this->_isPrimary;
-    }
-
-    /**
      * Detects if the other index is a non-unique, non primary index that can be overwritten by this one.
      *
      * @param Index $other
@@ -304,16 +259,6 @@ class Index extends AbstractAsset implements Constraint
     }
 
     /**
-     * Is the index neither unique nor primary key?
-     *
-     * @return boolean
-     */
-    public function isSimpleIndex()
-    {
-        return !$this->_isPrimary && !$this->_isUnique;
-    }
-
-    /**
      * Returns platform specific flags for indexes.
      *
      * @return string[]
@@ -321,6 +266,22 @@ class Index extends AbstractAsset implements Constraint
     public function getFlags()
     {
         return array_keys($this->_flags);
+    }
+
+    /**
+     * Adds Flag for an index that translates to platform specific handling.
+     *
+     * @example $index->addFlag('CLUSTERED')
+     *
+     * @param string $flag
+     *
+     * @return Index
+     */
+    public function addFlag($flag)
+    {
+        $this->_flags[strtolower($flag)] = true;
+
+        return $this;
     }
 
     /**
@@ -348,11 +309,50 @@ class Index extends AbstractAsset implements Constraint
     }
 
     /**
+     * @param string $name
+     *
+     * @return boolean
+     */
+    public function hasOption($name)
+    {
+        return isset($this->options[strtolower($name)]);
+    }
+
+    /**
+     * @param string $name
+     *
+     * @return mixed
+     */
+    public function getOption($name)
+    {
+        return $this->options[strtolower($name)];
+    }
+
+    /**
      * @return array
      */
     public function getOptions()
     {
         return $this->options;
+    }
+
+    /**
+     * Return whether the two indexes have the same partial index
+     * @param \Doctrine\DBAL\Schema\Index $other
+     *
+     * @return boolean
+     */
+    private function samePartialIndex(Index $other)
+    {
+        if ($this->hasOption('where') && $other->hasOption('where') && $this->getOption('where') == $other->getOption('where')) {
+            return true;
+        }
+
+        if ( ! $this->hasOption('where') && ! $other->hasOption('where')) {
+            return true;
+        }
+
+        return false;
     }
 
 }

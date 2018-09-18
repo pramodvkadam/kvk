@@ -12,16 +12,6 @@ class MissingFileNameException extends RuntimeException
     protected $model;
 
     /**
-     * Get the affected Halcyon model.
-     *
-     * @return string
-     */
-    public function getModel()
-    {
-        return $this->model;
-    }
-
-    /**
      * Set the affected Halcyon model.
      *
      * @param  string   $model
@@ -34,5 +24,15 @@ class MissingFileNameException extends RuntimeException
         $this->message = "No file name attribute (fileName) specified for model [{$model}].";
 
         return $this;
+    }
+
+    /**
+     * Get the affected Halcyon model.
+     *
+     * @return string
+     */
+    public function getModel()
+    {
+        return $this->model;
     }
 }

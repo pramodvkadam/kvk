@@ -121,21 +121,6 @@ class AppNameCommand extends Command
     }
 
     /**
-     * Replace the given string in the given file.
-     *
-     * @param  string  $path
-     * @param  string|array  $search
-     * @param  string|array  $replace
-     * @return void
-     */
-    protected function replaceIn($path, $search, $replace)
-    {
-        if ($this->files->exists($path)) {
-            $this->files->put($path, str_replace($search, $replace, $this->files->get($path)));
-        }
-    }
-
-    /**
      * Set the bootstrap namespaces.
      *
      * @return void
@@ -155,16 +140,6 @@ class AppNameCommand extends Command
         ];
 
         $this->replaceIn($this->getBootstrapPath(), $search, $replace);
-    }
-
-    /**
-     * Get the path to the bootstrap/app.php file.
-     *
-     * @return string
-     */
-    protected function getBootstrapPath()
-    {
-        return $this->laravel->bootstrapPath().'/app.php';
     }
 
     /**
@@ -197,17 +172,6 @@ class AppNameCommand extends Command
         ];
 
         $this->replaceIn($this->getConfigPath('app'), $search, $replace);
-    }
-
-    /**
-     * Get the path to the given configuration file.
-     *
-     * @param  string  $name
-     * @return string
-     */
-    protected function getConfigPath($name)
-    {
-        return $this->laravel['path.config'].'/'.$name.'.php';
     }
 
     /**
@@ -253,16 +217,6 @@ class AppNameCommand extends Command
     }
 
     /**
-     * Get the path to the Composer.json file.
-     *
-     * @return string
-     */
-    protected function getComposerPath()
-    {
-        return $this->laravel->basePath().'/composer.json';
-    }
-
-    /**
      * Set the namespace in database factory files.
      *
      * @return void
@@ -270,7 +224,7 @@ class AppNameCommand extends Command
     protected function setDatabaseFactoryNamespaces()
     {
         $files = Finder::create()
-                            ->in($this->laravel->databasePath().'/factories')
+                            ->in(database_path('factories'))
                             ->contains($this->currentRoot)
                             ->name('*.php');
 
@@ -280,6 +234,52 @@ class AppNameCommand extends Command
                 $this->currentRoot, $this->argument('name')
             );
         }
+    }
+
+    /**
+     * Replace the given string in the given file.
+     *
+     * @param  string  $path
+     * @param  string|array  $search
+     * @param  string|array  $replace
+     * @return void
+     */
+    protected function replaceIn($path, $search, $replace)
+    {
+        if ($this->files->exists($path)) {
+            $this->files->put($path, str_replace($search, $replace, $this->files->get($path)));
+        }
+    }
+
+    /**
+     * Get the path to the bootstrap/app.php file.
+     *
+     * @return string
+     */
+    protected function getBootstrapPath()
+    {
+        return $this->laravel->bootstrapPath().'/app.php';
+    }
+
+    /**
+     * Get the path to the Composer.json file.
+     *
+     * @return string
+     */
+    protected function getComposerPath()
+    {
+        return base_path('composer.json');
+    }
+
+    /**
+     * Get the path to the given configuration file.
+     *
+     * @param  string  $name
+     * @return string
+     */
+    protected function getConfigPath($name)
+    {
+        return $this->laravel['path.config'].'/'.$name.'.php';
     }
 
     /**

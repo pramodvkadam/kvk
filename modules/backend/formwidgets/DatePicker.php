@@ -133,6 +133,22 @@ class DatePicker extends FormWidgetBase
     }
 
     /**
+     * @inheritDoc
+     */
+    public function getSaveValue($value)
+    {
+        if ($this->formField->disabled || $this->formField->hidden) {
+            return FormField::NO_SAVE_DATA;
+        }
+
+        if (!strlen($value)) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    /**
      * Convert PHP format to JS format
      */
     protected function getDateFormatMoment()
@@ -142,6 +158,9 @@ class DatePicker extends FormWidgetBase
         }
     }
 
+    /*
+     * Display alias, used by preview mode
+     */
     protected function getDateFormatAlias()
     {
         if ($this->format) {
@@ -157,25 +176,5 @@ class DatePicker extends FormWidgetBase
         else {
             return 'dateTimeLong';
         }
-    }
-
-    /*
-     * Display alias, used by preview mode
-     */
-
-    /**
-     * @inheritDoc
-     */
-    public function getSaveValue($value)
-    {
-        if ($this->formField->disabled || $this->formField->hidden) {
-            return FormField::NO_SAVE_DATA;
-        }
-
-        if (!strlen($value)) {
-            return null;
-        }
-
-        return $value;
     }
 }

@@ -23,6 +23,38 @@ abstract class Helper implements HelperInterface
     protected $helperSet = null;
 
     /**
+     * {@inheritdoc}
+     */
+    public function setHelperSet(HelperSet $helperSet = null)
+    {
+        $this->helperSet = $helperSet;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getHelperSet()
+    {
+        return $this->helperSet;
+    }
+
+    /**
+     * Returns the length of a string, using mb_strwidth if it is available.
+     *
+     * @param string $string The string to check its length
+     *
+     * @return int The length of the string
+     */
+    public static function strlen($string)
+    {
+        if (false === $encoding = mb_detect_encoding($string, null, true)) {
+            return strlen($string);
+        }
+
+        return mb_strwidth($string, $encoding);
+    }
+
+    /**
      * Returns the subset of a string, using mb_substr if it is available.
      *
      * @param string   $string String to subset
@@ -91,22 +123,6 @@ abstract class Helper implements HelperInterface
         return self::strlen(self::removeDecoration($formatter, $string));
     }
 
-    /**
-     * Returns the length of a string, using mb_strwidth if it is available.
-     *
-     * @param string $string The string to check its length
-     *
-     * @return int The length of the string
-     */
-    public static function strlen($string)
-    {
-        if (false === $encoding = mb_detect_encoding($string, null, true)) {
-            return strlen($string);
-        }
-
-        return mb_strwidth($string, $encoding);
-    }
-
     public static function removeDecoration(OutputFormatterInterface $formatter, $string)
     {
         $isDecorated = $formatter->isDecorated();
@@ -118,21 +134,5 @@ abstract class Helper implements HelperInterface
         $formatter->setDecorated($isDecorated);
 
         return $string;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getHelperSet()
-    {
-        return $this->helperSet;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setHelperSet(HelperSet $helperSet = null)
-    {
-        $this->helperSet = $helperSet;
     }
 }

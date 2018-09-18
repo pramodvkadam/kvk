@@ -28,7 +28,13 @@ abstract class Twig_Node_Expression_Call extends Twig_Node_Expression
                     $compiler->raw(sprintf('$this->env->getRuntime(\'%s\')->%s', $callable[0], $callable[1]));
                 }
             } elseif ($r instanceof ReflectionMethod && $callable[0] instanceof Twig_ExtensionInterface) {
-                $compiler->raw(sprintf('$this->env->getExtension(\'%s\')->%s', get_class($callable[0]), $callable[1]));
+                // For BC/FC with namespaced aliases
+                $class = (new ReflectionClass(get_class($callable[0])))->name;
+                if (!$compiler->getEnvironment()->hasExtension($class)) {
+                    throw new Twig_Error_Runtime(sprintf('The "%s" extension is not enabled.', $class));
+                }
+
+                $compiler->raw(sprintf('$this->extensions[\'%s\']->%s', ltrim($class, '\\'), $callable[1]));
             } else {
                 $closingParenthesis = true;
                 $compiler->raw(sprintf('call_user_func_array($this->env->get%s(\'%s\')->getCallable(), array', ucfirst($this->getAttribute('type')), $this->getAttribute('name')));
@@ -40,38 +46,6 @@ abstract class Twig_Node_Expression_Call extends Twig_Node_Expression
         if ($closingParenthesis) {
             $compiler->raw(')');
         }
-    }
-
-    private function reflectCallable($callable)
-    {
-        if (null !== $this->reflector) {
-            return $this->reflector;
-        }
-
-        if (is_array($callable)) {
-            if (!method_exists($callable[0], $callable[1])) {
-                // __call()
-                return array(null, array());
-            }
-            $r = new ReflectionMethod($callable[0], $callable[1]);
-        } elseif (is_object($callable) && !$callable instanceof Closure) {
-            $r = new ReflectionObject($callable);
-            $r = $r->getMethod('__invoke');
-            $callable = array($callable, '__invoke');
-        } elseif (is_string($callable) && false !== $pos = strpos($callable, '::')) {
-            $class = substr($callable, 0, $pos);
-            $method = substr($callable, $pos + 2);
-            if (!method_exists($class, $method)) {
-                // __staticCall()
-                return array(null, array());
-            }
-            $r = new ReflectionMethod($callable);
-            $callable = array($class, $method);
-        } else {
-            $r = new ReflectionFunction($callable);
-        }
-
-        return $this->reflector = array($r, $callable);
     }
 
     protected function compileArguments(Twig_Compiler $compiler)
@@ -280,6 +254,38 @@ abstract class Twig_Node_Expression_Call extends Twig_Node_Expression
         }
 
         return $parameters;
+    }
+
+    private function reflectCallable($callable)
+    {
+        if (null !== $this->reflector) {
+            return $this->reflector;
+        }
+
+        if (is_array($callable)) {
+            if (!method_exists($callable[0], $callable[1])) {
+                // __call()
+                return array(null, array());
+            }
+            $r = new ReflectionMethod($callable[0], $callable[1]);
+        } elseif (is_object($callable) && !$callable instanceof Closure) {
+            $r = new ReflectionObject($callable);
+            $r = $r->getMethod('__invoke');
+            $callable = array($callable, '__invoke');
+        } elseif (is_string($callable) && false !== $pos = strpos($callable, '::')) {
+            $class = substr($callable, 0, $pos);
+            $method = substr($callable, $pos + 2);
+            if (!method_exists($class, $method)) {
+                // __staticCall()
+                return array(null, array());
+            }
+            $r = new ReflectionMethod($callable);
+            $callable = array($class, $method);
+        } else {
+            $r = new ReflectionFunction($callable);
+        }
+
+        return $this->reflector = array($r, $callable);
     }
 }
 

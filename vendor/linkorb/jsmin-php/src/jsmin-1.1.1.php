@@ -59,100 +59,19 @@ class JSMin {
 
   // -- Public Static Methods --------------------------------------------------
 
-  public function __construct($input) {
-    $this->input       = str_replace("\r\n", "\n", $input);
-    $this->inputLength = strlen($this->input);
-  }
-
-  // -- Public Instance Methods ------------------------------------------------
-
   public static function minify($js) {
     $jsmin = new JSMin($js);
     return $jsmin->min();
   }
 
-  // -- Protected Instance Methods ---------------------------------------------
+  // -- Public Instance Methods ------------------------------------------------
 
-  protected function min() {
-    $this->a = "\n";
-    $this->action(3);
-
-    while ($this->a !== null) {
-      switch ($this->a) {
-        case ' ':
-          if ($this->isAlphaNum($this->b)) {
-            $this->action(1);
-          } else {
-            $this->action(2);
-          }
-          break;
-
-        case "\n":
-          switch ($this->b) {
-            case '{':
-            case '[':
-            case '(':
-            case '+':
-            case '-':
-              $this->action(1);
-              break;
-
-            case ' ':
-              $this->action(3);
-              break;
-
-            default:
-              if ($this->isAlphaNum($this->b)) {
-                $this->action(1);
-              }
-              else {
-                $this->action(2);
-              }
-          }
-          break;
-
-        default:
-          switch ($this->b) {
-            case ' ':
-              if ($this->isAlphaNum($this->a)) {
-                $this->action(1);
-                break;
-              }
-
-              $this->action(3);
-              break;
-
-            case "\n":
-              switch ($this->a) {
-                case '}':
-                case ']':
-                case ')':
-                case '+':
-                case '-':
-                case '"':
-                case "'":
-                  $this->action(1);
-                  break;
-
-                default:
-                  if ($this->isAlphaNum($this->a)) {
-                    $this->action(1);
-                  }
-                  else {
-                    $this->action(3);
-                  }
-              }
-              break;
-
-            default:
-              $this->action(1);
-              break;
-          }
-      }
-    }
-
-    return $this->output;
+  public function __construct($input) {
+    $this->input       = str_replace("\r\n", "\n", $input);
+    $this->inputLength = strlen($this->input);
   }
+
+  // -- Protected Instance Methods ---------------------------------------------
 
   protected function action($d) {
     switch($d) {
@@ -237,6 +156,91 @@ class JSMin {
     return ' ';
   }
 
+  protected function isAlphaNum($c) {
+    return ord($c) > 126 || $c === '\\' || preg_match('/^[\w\$]$/', $c) === 1;
+  }
+
+  protected function min() {
+    $this->a = "\n";
+    $this->action(3);
+
+    while ($this->a !== null) {
+      switch ($this->a) {
+        case ' ':
+          if ($this->isAlphaNum($this->b)) {
+            $this->action(1);
+          } else {
+            $this->action(2);
+          }
+          break;
+
+        case "\n":
+          switch ($this->b) {
+            case '{':
+            case '[':
+            case '(':
+            case '+':
+            case '-':
+              $this->action(1);
+              break;
+
+            case ' ':
+              $this->action(3);
+              break;
+
+            default:
+              if ($this->isAlphaNum($this->b)) {
+                $this->action(1);
+              }
+              else {
+                $this->action(2);
+              }
+          }
+          break;
+
+        default:
+          switch ($this->b) {
+            case ' ':
+              if ($this->isAlphaNum($this->a)) {
+                $this->action(1);
+                break;
+              }
+
+              $this->action(3);
+              break;
+
+            case "\n":
+              switch ($this->a) {
+                case '}':
+                case ']':
+                case ')':
+                case '+':
+                case '-':
+                case '"':
+                case "'":
+                  $this->action(1);
+                  break;
+
+                default:
+                  if ($this->isAlphaNum($this->a)) {
+                    $this->action(1);
+                  }
+                  else {
+                    $this->action(3);
+                  }
+              }
+              break;
+
+            default:
+              $this->action(1);
+              break;
+          }
+      }
+    }
+
+    return $this->output;
+  }
+
   protected function next() {
     $c = $this->get();
 
@@ -279,10 +283,6 @@ class JSMin {
   protected function peek() {
     $this->lookAhead = $this->get();
     return $this->lookAhead;
-  }
-
-  protected function isAlphaNum($c) {
-    return ord($c) > 126 || $c === '\\' || preg_match('/^[\w\$]$/', $c) === 1;
   }
 }
 

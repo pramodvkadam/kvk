@@ -9,11 +9,6 @@ use Doctrine\Common\Cache\ApcuCache;
  */
 class ApcuCacheTest extends CacheTest
 {
-    public function testLifetime()
-    {
-        $this->markTestSkipped('The APC cache TTL is not working in a single process/request. See https://bugs.php.net/bug.php?id=58084');
-    }
-
     protected function setUp()
     {
         if (!ini_get('apc.enable_cli')) {
@@ -24,5 +19,10 @@ class ApcuCacheTest extends CacheTest
     protected function _getCacheDriver()
     {
         return new ApcuCache();
+    }
+
+    public function testLifetime()
+    {
+        $this->markTestSkipped('The APC cache TTL is not working in a single process/request. See https://bugs.php.net/bug.php?id=58084');
     }
 }

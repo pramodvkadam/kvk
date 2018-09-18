@@ -38,15 +38,6 @@ class CacheWarmerAggregateTest extends TestCase
         $aggregate->warmUp(self::$cacheDir);
     }
 
-    protected function getCacheWarmerMock()
-    {
-        $warmer = $this->getMockBuilder('Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface')
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        return $warmer;
-    }
-
     /**
      * @group legacy
      */
@@ -103,5 +94,14 @@ class CacheWarmerAggregateTest extends TestCase
 
         $aggregate = new CacheWarmerAggregate(array($warmer));
         $aggregate->warmUp(self::$cacheDir);
+    }
+
+    protected function getCacheWarmerMock()
+    {
+        $warmer = $this->getMockBuilder('Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface')
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        return $warmer;
     }
 }

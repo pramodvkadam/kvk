@@ -9,6 +9,10 @@ items:
         reference: index
         cmsPage: ''
         replace: '0'
+        viewBag:
+            isHidden: '0'
+            cssClass: ''
+            isExternal: '0'
     -
         title: About
         nesting: '0'
@@ -24,13 +28,215 @@ items:
             isExternal: '0'
     -
         title: Staff
+        nesting: ''
         type: cms-page
+        url: ''
         code: ''
         reference: staff
+        cmsPage: ''
+        replace: ''
         viewBag:
             isHidden: '0'
             cssClass: ''
             isExternal: '0'
+    -
+        title: Activities
+        nesting: ''
+        type: url
+        url: /
+        code: ''
+        reference: ''
+        cmsPage: ''
+        replace: ''
+        viewBag:
+            isHidden: '0'
+            cssClass: ''
+            isExternal: '0'
+        items:
+            -
+                title: 'On Farm Testing'
+                nesting: '0'
+                type: static-page
+                url: ''
+                code: ''
+                reference: farm-testing
+                cmsPage: ''
+                replace: '0'
+                viewBag:
+                    isHidden: '0'
+                    cssClass: ''
+                    isExternal: '0'
+            -
+                title: 'Frontline Demonstration'
+                nesting: '0'
+                type: static-page
+                url: ''
+                code: ''
+                reference: frontline-demonstration
+                cmsPage: ''
+                replace: '0'
+                viewBag:
+                    isHidden: '0'
+                    cssClass: ''
+                    isExternal: '0'
+            -
+                title: Training
+                nesting: '0'
+                type: static-page
+                url: ''
+                code: ''
+                reference: training
+                cmsPage: ''
+                replace: '0'
+                viewBag:
+                    isHidden: '0'
+                    cssClass: ''
+                    isExternal: '0'
+            -
+                title: 'Extension Activities'
+                nesting: '0'
+                type: static-page
+                url: ''
+                code: ''
+                reference: extension-activities
+                cmsPage: ''
+                replace: '0'
+                viewBag:
+                    isHidden: '0'
+                    cssClass: ''
+                    isExternal: '0'
+    -
+        title: Infrastructure
+        nesting: '0'
+        type: static-page
+        url: ''
+        code: ''
+        reference: infrastructure
+        cmsPage: ''
+        replace: '0'
+        viewBag:
+            isHidden: '0'
+            cssClass: ''
+            isExternal: '0'
+    -
+        title: 'Our Services'
+        nesting: ''
+        type: url
+        url: /
+        code: ''
+        reference: ''
+        cmsPage: ''
+        replace: ''
+        viewBag:
+            isHidden: '0'
+            cssClass: ''
+            isExternal: '0'
+        items:
+            -
+                title: Products
+                nesting: '0'
+                type: static-page
+                url: ''
+                code: ''
+                reference: products
+                cmsPage: ''
+                replace: '0'
+                viewBag:
+                    isHidden: '0'
+                    cssClass: ''
+                    isExternal: '0'
+            -
+                title: Publications
+                nesting: '0'
+                type: static-page
+                url: ''
+                code: ''
+                reference: publications
+                cmsPage: ''
+                replace: '0'
+                viewBag:
+                    isHidden: '0'
+                    cssClass: ''
+                    isExternal: '0'
+    -
+        title: Linkages
+        nesting: '0'
+        type: static-page
+        url: ''
+        code: ''
+        reference: linkages
+        cmsPage: ''
+        replace: '0'
+        viewBag:
+            isHidden: '0'
+            cssClass: ''
+            isExternal: '0'
+    -
+        title: Media
+        nesting: ''
+        type: cms-page
+        url: ''
+        code: ''
+        reference: gallary
+        cmsPage: ''
+        replace: ''
+        viewBag:
+            isHidden: '0'
+            cssClass: ''
+            isExternal: '0'
+        items:
+            -
+                title: Gallary
+                nesting: '0'
+                type: static-page
+                url: ''
+                code: ''
+                reference: photogallary
+                cmsPage: ''
+                replace: '0'
+                viewBag:
+                    isHidden: '0'
+                    cssClass: ''
+                    isExternal: '0'
+            -
+                title: News
+                nesting: ''
+                type: cms-page
+                url: ''
+                code: ''
+                reference: news
+                cmsPage: ''
+                replace: ''
+                viewBag:
+                    isHidden: '0'
+                    cssClass: ''
+                    isExternal: '0'
+            -
+                title: Stories
+                nesting: '0'
+                type: static-page
+                url: ''
+                code: ''
+                reference: success-stories
+                cmsPage: ''
+                replace: '0'
+                viewBag:
+                    isHidden: '0'
+                    cssClass: ''
+                    isExternal: '0'
+            -
+                title: Videos
+                nesting: ''
+                type: cms-page
+                url: ''
+                code: ''
+                reference: videos
+                cmsPage: ''
+                replace: ''
+                viewBag:
+                    isHidden: '0'
+                    cssClass: ''
+                    isExternal: '0'
     -
         title: Contact
         nesting: ''
@@ -40,6 +246,19 @@ items:
         reference: contact
         cmsPage: ''
         replace: ''
+        viewBag:
+            isHidden: '0'
+            cssClass: ''
+            isExternal: '0'
+    -
+        title: Blog
+        nesting: ''
+        type: all-blog-posts
+        url: ''
+        code: ''
+        reference: ''
+        cmsPage: blog/post
+        replace: '0'
         viewBag:
             isHidden: '0'
             cssClass: ''

@@ -123,6 +123,27 @@ class BladeCompiler extends Compiler implements CompilerInterface
     }
 
     /**
+     * Get the path currently being compiled.
+     *
+     * @return string
+     */
+    public function getPath()
+    {
+        return $this->path;
+    }
+
+    /**
+     * Set the path currently being compiled.
+     *
+     * @param  string  $path
+     * @return void
+     */
+    public function setPath($path)
+    {
+        $this->path = $path;
+    }
+
+    /**
      * Compile the given Blade template contents.
      *
      * @param  string  $value
@@ -177,6 +198,19 @@ class BladeCompiler extends Compiler implements CompilerInterface
     }
 
     /**
+     * Store the PHP blocks and replace them with a temporary placeholder.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    protected function storePhpBlocks($value)
+    {
+        return preg_replace_callback('/(?<!@)@php(.*?)@endphp/s', function ($matches) {
+            return $this->storeRawBlock("<?php{$matches[1]}?>");
+        }, $value);
+    }
+
+    /**
      * Store a raw block and return a unique raw placeholder.
      *
      * @param  string  $value
@@ -184,9 +218,26 @@ class BladeCompiler extends Compiler implements CompilerInterface
      */
     protected function storeRawBlock($value)
     {
-        return $this->getRawPlaceHolder(
+        return $this->getRawPlaceholder(
             array_push($this->rawBlocks, $value) - 1
         );
+    }
+
+    /**
+     * Replace the raw placeholders with the original code stored in the raw blocks.
+     *
+     * @param  string  $result
+     * @return string
+     */
+    protected function restoreRawContent($result)
+    {
+        $result = preg_replace_callback('/'.$this->getRawPlaceholder('(\d+)').'/', function ($matches) {
+            return $this->rawBlocks[$matches[1]];
+        }, $result);
+
+        $this->rawBlocks = [];
+
+        return $result;
     }
 
     /**
@@ -201,16 +252,15 @@ class BladeCompiler extends Compiler implements CompilerInterface
     }
 
     /**
-     * Store the PHP blocks and replace them with a temporary placeholder.
+     * Add the stored footers onto the given content.
      *
-     * @param  string  $value
+     * @param  string  $result
      * @return string
      */
-    protected function storePhpBlocks($value)
+    protected function addFooters($result)
     {
-        return preg_replace_callback('/(?<!@)@php(.*?)@endphp/s', function ($matches) {
-            return $this->storeRawBlock("<?php{$matches[1]}?>");
-        }, $value);
+        return ltrim($result, PHP_EOL)
+                .PHP_EOL.implode(PHP_EOL, array_reverse($this->footer));
     }
 
     /**
@@ -233,53 +283,68 @@ class BladeCompiler extends Compiler implements CompilerInterface
     }
 
     /**
-     * Replace the raw placeholders with the original code stored in the raw blocks.
+     * Execute the user defined extensions.
      *
-     * @param  string  $result
+     * @param  string  $value
      * @return string
      */
-    protected function restoreRawContent($result)
+    protected function compileExtensions($value)
     {
-        $result = preg_replace_callback('/'.$this->getRawPlaceholder('(\d+)').'/', function ($matches) {
-            return $this->rawBlocks[$matches[1]];
-        }, $result);
+        foreach ($this->extensions as $compiler) {
+            $value = call_user_func($compiler, $value, $this);
+        }
 
-        $this->rawBlocks = [];
-
-        return $result;
+        return $value;
     }
 
     /**
-     * Add the stored footers onto the given content.
+     * Compile Blade statements that start with "@".
      *
-     * @param  string  $result
+     * @param  string  $value
      * @return string
      */
-    protected function addFooters($result)
+    protected function compileStatements($value)
     {
-        return ltrim($result, PHP_EOL)
-                .PHP_EOL.implode(PHP_EOL, array_reverse($this->footer));
+        return preg_replace_callback(
+            '/\B@(@?\w+(?:::\w+)?)([ \t]*)(\( ( (?>[^()]+) | (?3) )* \))?/x', function ($match) {
+                return $this->compileStatement($match);
+            }, $value
+        );
     }
 
     /**
-     * Get the path currently being compiled.
+     * Compile a single Blade @ statement.
      *
+     * @param  array  $match
      * @return string
      */
-    public function getPath()
+    protected function compileStatement($match)
     {
-        return $this->path;
+        if (Str::contains($match[1], '@')) {
+            $match[0] = isset($match[3]) ? $match[1].$match[3] : $match[1];
+        } elseif (isset($this->customDirectives[$match[1]])) {
+            $match[0] = $this->callCustomDirective($match[1], Arr::get($match, 3));
+        } elseif (method_exists($this, $method = 'compile'.ucfirst($match[1]))) {
+            $match[0] = $this->$method(Arr::get($match, 3));
+        }
+
+        return isset($match[3]) ? $match[0] : $match[0].$match[2];
     }
 
     /**
-     * Set the path currently being compiled.
+     * Call the given directive with the given value.
      *
-     * @param  string  $path
-     * @return void
+     * @param  string  $name
+     * @param  string|null  $value
+     * @return string
      */
-    public function setPath($path)
+    protected function callCustomDirective($name, $value)
     {
-        $this->path = $path;
+        if (Str::startsWith($value, '(') && Str::endsWith($value, ')')) {
+            $value = Str::substr($value, 1, -1);
+        }
+
+        return call_user_func($this->customDirectives[$name], trim($value));
     }
 
     /**
@@ -347,18 +412,6 @@ class BladeCompiler extends Compiler implements CompilerInterface
     }
 
     /**
-     * Register a handler for custom directives.
-     *
-     * @param  string  $name
-     * @param  callable  $handler
-     * @return void
-     */
-    public function directive($name, callable $handler)
-    {
-        $this->customDirectives[$name] = $handler;
-    }
-
-    /**
      * Check the result of a condition.
      *
      * @param  string  $name
@@ -368,6 +421,18 @@ class BladeCompiler extends Compiler implements CompilerInterface
     public function check($name, ...$parameters)
     {
         return call_user_func($this->conditions[$name], ...$parameters);
+    }
+
+    /**
+     * Register a handler for custom directives.
+     *
+     * @param  string  $name
+     * @param  callable  $handler
+     * @return void
+     */
+    public function directive($name, callable $handler)
+    {
+        $this->customDirectives[$name] = $handler;
     }
 
     /**
@@ -392,67 +457,12 @@ class BladeCompiler extends Compiler implements CompilerInterface
     }
 
     /**
-     * Execute the user defined extensions.
+     * Set the echo format to double encode entities.
      *
-     * @param  string  $value
-     * @return string
+     * @return void
      */
-    protected function compileExtensions($value)
+    public function doubleEncode()
     {
-        foreach ($this->extensions as $compiler) {
-            $value = call_user_func($compiler, $value, $this);
-        }
-
-        return $value;
-    }
-
-    /**
-     * Compile Blade statements that start with "@".
-     *
-     * @param  string  $value
-     * @return string
-     */
-    protected function compileStatements($value)
-    {
-        return preg_replace_callback(
-            '/\B@(@?\w+(?:::\w+)?)([ \t]*)(\( ( (?>[^()]+) | (?3) )* \))?/x', function ($match) {
-                return $this->compileStatement($match);
-            }, $value
-        );
-    }
-
-    /**
-     * Compile a single Blade @ statement.
-     *
-     * @param  array  $match
-     * @return string
-     */
-    protected function compileStatement($match)
-    {
-        if (Str::contains($match[1], '@')) {
-            $match[0] = isset($match[3]) ? $match[1].$match[3] : $match[1];
-        } elseif (isset($this->customDirectives[$match[1]])) {
-            $match[0] = $this->callCustomDirective($match[1], Arr::get($match, 3));
-        } elseif (method_exists($this, $method = 'compile'.ucfirst($match[1]))) {
-            $match[0] = $this->$method(Arr::get($match, 3));
-        }
-
-        return isset($match[3]) ? $match[0] : $match[0].$match[2];
-    }
-
-    /**
-     * Call the given directive with the given value.
-     *
-     * @param  string  $name
-     * @param  string|null  $value
-     * @return string
-     */
-    protected function callCustomDirective($name, $value)
-    {
-        if (Str::startsWith($value, '(') && Str::endsWith($value, ')')) {
-            $value = Str::substr($value, 1, -1);
-        }
-
-        return call_user_func($this->customDirectives[$name], trim($value));
+        $this->setEchoFormat('e(%s, true)');
     }
 }

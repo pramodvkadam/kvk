@@ -46,18 +46,21 @@ class DataFeed
      * @var string Set the limit offset.
      */
     public $limitOffset = null;
-    /**
-     * @var bool
-     */
-    public $removeDuplicates = false;
+
     /**
      * @var array Model collection pre-query.
      */
     protected $collection = [];
+
     /**
      * @var Builder Cache containing the generic collection union query.
      */
     protected $queryCache;
+
+    /**
+     * @var bool
+     */
+    public $removeDuplicates = false;
 
     /**
      * Add a new Builder to the feed collection
@@ -91,47 +94,6 @@ class DataFeed
         $query = $this->processCollection();
         $result = Db::table(Db::raw("(".$query->toSql().") as records"))->select(Db::raw("COUNT(*) as total"))->first();
         return $result->total;
-    }
-
-    /**
-     * Creates a generic union query of each added collection
-     */
-    protected function processCollection()
-    {
-        if ($this->queryCache !== null)
-            return $this->queryCache;
-
-        $lastQuery = null;
-        foreach ($this->collection as $tag => $data)
-        {
-            extract($data);
-            $cleanQuery = clone $item->getQuery();
-            $model = $item->getModel();
-
-            $sorting = $model->getTable() . '.';
-            $sorting .= $orderBy ?: $this->sortField;
-
-            /*
-             * Flush the select, add ID and tag
-             */
-            $cleanQuery = $cleanQuery->select(Db::raw($keyName." as id"));
-            $cleanQuery = $cleanQuery->addSelect(Db::raw("(SELECT '".$tag."') as ".$this->tagVar));
-            $cleanQuery = $cleanQuery->addSelect(Db::raw("(SELECT ".$sorting.") as ".$this->sortVar));
-
-            /*
-             * Union this query with the previous one
-             */
-            if ($lastQuery) {
-                if ($this->removeDuplicates)
-                    $cleanQuery = $lastQuery->union($cleanQuery);
-                else
-                    $cleanQuery = $lastQuery->unionAll($cleanQuery);
-            }
-
-            $lastQuery = $cleanQuery;
-        }
-
-        return $this->queryCache = $lastQuery;
     }
 
     /**
@@ -190,43 +152,6 @@ class DataFeed
     }
 
     /**
-     * Returns a prepared model by its tag name.
-     * @return Model
-     */
-    protected function getModelByTag($tag)
-    {
-        extract($this->getDataByTag($tag));
-        return $item;
-    }
-
-    /**
-     * Returns a data stored about an item by its tag name.
-     * @return array
-     */
-    protected function getDataByTag($tag)
-    {
-        if (!$data = array_get($this->collection, $tag)) {
-            throw new Exception('Unable to find model in collection with tag: '. $tag);
-        }
-
-        return $data;
-    }
-
-    //
-    // Internals
-    //
-
-    /**
-     * Returns a model key name by its tag name.
-     * @return Model
-     */
-    protected function getKeyNameByTag($tag)
-    {
-        extract($this->getDataByTag($tag));
-        return $keyName;
-    }
-
-    /**
      * Returns the SQL expression used in the generic union
      */
     public function toSql()
@@ -259,5 +184,83 @@ class DataFeed
         }
 
         return $this;
+    }
+
+    //
+    // Internals
+    //
+
+    /**
+     * Creates a generic union query of each added collection
+     */
+    protected function processCollection()
+    {
+        if ($this->queryCache !== null)
+            return $this->queryCache;
+
+        $lastQuery = null;
+        foreach ($this->collection as $tag => $data)
+        {
+            extract($data);
+            $cleanQuery = clone $item->getQuery();
+            $model = $item->getModel();
+
+            $sorting = $model->getTable() . '.';
+            $sorting .= $orderBy ?: $this->sortField;
+
+            /*
+             * Flush the select, add ID and tag
+             */
+            $cleanQuery = $cleanQuery->select(Db::raw($keyName." as id"));
+            $cleanQuery = $cleanQuery->addSelect(Db::raw("(SELECT '".$tag."') as ".$this->tagVar));
+            $cleanQuery = $cleanQuery->addSelect(Db::raw("(SELECT ".$sorting.") as ".$this->sortVar));
+
+            /*
+             * Union this query with the previous one
+             */
+            if ($lastQuery) {
+                if ($this->removeDuplicates)
+                    $cleanQuery = $lastQuery->union($cleanQuery);
+                else
+                    $cleanQuery = $lastQuery->unionAll($cleanQuery);
+            }
+
+            $lastQuery = $cleanQuery;
+        }
+
+        return $this->queryCache = $lastQuery;
+    }
+
+    /**
+     * Returns a prepared model by its tag name.
+     * @return Model
+     */
+    protected function getModelByTag($tag)
+    {
+        extract($this->getDataByTag($tag));
+        return $item;
+    }
+
+    /**
+     * Returns a model key name by its tag name.
+     * @return Model
+     */
+    protected function getKeyNameByTag($tag)
+    {
+        extract($this->getDataByTag($tag));
+        return $keyName;
+    }
+
+    /**
+     * Returns a data stored about an item by its tag name.
+     * @return array
+     */
+    protected function getDataByTag($tag)
+    {
+        if (!$data = array_get($this->collection, $tag)) {
+            throw new Exception('Unable to find model in collection with tag: '. $tag);
+        }
+
+        return $data;
     }
 }

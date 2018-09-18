@@ -4,7 +4,7 @@
 *
 * @license http://opensource.org/licenses/MIT
 * @link https://github.com/thephpleague/csv/
-* @version 8.2.2
+* @version 8.2.3
 * @package League.csv
 *
 * For the full copyright and license information, please view the LICENSE
@@ -61,6 +61,68 @@ trait StreamFilter
         $,ix';
 
     /**
+     * Internal path setter
+     *
+     * The path must be an SplFileInfo object
+     * an object that implements the `__toString` method
+     * a path to a file
+     *
+     * @param StreamIterator|SplFileObject|string $path The file path
+     */
+    protected function initStreamFilter($path)
+    {
+        $this->stream_filters = [];
+        if (!is_string($path)) {
+            $this->stream_uri = null;
+
+            return;
+        }
+
+        if (!preg_match($this->stream_regex, $path, $matches)) {
+            $this->stream_uri = $path;
+
+            return;
+        }
+        $this->stream_uri = $matches['resource'];
+        $this->stream_filters = array_map('urldecode', explode('|', $matches['filters']));
+        $this->stream_filter_mode = $this->fetchStreamModeAsInt($matches['mode']);
+    }
+
+    /**
+     * Get the stream mode
+     *
+     * @param string $mode
+     *
+     * @return int
+     */
+    protected function fetchStreamModeAsInt($mode)
+    {
+        $mode = strtolower($mode);
+        $mode = rtrim($mode, '=');
+        if ('write' == $mode) {
+            return STREAM_FILTER_WRITE;
+        }
+
+        if ('read' == $mode) {
+            return STREAM_FILTER_READ;
+        }
+
+        return STREAM_FILTER_ALL;
+    }
+
+    /**
+     * Check if the trait methods can be used
+     *
+     * @throws LogicException If the API can not be use
+     */
+    protected function assertStreamable()
+    {
+        if (!is_string($this->stream_uri)) {
+            throw new LogicException('The stream filter API can not be used');
+        }
+    }
+
+    /**
      * Tells whether the stream filter capabilities can be used
      *
      * @return bool
@@ -68,18 +130,6 @@ trait StreamFilter
     public function isActiveStreamFilter()
     {
         return is_string($this->stream_uri);
-    }
-
-    /**
-     * stream filter mode getter
-     *
-     * @return int
-     */
-    public function getStreamFilterMode()
-    {
-        $this->assertStreamable();
-
-        return $this->stream_filter_mode;
     }
 
     /**
@@ -108,15 +158,15 @@ trait StreamFilter
     }
 
     /**
-     * Check if the trait methods can be used
+     * stream filter mode getter
      *
-     * @throws LogicException If the API can not be use
+     * @return int
      */
-    protected function assertStreamable()
+    public function getStreamFilterMode()
     {
-        if (!is_string($this->stream_uri)) {
-            throw new LogicException('The stream filter API can not be used');
-        }
+        $this->assertStreamable();
+
+        return $this->stream_filter_mode;
     }
 
     /**
@@ -135,18 +185,6 @@ trait StreamFilter
     }
 
     /**
-     * Sanitize the stream filter name
-     *
-     * @param string $filter_name the stream filter name
-     *
-     * @return string
-     */
-    protected function sanitizeStreamFilter($filter_name)
-    {
-        return urldecode($this->validateString($filter_name));
-    }
-
-    /**
      * prepend a stream filter
      *
      * @param string $filter_name a string or an object that implements the '__toString' method
@@ -159,6 +197,18 @@ trait StreamFilter
         array_unshift($this->stream_filters, $this->sanitizeStreamFilter($filter_name));
 
         return $this;
+    }
+
+    /**
+     * Sanitize the stream filter name
+     *
+     * @param string $filter_name the stream filter name
+     *
+     * @return string
+     */
+    protected function sanitizeStreamFilter($filter_name)
+    {
+        return urldecode($this->validateString($filter_name));
     }
 
     /**
@@ -209,56 +259,6 @@ trait StreamFilter
         $this->stream_filters = [];
 
         return $this;
-    }
-
-    /**
-     * Internal path setter
-     *
-     * The path must be an SplFileInfo object
-     * an object that implements the `__toString` method
-     * a path to a file
-     *
-     * @param StreamIterator|SplFileObject|string $path The file path
-     */
-    protected function initStreamFilter($path)
-    {
-        $this->stream_filters = [];
-        if (!is_string($path)) {
-            $this->stream_uri = null;
-
-            return;
-        }
-
-        if (!preg_match($this->stream_regex, $path, $matches)) {
-            $this->stream_uri = $path;
-
-            return;
-        }
-        $this->stream_uri = $matches['resource'];
-        $this->stream_filters = array_map('urldecode', explode('|', $matches['filters']));
-        $this->stream_filter_mode = $this->fetchStreamModeAsInt($matches['mode']);
-    }
-
-    /**
-     * Get the stream mode
-     *
-     * @param string $mode
-     *
-     * @return int
-     */
-    protected function fetchStreamModeAsInt($mode)
-    {
-        $mode = strtolower($mode);
-        $mode = rtrim($mode, '=');
-        if ('write' == $mode) {
-            return STREAM_FILTER_WRITE;
-        }
-
-        if ('read' == $mode) {
-            return STREAM_FILTER_READ;
-        }
-
-        return STREAM_FILTER_ALL;
     }
 
     /**

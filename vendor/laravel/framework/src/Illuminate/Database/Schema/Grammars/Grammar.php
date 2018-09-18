@@ -88,73 +88,6 @@ abstract class Grammar extends BaseGrammar
     }
 
     /**
-     * Wrap a table in keyword identifiers.
-     *
-     * @param  mixed   $table
-     * @return string
-     */
-    public function wrapTable($table)
-    {
-        return parent::wrapTable(
-            $table instanceof Blueprint ? $table->getTable() : $table
-        );
-    }
-
-    /**
-     * Wrap a value in keyword identifiers.
-     *
-     * @param  \Illuminate\Database\Query\Expression|string  $value
-     * @param  bool    $prefixAlias
-     * @return string
-     */
-    public function wrap($value, $prefixAlias = false)
-    {
-        return parent::wrap(
-            $value instanceof Fluent ? $value->name : $value, $prefixAlias
-        );
-    }
-
-    /**
-     * Add a prefix to an array of values.
-     *
-     * @param  string  $prefix
-     * @param  array   $values
-     * @return array
-     */
-    public function prefixArray($prefix, array $values)
-    {
-        return array_map(function ($value) use ($prefix) {
-            return $prefix.' '.$value;
-        }, $values);
-    }
-
-    /**
-     * Create an empty Doctrine DBAL TableDiff from the Blueprint.
-     *
-     * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
-     * @param  \Doctrine\DBAL\Schema\AbstractSchemaManager  $schema
-     * @return \Doctrine\DBAL\Schema\TableDiff
-     */
-    public function getDoctrineTableDiff(Blueprint $blueprint, SchemaManager $schema)
-    {
-        $table = $this->getTablePrefix().$blueprint->getTable();
-
-        return tap(new TableDiff($table), function ($tableDiff) use ($schema, $table) {
-            $tableDiff->fromTable = $schema->listTableDetails($table);
-        });
-    }
-
-    /**
-     * Check if this Grammar supports schema changes wrapped in a transaction.
-     *
-     * @return bool
-     */
-    public function supportsSchemaTransactions()
-    {
-        return $this->transactions;
-    }
-
-    /**
      * Compile the blueprint's column definitions.
      *
      * @param  \Illuminate\Database\Schema\Blueprint $blueprint
@@ -237,6 +170,47 @@ abstract class Grammar extends BaseGrammar
     }
 
     /**
+     * Add a prefix to an array of values.
+     *
+     * @param  string  $prefix
+     * @param  array   $values
+     * @return array
+     */
+    public function prefixArray($prefix, array $values)
+    {
+        return array_map(function ($value) use ($prefix) {
+            return $prefix.' '.$value;
+        }, $values);
+    }
+
+    /**
+     * Wrap a table in keyword identifiers.
+     *
+     * @param  mixed   $table
+     * @return string
+     */
+    public function wrapTable($table)
+    {
+        return parent::wrapTable(
+            $table instanceof Blueprint ? $table->getTable() : $table
+        );
+    }
+
+    /**
+     * Wrap a value in keyword identifiers.
+     *
+     * @param  \Illuminate\Database\Query\Expression|string  $value
+     * @param  bool    $prefixAlias
+     * @return string
+     */
+    public function wrap($value, $prefixAlias = false)
+    {
+        return parent::wrap(
+            $value instanceof Fluent ? $value->name : $value, $prefixAlias
+        );
+    }
+
+    /**
      * Format a value so that it can be used in "default" clauses.
      *
      * @param  mixed   $value
@@ -251,5 +225,31 @@ abstract class Grammar extends BaseGrammar
         return is_bool($value)
                     ? "'".(int) $value."'"
                     : "'".(string) $value."'";
+    }
+
+    /**
+     * Create an empty Doctrine DBAL TableDiff from the Blueprint.
+     *
+     * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
+     * @param  \Doctrine\DBAL\Schema\AbstractSchemaManager  $schema
+     * @return \Doctrine\DBAL\Schema\TableDiff
+     */
+    public function getDoctrineTableDiff(Blueprint $blueprint, SchemaManager $schema)
+    {
+        $table = $this->getTablePrefix().$blueprint->getTable();
+
+        return tap(new TableDiff($table), function ($tableDiff) use ($schema, $table) {
+            $tableDiff->fromTable = $schema->listTableDetails($table);
+        });
+    }
+
+    /**
+     * Check if this Grammar supports schema changes wrapped in a transaction.
+     *
+     * @return bool
+     */
+    public function supportsSchemaTransactions()
+    {
+        return $this->transactions;
     }
 }

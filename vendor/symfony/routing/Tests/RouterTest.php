@@ -12,6 +12,7 @@
 namespace Symfony\Component\Routing\Tests;
 
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\Router;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -20,6 +21,12 @@ class RouterTest extends TestCase
     private $router = null;
 
     private $loader = null;
+
+    protected function setUp()
+    {
+        $this->loader = $this->getMockBuilder('Symfony\Component\Config\Loader\LoaderInterface')->getMock();
+        $this->router = new Router($this->loader, 'routing.yml');
+    }
 
     public function testSetOptionsWithSupportedOptions()
     {
@@ -77,7 +84,7 @@ class RouterTest extends TestCase
     {
         $this->router->setOption('resource_type', 'ResourceType');
 
-        $routeCollection = $this->getMockBuilder('Symfony\Component\Routing\RouteCollection')->getMock();
+        $routeCollection = new RouteCollection();
 
         $this->loader->expects($this->once())
             ->method('load')->with('routing.yml', 'ResourceType')
@@ -95,7 +102,7 @@ class RouterTest extends TestCase
 
         $this->loader->expects($this->once())
             ->method('load')->with('routing.yml', null)
-            ->will($this->returnValue($this->getMockBuilder('Symfony\Component\Routing\RouteCollection')->getMock()));
+            ->will($this->returnValue(new RouteCollection()));
 
         $this->assertInstanceOf('Symfony\\Component\\Routing\\Matcher\\UrlMatcher', $this->router->getMatcher());
     }
@@ -117,7 +124,7 @@ class RouterTest extends TestCase
 
         $this->loader->expects($this->once())
             ->method('load')->with('routing.yml', null)
-            ->will($this->returnValue($this->getMockBuilder('Symfony\Component\Routing\RouteCollection')->getMock()));
+            ->will($this->returnValue(new RouteCollection()));
 
         $this->assertInstanceOf('Symfony\\Component\\Routing\\Generator\\UrlGenerator', $this->router->getGenerator());
     }
@@ -152,11 +159,5 @@ class RouterTest extends TestCase
         $p->setValue($this->router, $matcher);
 
         $this->router->matchRequest(Request::create('/'));
-    }
-
-    protected function setUp()
-    {
-        $this->loader = $this->getMockBuilder('Symfony\Component\Config\Loader\LoaderInterface')->getMock();
-        $this->router = new Router($this->loader, 'routing.yml');
     }
 }

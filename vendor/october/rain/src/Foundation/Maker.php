@@ -43,6 +43,17 @@ class Maker
         );
     }
 
+    /**
+     * @param $abstract
+     * @param $concrete
+     *
+     * @return void
+     */
+    public function bind($abstract, Closure $concrete)
+    {
+        $this->bindings[$abstract] = $concrete;
+    }
+
     protected function build($concrete, $parameters)
     {
         if ($concrete instanceof Closure) {
@@ -126,31 +137,6 @@ class Maker
     /**
      * @param ReflectionParameter $parameter
      *
-     * @return mixed|void
-     */
-    protected function resolvePrimitive(ReflectionParameter $parameter)
-    {
-        if ($parameter->isDefaultValueAvailable()) {
-            return $parameter->getDefaultValue();
-        }
-
-        return $this->unresolvablePrimitive($parameter);
-    }
-
-    /**
-     * @param ReflectionParameter $parameter
-     *
-     * @throws BindingResolutionException
-     */
-    protected function unresolvablePrimitive(ReflectionParameter $parameter)
-    {
-        $message = "Unresolvable dependency resolving [$parameter] in class {$parameter->getDeclaringClass()->getName()}";
-        throw new BindingResolutionException($message);
-    }
-
-    /**
-     * @param ReflectionParameter $parameter
-     *
      * @return mixed
      * @throws BindingResolutionException
      */
@@ -165,16 +151,6 @@ class Maker
             }
             throw $e;
         }
-    }
-
-    /**
-     * @param string $abstract
-     *
-     * @return mixed
-     */
-    protected function getFromContainer($abstract)
-    {
-        return $this->container->make($abstract);
     }
 
     /**
@@ -198,13 +174,37 @@ class Maker
     }
 
     /**
-     * @param $abstract
-     * @param $concrete
+     * @param ReflectionParameter $parameter
      *
-     * @return void
+     * @return mixed|void
      */
-    public function bind($abstract, Closure $concrete)
+    protected function resolvePrimitive(ReflectionParameter $parameter)
     {
-        $this->bindings[$abstract] = $concrete;
+        if ($parameter->isDefaultValueAvailable()) {
+            return $parameter->getDefaultValue();
+        }
+
+        return $this->unresolvablePrimitive($parameter);
+    }
+
+    /**
+     * @param ReflectionParameter $parameter
+     *
+     * @throws BindingResolutionException
+     */
+    protected function unresolvablePrimitive(ReflectionParameter $parameter)
+    {
+        $message = "Unresolvable dependency resolving [$parameter] in class {$parameter->getDeclaringClass()->getName()}";
+        throw new BindingResolutionException($message);
+    }
+
+    /**
+     * @param string $abstract
+     *
+     * @return mixed
+     */
+    protected function getFromContainer($abstract)
+    {
+        return $this->container->make($abstract);
     }
 }

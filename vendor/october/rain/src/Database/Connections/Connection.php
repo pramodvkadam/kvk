@@ -7,15 +7,6 @@ use Illuminate\Database\Connection as ConnectionBase;
 class Connection extends ConnectionBase
 {
     /**
-     * Flush the memory cache.
-     * @return void
-     */
-    public static function flushDuplicateCache()
-    {
-        MemoryCache::instance()->flush();
-    }
-
-    /**
      * Get a new query builder instance.
      *
      * @return \October\Rain\Database\QueryBuilder
@@ -25,6 +16,15 @@ class Connection extends ConnectionBase
         return new QueryBuilder(
             $this, $this->getQueryGrammar(), $this->getPostProcessor()
         );
+    }
+
+    /**
+     * Flush the memory cache.
+     * @return void
+     */
+    public static function flushDuplicateCache()
+    {
+        MemoryCache::instance()->flush();
     }
 
     /**

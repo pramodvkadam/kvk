@@ -57,6 +57,14 @@ class Driver extends AbstractSQLAnywhereDriver
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function getName()
+    {
+        return 'sqlanywhere';
+    }
+
+    /**
      * Build the connection string for given connection parameters and driver options.
      *
      * @param string  $host          Host address to connect to.
@@ -92,13 +100,5 @@ class Driver extends AbstractSQLAnywhereDriver
                     return $key . '=' . $value;
                 }, array_keys($driverOptions), $driverOptions)
             );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getName()
-    {
-        return 'sqlanywhere';
     }
 }

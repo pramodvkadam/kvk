@@ -134,21 +134,6 @@ abstract class Broadcaster implements BroadcasterContract
     }
 
     /**
-     * Get the model binding registrar instance.
-     *
-     * @return \Illuminate\Contracts\Routing\BindingRegistrar
-     */
-    protected function binder()
-    {
-        if (! $this->bindingRegistrar) {
-            $this->bindingRegistrar = Container::getInstance()->bound(BindingRegistrar::class)
-                        ? Container::getInstance()->make(BindingRegistrar::class) : null;
-        }
-
-        return $this->bindingRegistrar;
-    }
-
-    /**
      * Resolve an implicit parameter binding if applicable.
      *
      * @param  string  $key
@@ -200,5 +185,20 @@ abstract class Broadcaster implements BroadcasterContract
         return array_map(function ($channel) {
             return (string) $channel;
         }, $channels);
+    }
+
+    /**
+     * Get the model binding registrar instance.
+     *
+     * @return \Illuminate\Contracts\Routing\BindingRegistrar
+     */
+    protected function binder()
+    {
+        if (! $this->bindingRegistrar) {
+            $this->bindingRegistrar = Container::getInstance()->bound(BindingRegistrar::class)
+                        ? Container::getInstance()->make(BindingRegistrar::class) : null;
+        }
+
+        return $this->bindingRegistrar;
     }
 }

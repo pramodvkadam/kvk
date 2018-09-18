@@ -34,6 +34,8 @@ class MemcachedSessionHandler extends AbstractSessionHandler
     private $prefix;
 
     /**
+     * Constructor.
+     *
      * List of available options:
      *  * prefix: The prefix to use for the memcached keys in order to avoid collision
      *  * expiretime: The time to live in seconds.
@@ -68,26 +70,19 @@ class MemcachedSessionHandler extends AbstractSessionHandler
     /**
      * {@inheritdoc}
      */
-    public function updateTimestamp($sessionId, $data)
-    {
-        return $this->memcached->touch($this->prefix.$sessionId, time() + $this->ttl);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function gc($maxlifetime)
-    {
-        // not required here because memcached will auto expire the records anyhow.
-        return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     protected function doRead($sessionId)
     {
         return $this->memcached->get($this->prefix.$sessionId) ?: '';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updateTimestamp($sessionId, $data)
+    {
+        $this->memcached->touch($this->prefix.$sessionId, time() + $this->ttl);
+
+        return true;
     }
 
     /**
@@ -106,6 +101,15 @@ class MemcachedSessionHandler extends AbstractSessionHandler
         $result = $this->memcached->delete($this->prefix.$sessionId);
 
         return $result || \Memcached::RES_NOTFOUND == $this->memcached->getResultCode();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function gc($maxlifetime)
+    {
+        // not required here because memcached will auto expire the records anyhow.
+        return true;
     }
 
     /**

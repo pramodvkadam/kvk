@@ -1,0 +1,31 @@
+# ===================================
+#  Form Behavior Config
+# ===================================
+
+# Record name
+name: Image Manager
+
+# Model Form Field configuration
+form: $/vuonxa/photobox/models/imagemanager/fields.yaml
+
+# Model Class name
+modelClass: Vuonxa\Photobox\Models\ImageManager
+
+# Default redirect location
+defaultRedirect: vuonxa/photobox/imagemanagers
+
+# Create page
+create:
+    title: Create Image Manager
+    redirect: vuonxa/photobox/imagemanagers/update/:id
+    redirectClose: vuonxa/photobox/imagemanagers
+
+# Update page
+update:
+    title: Edit Image Manager
+    redirect: vuonxa/photobox/imagemanagers
+    redirectClose: vuonxa/photobox/imagemanagers
+
+# Preview page
+preview:
+    title: Preview Image Manager

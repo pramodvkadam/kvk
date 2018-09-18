@@ -13,6 +13,12 @@ class UserRole extends RoleBase
 {
     const CODE_DEVELOPER = 'developer';
     const CODE_PUBLISHER = 'publisher';
+
+    /**
+     * @var string The database table used by the model.
+     */
+    protected $table = 'backend_user_roles';
+
     /**
      * @var array Validation rules
      */
@@ -20,6 +26,7 @@ class UserRole extends RoleBase
         'name' => 'required|between:2,128|unique:backend_user_roles',
         'code' => 'unique:backend_user_roles',
     ];
+
     /**
      * @var array Relations
      */
@@ -27,10 +34,6 @@ class UserRole extends RoleBase
         'users' => [User::class, 'key' => 'role_id'],
         'users_count' => [User::class, 'key' => 'role_id', 'count' => true]
     ];
-    /**
-     * @var string The database table used by the model.
-     */
-    protected $table = 'backend_user_roles';
 
     public function filterFields($fields)
     {
@@ -45,11 +48,6 @@ class UserRole extends RoleBase
         if ($this->is_system) {
             $this->permissions = $this->getDefaultPermissions();
         }
-    }
-
-    public function getDefaultPermissions()
-    {
-        return AuthManager::instance()->listPermissionsForRole($this->code);
     }
 
     public function beforeSave()
@@ -74,5 +72,10 @@ class UserRole extends RoleBase
         }
 
         return AuthManager::instance()->hasPermissionsForRole($this->code);
+    }
+
+    public function getDefaultPermissions()
+    {
+        return AuthManager::instance()->listPermissionsForRole($this->code);
     }
 }

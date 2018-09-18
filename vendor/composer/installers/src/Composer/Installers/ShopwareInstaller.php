@@ -25,21 +25,9 @@ class ShopwareInstaller extends BaseInstaller
     {
         if ($vars['type'] === 'shopware-theme') {
             return $this->correctThemeName($vars);
-        } else {
-            return $this->correctPluginName($vars);
         }
-    }
 
-    /**
-     * Changes the name to a underscore separated name
-     * @param  array $vars
-     * @return array
-     */
-    private function correctThemeName($vars)
-    {
-        $vars['name'] = str_replace('-', '_', $vars['name']);
-
-        return $vars;
+        return $this->correctPluginName($vars);        
     }
 
     /**
@@ -54,6 +42,18 @@ class ShopwareInstaller extends BaseInstaller
         }, $vars['name']);
 
         $vars['name'] = ucfirst($vars['vendor']) . ucfirst($camelCasedName);
+
+        return $vars;
+    }
+
+    /**
+     * Changes the name to a underscore separated name
+     * @param  array $vars
+     * @return array
+     */
+    private function correctThemeName($vars)
+    {
+        $vars['name'] = str_replace('-', '_', $vars['name']);
 
         return $vars;
     }

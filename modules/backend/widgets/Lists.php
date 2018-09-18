@@ -109,39 +109,43 @@ class Lists extends WidgetBase
     //
     // Object properties
     //
-    /**
-     * @var array List of CSS classes to apply to the list container element
-     */
-    public $cssClasses = [];
+
     /**
      * @inheritDoc
      */
     protected $defaultAlias = 'list';
+
     /**
      * @var array Collection of all list columns used in this list.
      * @see Backend\Classes\ListColumn
      */
     protected $allColumns;
+
     /**
      * @var array Override default columns with supplied key names.
      */
     protected $columnOverride;
+
     /**
      * @var array Columns to display and their order.
      */
     protected $visibleColumns;
+
     /**
      * @var array Model data collection.
      */
     protected $records;
+
     /**
      * @var int Current page number.
      */
     protected $currentPageNumber;
+
     /**
      * @var string Filter the records by a search term.
      */
     protected $searchTerm;
+
     /**
      * @var string If searching the records, specifies a policy to use.
      * - all: result must contain all words
@@ -149,26 +153,36 @@ class Lists extends WidgetBase
      * - exact: result must contain the exact phrase
      */
     protected $searchMode;
+
     /**
      * @var string Use a custom scope method for performing searches.
      */
     protected $searchScope;
+
     /**
      * @var array Collection of functions to apply to each list query.
      */
     protected $filterCallbacks = [];
+
     /**
      * @var array All sortable columns.
      */
     protected $sortableColumns;
+
     /**
      * @var string Sets the list sorting column.
      */
     protected $sortColumn;
+
     /**
      * @var string Sets the list sorting direction (asc, desc)
      */
     protected $sortDirection;
+
+    /**
+     * @var array List of CSS classes to apply to the list container element
+     */
+    public $cssClasses = [];
 
     /**
      * Initialize the widget, called by the constructor and free from its parameters.
@@ -211,51 +225,11 @@ class Lists extends WidgetBase
     }
 
     /**
-     * Validate the supplied form model.
-     * @return void
+     * @inheritDoc
      */
-    protected function validateModel()
+    protected function loadAssets()
     {
-        if (!$this->model) {
-            throw new ApplicationException(Lang::get(
-                'backend::lang.list.missing_model',
-                ['class'=>get_class($this->controller)]
-            ));
-        }
-
-        if (!$this->model instanceof Model) {
-            throw new ApplicationException(Lang::get(
-                'backend::lang.model.invalid_class',
-                ['model'=>get_class($this->model), 'class'=>get_class($this->controller)]
-            ));
-        }
-
-        return $this->model;
-    }
-
-    /**
-     * Validates the model and settings if showTree is used
-     * @return void
-     */
-    public function validateTree()
-    {
-        if (!$this->showTree) {
-            return;
-        }
-
-        $this->showSorting = $this->showPagination = false;
-
-        if (!$this->model->methodExists('getChildren')) {
-            throw new ApplicationException(
-                'To display list as a tree, the specified model must have a method "getChildren"'
-            );
-        }
-
-        if (!$this->model->methodExists('getChildCount')) {
-            throw new ApplicationException(
-                'To display list as a tree, the specified model must have a method "getChildCount"'
-            );
-        }
+        $this->addJs('js/october.list.js', 'core');
     }
 
     /**
@@ -289,6 +263,9 @@ class Lists extends WidgetBase
 
         if ($this->showPagination) {
             $this->vars['pageCurrent'] = $this->records->currentPage();
+            // Store the currently visited page number in the session so the same
+            // data can be displayed when the user returns to this list.
+            $this->putSession('lastVisitedPage', $this->vars['pageCurrent']);
             if ($this->showPageNumbers) {
                 $this->vars['recordTotal'] = $this->records->total();
                 $this->vars['pageLast'] = $this->records->lastPage();
@@ -306,195 +283,55 @@ class Lists extends WidgetBase
     }
 
     /**
-     * Returns the list columns that are visible by list settings or default
+     * Event handler for refreshing the list.
      */
-    public function getVisibleColumns()
+    public function onRefresh()
     {
-        $definitions = $this->defineListColumns();
-        $columns = [];
-
-        /*
-         * Supplied column list
-         */
-        if ($this->columnOverride === null) {
-            $this->columnOverride = $this->getSession('visible', null);
-        }
-
-        if ($this->columnOverride && is_array($this->columnOverride)) {
-
-            $invalidColumns = array_diff($this->columnOverride, array_keys($definitions));
-            if (!count($definitions)) {
-                throw new ApplicationException(Lang::get(
-                    'backend::lang.list.missing_column',
-                    ['columns'=>implode(',', $invalidColumns)]
-                ));
-            }
-
-            $availableColumns = array_intersect($this->columnOverride, array_keys($definitions));
-            foreach ($availableColumns as $columnName) {
-                $definitions[$columnName]->invisible = false;
-                $columns[$columnName] = $definitions[$columnName];
-            }
-        }
-        /*
-         * Use default column list
-         */
-        else {
-            foreach ($definitions as $columnName => $column) {
-                if ($column->invisible) {
-                    continue;
-                }
-
-                $columns[$columnName] = $definitions[$columnName];
-            }
-        }
-
-        return $this->visibleColumns = $columns;
+        $this->prepareVars();
+        return ['#'.$this->getId() => $this->makePartial('list')];
     }
 
     /**
-     * Builds an array of list columns with keys as the column name and values as a ListColumn object.
+     * Event handler for switching the page number.
      */
-    protected function defineListColumns()
+    public function onPaginate()
     {
-        if (!isset($this->columns) || !is_array($this->columns) || !count($this->columns)) {
-            $class = get_class($this->model instanceof Model ? $this->model : $this->controller);
-            throw new ApplicationException(Lang::get('backend::lang.list.missing_columns', compact('class')));
-        }
-
-        $this->addColumns($this->columns);
-
-        /*
-         * Extensibility
-         */
-        $this->fireSystemEvent('backend.list.extendColumns');
-
-        /*
-         * Use a supplied column order
-         */
-        if ($columnOrder = $this->getSession('order', null)) {
-            $orderedDefinitions = [];
-            foreach ($columnOrder as $column) {
-                if (isset($this->allColumns[$column])) {
-                    $orderedDefinitions[$column] = $this->allColumns[$column];
-                }
-            }
-
-            $this->allColumns = array_merge($orderedDefinitions, $this->allColumns);
-        }
-
-        return $this->allColumns;
+        $this->currentPageNumber = post('page');
+        return $this->onRefresh();
     }
 
     /**
-     * Programatically add columns, used internally and for extensibility.
-     * @param array $columns Column definitions
+     * Validate the supplied form model.
+     * @return void
      */
-    public function addColumns(array $columns)
+    protected function validateModel()
     {
-        /*
-         * Build a final collection of list column objects
-         */
-        foreach ($columns as $columnName => $config) {
-            $this->allColumns[$columnName] = $this->makeListColumn($columnName, $config);
+        if (!$this->model) {
+            throw new ApplicationException(Lang::get(
+                'backend::lang.list.missing_model',
+                ['class'=>get_class($this->controller)]
+            ));
         }
+
+        if (!$this->model instanceof Model) {
+            throw new ApplicationException(Lang::get(
+                'backend::lang.model.invalid_class',
+                ['model'=>get_class($this->model), 'class'=>get_class($this->controller)]
+            ));
+        }
+
+        return $this->model;
     }
 
     /**
-     * Creates a list column object from it's name and configuration.
+     * Replaces the @ symbol with a table name in a model
+     * @param  string $sql
+     * @param  string $table
+     * @return string
      */
-    protected function makeListColumn($name, $config)
+    protected function parseTableName($sql, $table)
     {
-        if (is_string($config)) {
-            $label = $config;
-        }
-        elseif (isset($config['label'])) {
-            $label = $config['label'];
-        }
-        else {
-            $label = studly_case($name);
-        }
-
-        /*
-         * Auto configure pivot relation
-         */
-        if (starts_with($name, 'pivot[') && strpos($name, ']') !== false) {
-            $_name = HtmlHelper::nameToArray($name);
-            $relationName = array_shift($_name);
-            $valueFrom = array_shift($_name);
-
-            if (count($_name) > 0) {
-                $valueFrom  .= '['.implode('][', $_name).']';
-            }
-
-            $config['relation'] = $relationName;
-            $config['valueFrom'] = $valueFrom;
-            $config['searchable'] = false;
-        }
-        /*
-         * Auto configure standard relation
-         */
-        elseif (strpos($name, '[') !== false && strpos($name, ']') !== false) {
-            $config['valueFrom'] = $name;
-            $config['sortable'] = false;
-            $config['searchable'] = false;
-        }
-
-        $columnType = isset($config['type']) ? $config['type'] : null;
-
-        $column = new ListColumn($name, $label);
-        $column->displayAs($columnType, $config);
-
-        return $column;
-    }
-
-    /**
-     * Calculates the total columns used in the list, including checkboxes
-     * and other additions.
-     */
-    protected function getTotalColumns()
-    {
-        $columns = $this->visibleColumns ?: $this->getVisibleColumns();
-        $total = count($columns);
-
-        if ($this->showCheckboxes) {
-            $total++;
-        }
-
-        if ($this->showSetup) {
-            $total++;
-        }
-
-        return $total;
-    }
-
-    /**
-     * Returns all the records from the supplied model, after filtering.
-     * @return Collection
-     */
-    protected function getRecords()
-    {
-        $model = $this->prepareModel();
-
-        if ($this->showTree) {
-            $records = $model->getNested();
-        }
-        elseif ($this->showPagination) {
-            $method = $this->showPageNumbers ? 'paginate' : 'simplePaginate';
-            $records = $model->{$method}($this->recordsPerPage, $this->currentPageNumber);
-        }
-        else {
-            $records = $model->get();
-        }
-
-        /*
-         * Extensibility
-         */
-        if ($event = $this->fireSystemEvent('backend.list.extendRecords', [&$records])) {
-            $records = $event;
-        }
-
-        return $this->records = $records;
+        return str_replace('@', $table.'.', $sql);
     }
 
     /**
@@ -550,6 +387,11 @@ class Lists extends WidgetBase
          * Prepare related eager loads (withs) and custom selects (joins)
          */
         foreach ($this->getVisibleColumns() as $column) {
+
+            // If useRelationCount is enabled, eager load the count of the relation into $relation_count
+            if ($column->relation && @$column->config['useRelationCount']) {
+                $query->withCount($column->relation);
+            }
 
             if (!$this->isColumnRelated($column) || (!isset($column->sqlSelect) && !isset($column->valueFrom))) {
                 continue;
@@ -659,6 +501,11 @@ class Lists extends WidgetBase
                     : $column->valueFrom;
             }
 
+            // Set the sorting column to $relation_count if useRelationCount enabled
+            if (isset($column->relation) && @$column->config['useRelationCount']) {
+                $sortColumn = $column->relation . '_count';
+            }
+
             $query->orderBy($sortColumn, $this->sortDirection);
         }
 
@@ -672,7 +519,7 @@ class Lists extends WidgetBase
         /*
          * Add custom selects
          */
-        $query->select($selects);
+        $query->addSelect($selects);
 
         /*
          * Extensibility
@@ -682,6 +529,725 @@ class Lists extends WidgetBase
         }
 
         return $query;
+    }
+
+    /**
+     * Returns all the records from the supplied model, after filtering.
+     * @return Collection
+     */
+    protected function getRecords()
+    {
+        $model = $this->prepareModel();
+
+        if ($this->showTree) {
+            $records = $model->getNested();
+        }
+        elseif ($this->showPagination) {
+            $method            = $this->showPageNumbers ? 'paginate' : 'simplePaginate';
+            $currentPageNumber = $this->currentPageNumber;
+            if (!$currentPageNumber && empty($this->searchTerm)) {
+                // Restore the last visited page from the session if available.
+                $currentPageNumber = $this->getSession('lastVisitedPage');
+            }
+            $records = $model->{$method}($this->recordsPerPage, $currentPageNumber);
+        }
+        else {
+            $records = $model->get();
+        }
+
+        /*
+         * Extensibility
+         */
+        if ($event = $this->fireSystemEvent('backend.list.extendRecords', [&$records])) {
+            $records = $event;
+        }
+
+        return $this->records = $records;
+    }
+
+    /**
+     * Returns the record URL address for a list row.
+     * @param  Model $record
+     * @return string
+     */
+    public function getRecordUrl($record)
+    {
+        if (isset($this->recordOnClick)) {
+            return 'javascript:;';
+        }
+
+        if (!isset($this->recordUrl)) {
+            return null;
+        }
+
+        $data = $record->toArray();
+        $data += [$record->getKeyName() => $record->getKey()];
+
+        $columns = array_keys($data);
+
+        $url = RouterHelper::parseValues($data, $columns, $this->recordUrl);
+        return Backend::url($url);
+    }
+
+    /**
+     * Returns the onclick event for a list row.
+     * @param  Model $record
+     * @return string
+     */
+    public function getRecordOnClick($record)
+    {
+        if (!isset($this->recordOnClick)) {
+            return null;
+        }
+
+        $columns = array_keys($record->getAttributes());
+        $recordOnClick = RouterHelper::parseValues($record, $columns, $this->recordOnClick);
+        return Html::attributes(['onclick' => $recordOnClick]);
+    }
+
+    /**
+     * Get all the registered columns for the instance.
+     * @return array
+     */
+    public function getColumns()
+    {
+        return $this->allColumns ?: $this->defineListColumns();
+    }
+
+    /**
+     * Get a specified column object
+     * @param  string $column
+     * @return mixed
+     */
+    public function getColumn($column)
+    {
+        return $this->allColumns[$column];
+    }
+
+    /**
+     * Returns the list columns that are visible by list settings or default
+     */
+    public function getVisibleColumns()
+    {
+        $definitions = $this->defineListColumns();
+        $columns = [];
+
+        /*
+         * Supplied column list
+         */
+        if ($this->columnOverride === null) {
+            $this->columnOverride = $this->getSession('visible', null);
+        }
+
+        if ($this->columnOverride && is_array($this->columnOverride)) {
+
+            $invalidColumns = array_diff($this->columnOverride, array_keys($definitions));
+            if (!count($definitions)) {
+                throw new ApplicationException(Lang::get(
+                    'backend::lang.list.missing_column',
+                    ['columns'=>implode(',', $invalidColumns)]
+                ));
+            }
+
+            $availableColumns = array_intersect($this->columnOverride, array_keys($definitions));
+            foreach ($availableColumns as $columnName) {
+                $definitions[$columnName]->invisible = false;
+                $columns[$columnName] = $definitions[$columnName];
+            }
+        }
+        /*
+         * Use default column list
+         */
+        else {
+            foreach ($definitions as $columnName => $column) {
+                if ($column->invisible) {
+                    continue;
+                }
+
+                $columns[$columnName] = $definitions[$columnName];
+            }
+        }
+
+        return $this->visibleColumns = $columns;
+    }
+
+    /**
+     * Builds an array of list columns with keys as the column name and values as a ListColumn object.
+     */
+    protected function defineListColumns()
+    {
+        if (!isset($this->columns) || !is_array($this->columns) || !count($this->columns)) {
+            $class = get_class($this->model instanceof Model ? $this->model : $this->controller);
+            throw new ApplicationException(Lang::get('backend::lang.list.missing_columns', compact('class')));
+        }
+
+        $this->addColumns($this->columns);
+
+        /*
+         * Extensibility
+         */
+        $this->fireSystemEvent('backend.list.extendColumns');
+
+        /*
+         * Use a supplied column order
+         */
+        if ($columnOrder = $this->getSession('order', null)) {
+            $orderedDefinitions = [];
+            foreach ($columnOrder as $column) {
+                if (isset($this->allColumns[$column])) {
+                    $orderedDefinitions[$column] = $this->allColumns[$column];
+                }
+            }
+
+            $this->allColumns = array_merge($orderedDefinitions, $this->allColumns);
+        }
+
+        return $this->allColumns;
+    }
+
+    /**
+     * Programatically add columns, used internally and for extensibility.
+     * @param array $columns Column definitions
+     */
+    public function addColumns(array $columns)
+    {
+        /*
+         * Build a final collection of list column objects
+         */
+        foreach ($columns as $columnName => $config) {
+            $this->allColumns[$columnName] = $this->makeListColumn($columnName, $config);
+        }
+    }
+
+    /**
+     * Programatically remove a column, used for extensibility.
+     * @param string $column Column name
+     */
+    public function removeColumn($columnName)
+    {
+        if (isset($this->allColumns[$columnName])) {
+            unset($this->allColumns[$columnName]);
+        }
+    }
+
+    /**
+     * Creates a list column object from it's name and configuration.
+     */
+    protected function makeListColumn($name, $config)
+    {
+        if (is_string($config)) {
+            $label = $config;
+        }
+        elseif (isset($config['label'])) {
+            $label = $config['label'];
+        }
+        else {
+            $label = studly_case($name);
+        }
+
+        /*
+         * Auto configure pivot relation
+         */
+        if (starts_with($name, 'pivot[') && strpos($name, ']') !== false) {
+            $_name = HtmlHelper::nameToArray($name);
+            $relationName = array_shift($_name);
+            $valueFrom = array_shift($_name);
+
+            if (count($_name) > 0) {
+                $valueFrom  .= '['.implode('][', $_name).']';
+            }
+
+            $config['relation'] = $relationName;
+            $config['valueFrom'] = $valueFrom;
+            $config['searchable'] = false;
+        }
+        /*
+         * Auto configure standard relation
+         */
+        elseif (strpos($name, '[') !== false && strpos($name, ']') !== false) {
+            $config['valueFrom'] = $name;
+            $config['sortable'] = false;
+            $config['searchable'] = false;
+        }
+
+        $columnType = isset($config['type']) ? $config['type'] : null;
+
+        $column = new ListColumn($name, $label);
+        $column->displayAs($columnType, $config);
+
+        return $column;
+    }
+
+    /**
+     * Calculates the total columns used in the list, including checkboxes
+     * and other additions.
+     */
+    protected function getTotalColumns()
+    {
+        $columns = $this->visibleColumns ?: $this->getVisibleColumns();
+        $total = count($columns);
+
+        if ($this->showCheckboxes) {
+            $total++;
+        }
+
+        if ($this->showSetup) {
+            $total++;
+        }
+
+        return $total;
+    }
+
+    /**
+     * Looks up the column header
+     */
+    public function getHeaderValue($column)
+    {
+        $value = Lang::get($column->label);
+
+        /*
+         * Extensibility
+         */
+        if ($response = $this->fireSystemEvent('backend.list.overrideHeaderValue', [$column, $value])) {
+            $value = $response;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Returns a raw column value
+     * @return string
+     */
+    public function getColumnValueRaw($record, $column)
+    {
+        $columnName = $column->columnName;
+
+        /*
+         * Handle taking value from model relation.
+         */
+        if ($column->valueFrom && $column->relation) {
+            $columnName = $column->relation;
+
+            if (!array_key_exists($columnName, $record->getRelations())) {
+                $value = null;
+            }
+            elseif ($this->isColumnRelated($column, true)) {
+                $value = $record->{$columnName}->lists($column->valueFrom);
+            }
+            elseif ($this->isColumnRelated($column) || $this->isColumnPivot($column)) {
+                $value = $record->{$columnName}
+                    ? $column->getValueFromData($record->{$columnName})
+                    : null;
+            }
+            else {
+                $value = null;
+            }
+        }
+        /*
+         * Handle taking value from model attribute.
+         */
+        elseif ($column->valueFrom) {
+            $value = $column->getValueFromData($record);
+        }
+        /*
+         * Otherwise, if the column is a relation, it will be a custom select,
+         * so prevent the Model from attempting to load the relation
+         * if the value is NULL.
+         */
+        else {
+            if ($record->hasRelation($columnName) && array_key_exists($columnName, $record->attributes)) {
+                $value = $record->attributes[$columnName];
+            // Load the value from the relationship counter if useRelationCount is specified
+            } elseif ($column->relation && @$column->config['useRelationCount']) {
+                $value = $record->{"{$column->relation}_count"};
+            } else {
+                $value = $record->{$columnName};
+            }
+        }
+
+        /**
+         * @event backend.list.overrideColumnValueRaw
+         * Overrides the raw column value in a list widget.
+         *
+         * If a value is returned from this event, it will be used as the raw value for the provided column.
+         * `$value` is passed by reference so modifying the variable in place is also supported. Example usage:
+         *
+         *     Event::listen('backend.list.overrideColumnValueRaw', function($record, $column, &$value) {
+         *         $value .= '-modified';
+         *     });
+         *
+         * Or
+         *
+         *     $listWidget->bindEvent('list.overrideColumnValueRaw', function ($record, $column, $value) {
+         *         return 'No values for you!';
+         *     });
+         *
+         */
+        if ($response = $this->fireSystemEvent('backend.list.overrideColumnValueRaw', [$record, $column, &$value])) {
+            $value = $response;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Returns a column value, with filters applied
+     * @return string
+     */
+    public function getColumnValue($record, $column)
+    {
+        $value = $this->getColumnValueRaw($record, $column);
+
+        if (method_exists($this, 'eval'. studly_case($column->type) .'TypeValue')) {
+            $value = $this->{'eval'. studly_case($column->type) .'TypeValue'}($record, $column, $value);
+        }
+        else {
+            $value = $this->evalCustomListType($column->type, $record, $column, $value);
+        }
+
+        /*
+         * Apply default value.
+         */
+        if ($value === '' || $value === null) {
+            $value = $column->defaults;
+        }
+
+        /**
+         * @event backend.list.overrideColumnValue
+         * Overrides the column value in a list widget.
+         *
+         * If a value is returned from this event, it will be used as the value for the provided column.
+         * `$value` is passed by reference so modifying the variable in place is also supported. Example usage:
+         *
+         *     Event::listen('backend.list.overrideColumnValue', function($record, $column, &$value) {
+         *         $value .= '-modified';
+         *     });
+         *
+         * Or
+         *
+         *     $listWidget->bindEvent('list.overrideColumnValue', function ($record, $column, $value) {
+         *         return 'No values for you!';
+         *     });
+         *
+         */
+        if ($response = $this->fireSystemEvent('backend.list.overrideColumnValue', [$record, $column, &$value])) {
+            $value = $response;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Adds a custom CSS class string to a record row
+     * @param  Model $record Populated model
+     * @return string
+     */
+    public function getRowClass($record)
+    {
+        $value = '';
+
+        /*
+         * Extensibility
+         */
+        if ($response = $this->fireSystemEvent('backend.list.injectRowClass', [$record])) {
+            $value = $response;
+        }
+
+        return $value;
+    }
+
+    //
+    // Value processing
+    //
+
+    /**
+     * Process a custom list types registered by plugins.
+     */
+    protected function evalCustomListType($type, $record, $column, $value)
+    {
+        $plugins = PluginManager::instance()->getRegistrationMethodValues('registerListColumnTypes');
+
+        foreach ($plugins as $availableTypes) {
+            if (!isset($availableTypes[$type])) {
+                continue;
+            }
+
+            $callback = $availableTypes[$type];
+
+            if (is_callable($callback)) {
+                return call_user_func_array($callback, [$value, $column, $record]);
+            }
+        }
+
+        throw new ApplicationException(sprintf('List column type "%s" could not be found.', $type));
+    }
+
+    /**
+     * Process as text, escape the value
+     */
+    protected function evalTextTypeValue($record, $column, $value)
+    {
+        if (is_array($value) && count($value) == count($value, COUNT_RECURSIVE)) {
+            $value = implode(', ', $value);
+        }
+
+        return htmlentities($value, ENT_QUOTES, 'UTF-8', false);
+    }
+
+    /**
+     * Process as number, proxy to text
+     */
+    protected function evalNumberTypeValue($record, $column, $value)
+    {
+        return $this->evalTextTypeValue($record, $column, $value);
+    }
+
+    /**
+     * Common mistake, relation is not a valid list column.
+     * @deprecated Remove if year >= 2018
+     */
+    protected function evalRelationTypeValue($record, $column, $value)
+    {
+        traceLog(sprintf('Warning: List column type "relation" for class "%s" is not valid.', get_class($record)));
+        return $this->evalTextTypeValue($record, $column, $value);
+    }
+
+    /**
+     * Process as partial reference
+     */
+    protected function evalPartialTypeValue($record, $column, $value)
+    {
+        return $this->controller->makePartial($column->path ?: $column->columnName, [
+            'listColumn' => $column,
+            'listRecord' => $record,
+            'listValue'  => $value,
+            'column'     => $column,
+            'record'     => $record,
+            'value'      => $value
+        ]);
+    }
+
+    /**
+     * Process as boolean switch
+     */
+    protected function evalSwitchTypeValue($record, $column, $value)
+    {
+        $contents = '';
+
+        if ($value) {
+            $contents = Lang::get('backend::lang.list.column_switch_true');
+        }
+        else {
+            $contents = Lang::get('backend::lang.list.column_switch_false');
+        }
+
+        return $contents;
+    }
+
+    /**
+     * Process as a datetime value
+     */
+    protected function evalDatetimeTypeValue($record, $column, $value)
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $dateTime = $this->validateDateTimeValue($value, $column);
+
+        if ($column->format !== null) {
+            $value = $dateTime->format($column->format);
+        }
+        else {
+            $value = $dateTime->toDayDateTimeString();
+        }
+
+        $options = [
+            'defaultValue' => $value,
+            'format' => $column->format,
+            'formatAlias' => 'dateTimeLongMin'
+        ];
+
+        if (!empty($column->config['ignoreTimezone'])) {
+            $options['ignoreTimezone'] = true;
+        }
+
+        return Backend::dateTime($dateTime, $options);
+    }
+
+    /**
+     * Process as a time value
+     */
+    protected function evalTimeTypeValue($record, $column, $value)
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $dateTime = $this->validateDateTimeValue($value, $column);
+
+        $format = $column->format !== null ? $column->format : 'g:i A';
+
+        $value = $dateTime->format($format);
+
+        $options = [
+            'defaultValue' => $value,
+            'format' => $column->format,
+            'formatAlias' => 'time'
+        ];
+
+        if (!empty($column->config['ignoreTimezone'])) {
+            $options['ignoreTimezone'] = true;
+        }
+
+        return Backend::dateTime($dateTime, $options);
+    }
+
+    /**
+     * Process as a date value
+     */
+    protected function evalDateTypeValue($record, $column, $value)
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $dateTime = $this->validateDateTimeValue($value, $column);
+
+        if ($column->format !== null) {
+            $value = $dateTime->format($column->format);
+        }
+        else {
+            $value = $dateTime->toFormattedDateString();
+        }
+
+        $options = [
+            'defaultValue' => $value,
+            'format' => $column->format,
+            'formatAlias' => 'dateLongMin'
+        ];
+
+        if (!empty($column->config['ignoreTimezone'])) {
+            $options['ignoreTimezone'] = true;
+        }
+
+        return Backend::dateTime($dateTime, $options);
+    }
+
+    /**
+     * Process as diff for humans (1 min ago)
+     */
+    protected function evalTimesinceTypeValue($record, $column, $value)
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $dateTime = $this->validateDateTimeValue($value, $column);
+
+        $value = DateTimeHelper::timeSince($dateTime);
+
+        $options = [
+            'defaultValue' => $value,
+            'timeSince' => true
+        ];
+
+        if (!empty($column->config['ignoreTimezone'])) {
+            $options['ignoreTimezone'] = true;
+        }
+
+        return Backend::dateTime($dateTime, $options);
+    }
+
+    /**
+     * Process as time as current tense (Today at 0:00)
+     */
+    protected function evalTimetenseTypeValue($record, $column, $value)
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $dateTime = $this->validateDateTimeValue($value, $column);
+
+        $value = DateTimeHelper::timeTense($dateTime);
+
+        $options = [
+            'defaultValue' => $value,
+            'timeTense' => true
+        ];
+
+        if (!empty($column->config['ignoreTimezone'])) {
+            $options['ignoreTimezone'] = true;
+        }
+
+        return Backend::dateTime($dateTime, $options);
+    }
+    /**
+     * Process as background color, to be seen at list
+     */
+    protected function evalColorPickerTypeValue($record, $column, $value)
+    {
+        return  '<span style="width:30px; height:30px; display:inline-block; background:'.e($value).'; padding:10px"><span>';
+    }
+    /**
+     * Validates a column type as a date
+     */
+    protected function validateDateTimeValue($value, $column)
+    {
+        $value = DateTimeHelper::makeCarbon($value, false);
+
+        if (!$value instanceof Carbon) {
+            throw new ApplicationException(Lang::get(
+                'backend::lang.list.invalid_column_datetime',
+                ['column' => $column->columnName]
+            ));
+        }
+
+        return $value;
+    }
+
+    //
+    // Filtering
+    //
+
+    public function addFilter(callable $filter)
+    {
+        $this->filterCallbacks[] = $filter;
+    }
+
+    //
+    // Searching
+    //
+
+    /**
+     * Applies a search term to the list results, searching will disable tree
+     * view if a value is supplied.
+     * @param string $term
+     */
+    public function setSearchTerm($term)
+    {
+        if (!empty($term)) {
+            $this->showTree = false;
+        }
+
+        $this->searchTerm = $term;
+    }
+
+    /**
+     * Applies a search options to the list search.
+     * @param array $options
+     */
+    public function setSearchOptions($options = [])
+    {
+        extract(array_merge([
+            'mode' => null,
+            'scope' => null
+        ], $options));
+
+        $this->searchMode = $mode;
+        $this->searchScope = $scope;
     }
 
     /**
@@ -705,76 +1271,6 @@ class Lists extends WidgetBase
     }
 
     /**
-     * Get all the registered columns for the instance.
-     * @return array
-     */
-    public function getColumns()
-    {
-        return $this->allColumns ?: $this->defineListColumns();
-    }
-
-    /**
-     * Check if column refers to a relation of the model
-     * @param  ListColumn  $column List column object
-     * @param  boolean     $multi  If set, returns true only if the relation is a "multiple relation type"
-     * @return boolean
-     */
-    protected function isColumnRelated($column, $multi = false)
-    {
-        if (!isset($column->relation) || $this->isColumnPivot($column)) {
-            return false;
-        }
-
-        if (!$this->model->hasRelation($column->relation)) {
-            throw new ApplicationException(Lang::get(
-                'backend::lang.model.missing_relation',
-                ['class'=>get_class($this->model), 'relation'=>$column->relation]
-            ));
-        }
-
-        if (!$multi) {
-            return true;
-        }
-
-        $relationType = $this->model->getRelationType($column->relation);
-
-        return in_array($relationType, [
-            'hasMany',
-            'belongsToMany',
-            'morphToMany',
-            'morphedByMany',
-            'morphMany',
-            'attachMany',
-            'hasManyThrough'
-        ]);
-    }
-
-    /**
-     * Checks if a column refers to a pivot model specifically.
-     * @param  ListColumn  $column List column object
-     * @return boolean
-     */
-    protected function isColumnPivot($column)
-    {
-        if (!isset($column->relation) || $column->relation != 'pivot') {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Replaces the @ symbol with a table name in a model
-     * @param  string $sql
-     * @param  string $table
-     * @return string
-     */
-    protected function parseTableName($sql, $table)
-    {
-        return str_replace('@', $table.'.', $sql);
-    }
-
-    /**
      * Applies the search constraint to a query.
      */
     protected function applySearchToQuery($query, $columns, $boolean = 'and')
@@ -790,6 +1286,42 @@ class Lists extends WidgetBase
         else {
             $searchMethod = $boolean == 'and' ? 'searchWhere' : 'orSearchWhere';
             $query->$searchMethod($term, $columns, $this->searchMode);
+        }
+    }
+
+    //
+    // Sorting
+    //
+
+    /**
+     * Event handler for sorting the list.
+     */
+    public function onSort()
+    {
+        if ($column = post('sortColumn')) {
+
+            /*
+             * Toggle the sort direction and set the sorting column
+             */
+            $sortOptions = ['column' => $this->getSortColumn(), 'direction' => $this->sortDirection];
+
+            if ($column != $sortOptions['column'] || $sortOptions['direction'] == 'asc') {
+                $this->sortDirection = $sortOptions['direction'] = 'desc';
+            }
+            else {
+                $this->sortDirection = $sortOptions['direction'] = 'asc';
+            }
+
+            $this->sortColumn = $sortOptions['column'] = $column;
+
+            $this->putSession('sort', $sortOptions);
+
+            /*
+             * Persist the page number
+             */
+            $this->currentPageNumber = post('page');
+
+            return $this->onRefresh();
         }
     }
 
@@ -872,336 +1404,8 @@ class Lists extends WidgetBase
         return $this->sortableColumns = $sortable;
     }
 
-    /**
-     * Event handler for switching the page number.
-     */
-    public function onPaginate()
-    {
-        $this->currentPageNumber = post('page');
-        return $this->onRefresh();
-    }
-
-    /**
-     * Event handler for refreshing the list.
-     */
-    public function onRefresh()
-    {
-        $this->prepareVars();
-        return ['#'.$this->getId() => $this->makePartial('list')];
-    }
-
-    /**
-     * Returns the record URL address for a list row.
-     * @param  Model $record
-     * @return string
-     */
-    public function getRecordUrl($record)
-    {
-        if (isset($this->recordOnClick)) {
-            return 'javascript:;';
-        }
-
-        if (!isset($this->recordUrl)) {
-            return null;
-        }
-
-        $data = $record->toArray();
-        $data += [$record->getKeyName() => $record->getKey()];
-
-        $columns = array_keys($data);
-
-        $url = RouterHelper::parseValues($data, $columns, $this->recordUrl);
-        return Backend::url($url);
-    }
-
     //
-    // Value processing
-    //
-
-    /**
-     * Returns the onclick event for a list row.
-     * @param  Model $record
-     * @return string
-     */
-    public function getRecordOnClick($record)
-    {
-        if (!isset($this->recordOnClick)) {
-            return null;
-        }
-
-        $columns = array_keys($record->getAttributes());
-        $recordOnClick = RouterHelper::parseValues($record, $columns, $this->recordOnClick);
-        return Html::attributes(['onclick' => $recordOnClick]);
-    }
-
-    /**
-     * Get a specified column object
-     * @param  string $column
-     * @return mixed
-     */
-    public function getColumn($column)
-    {
-        return $this->allColumns[$column];
-    }
-
-    /**
-     * Programatically remove a column, used for extensibility.
-     * @param string $column Column name
-     */
-    public function removeColumn($columnName)
-    {
-        if (isset($this->allColumns[$columnName])) {
-            unset($this->allColumns[$columnName]);
-        }
-    }
-
-    /**
-     * Looks up the column header
-     */
-    public function getHeaderValue($column)
-    {
-        $value = Lang::get($column->label);
-
-        /*
-         * Extensibility
-         */
-        if ($response = $this->fireSystemEvent('backend.list.overrideHeaderValue', [$column, $value])) {
-            $value = $response;
-        }
-
-        return $value;
-    }
-
-    /**
-     * Returns a column value, with filters applied
-     * @return string
-     */
-    public function getColumnValue($record, $column)
-    {
-        $value = $this->getColumnValueRaw($record, $column);
-
-        if (method_exists($this, 'eval'. studly_case($column->type) .'TypeValue')) {
-            $value = $this->{'eval'. studly_case($column->type) .'TypeValue'}($record, $column, $value);
-        }
-        else {
-            $value = $this->evalCustomListType($column->type, $record, $column, $value);
-        }
-
-        /*
-         * Apply default value.
-         */
-        if ($value === '' || $value === null) {
-            $value = $column->defaults;
-        }
-
-        /**
-         * @event backend.list.overrideColumnValue
-         * Overrides the column value in a list widget.
-         *
-         * If a value is returned from this event, it will be used as the value for the provided column.
-         * `$value` is passed by reference so modifying the variable in place is also supported. Example usage:
-         *
-         *     Event::listen('backend.list.overrideColumnValue', function($record, $column, &$value) {
-         *         $value .= '-modified';
-         *     });
-         *
-         * Or
-         *
-         *     $listWidget->bindEvent('list.overrideColumnValue', function ($record, $column, $value) {
-         *         return 'No values for you!';
-         *     });
-         *
-         */
-        if ($response = $this->fireSystemEvent('backend.list.overrideColumnValue', [$record, $column, &$value])) {
-            $value = $response;
-        }
-
-        return $value;
-    }
-
-    /**
-     * Returns a raw column value
-     * @return string
-     */
-    public function getColumnValueRaw($record, $column)
-    {
-        $columnName = $column->columnName;
-
-        /*
-         * Handle taking value from model relation.
-         */
-        if ($column->valueFrom && $column->relation) {
-            $columnName = $column->relation;
-
-            if (!array_key_exists($columnName, $record->getRelations())) {
-                $value = null;
-            }
-            elseif ($this->isColumnRelated($column, true)) {
-                $value = $record->{$columnName}->lists($column->valueFrom);
-            }
-            elseif ($this->isColumnRelated($column) || $this->isColumnPivot($column)) {
-                $value = $record->{$columnName}
-                    ? $column->getValueFromData($record->{$columnName})
-                    : null;
-            }
-            else {
-                $value = null;
-            }
-        }
-        /*
-         * Handle taking value from model attribute.
-         */
-        elseif ($column->valueFrom) {
-            $value = $column->getValueFromData($record);
-        }
-        /*
-         * Otherwise, if the column is a relation, it will be a custom select,
-         * so prevent the Model from attempting to load the relation
-         * if the value is NULL.
-         */
-        else {
-            if ($record->hasRelation($columnName) && array_key_exists($columnName, $record->attributes)) {
-                $value = $record->attributes[$columnName];
-            }
-            else {
-                $value = $record->{$columnName};
-            }
-        }
-
-        /**
-         * @event backend.list.overrideColumnValueRaw
-         * Overrides the raw column value in a list widget.
-         *
-         * If a value is returned from this event, it will be used as the raw value for the provided column.
-         * `$value` is passed by reference so modifying the variable in place is also supported. Example usage:
-         *
-         *     Event::listen('backend.list.overrideColumnValueRaw', function($record, $column, &$value) {
-         *         $value .= '-modified';
-         *     });
-         *
-         * Or
-         *
-         *     $listWidget->bindEvent('list.overrideColumnValueRaw', function ($record, $column, $value) {
-         *         return 'No values for you!';
-         *     });
-         *
-         */
-        if ($response = $this->fireSystemEvent('backend.list.overrideColumnValueRaw', [$record, $column, &$value])) {
-            $value = $response;
-        }
-
-        return $value;
-    }
-
-    /**
-     * Process a custom list types registered by plugins.
-     */
-    protected function evalCustomListType($type, $record, $column, $value)
-    {
-        $plugins = PluginManager::instance()->getRegistrationMethodValues('registerListColumnTypes');
-
-        foreach ($plugins as $availableTypes) {
-            if (!isset($availableTypes[$type])) {
-                continue;
-            }
-
-            $callback = $availableTypes[$type];
-
-            if (is_callable($callback)) {
-                return call_user_func_array($callback, [$value, $column, $record]);
-            }
-        }
-
-        throw new ApplicationException(sprintf('List column type "%s" could not be found.', $type));
-    }
-
-    /**
-     * Adds a custom CSS class string to a record row
-     * @param  Model $record Populated model
-     * @return string
-     */
-    public function getRowClass($record)
-    {
-        $value = '';
-
-        /*
-         * Extensibility
-         */
-        if ($response = $this->fireSystemEvent('backend.list.injectRowClass', [$record])) {
-            $value = $response;
-        }
-
-        return $value;
-    }
-
-    public function addFilter(callable $filter)
-    {
-        $this->filterCallbacks[] = $filter;
-    }
-
-    /**
-     * Applies a search term to the list results, searching will disable tree
-     * view if a value is supplied.
-     * @param string $term
-     */
-    public function setSearchTerm($term)
-    {
-        if (!empty($term)) {
-            $this->showTree = false;
-        }
-
-        $this->searchTerm = $term;
-    }
-
-    /**
-     * Applies a search options to the list search.
-     * @param array $options
-     */
-    public function setSearchOptions($options = [])
-    {
-        extract(array_merge([
-            'mode' => null,
-            'scope' => null
-        ], $options));
-
-        $this->searchMode = $mode;
-        $this->searchScope = $scope;
-    }
-
-    /**
-     * Event handler for sorting the list.
-     */
-    public function onSort()
-    {
-        if ($column = post('sortColumn')) {
-
-            /*
-             * Toggle the sort direction and set the sorting column
-             */
-            $sortOptions = ['column' => $this->getSortColumn(), 'direction' => $this->sortDirection];
-
-            if ($column != $sortOptions['column'] || $sortOptions['direction'] == 'asc') {
-                $this->sortDirection = $sortOptions['direction'] = 'desc';
-            }
-            else {
-                $this->sortDirection = $sortOptions['direction'] = 'asc';
-            }
-
-            $this->sortColumn = $sortOptions['column'] = $column;
-
-            $this->putSession('sort', $sortOptions);
-
-            /*
-             * Persist the page number
-             */
-            $this->currentPageNumber = post('page');
-
-            return $this->onRefresh();
-        }
-    }
-
-    //
-    // Filtering
+    // List Setup
     //
 
     /**
@@ -1213,40 +1417,6 @@ class Lists extends WidgetBase
         $this->vars['perPageOptions'] = $this->getSetupPerPageOptions();
         $this->vars['recordsPerPage'] = $this->recordsPerPage;
         return $this->makePartial('setup_form');
-    }
-
-    //
-    // Searching
-    //
-
-    /**
-     * Returns all the list columns used for list set up.
-     */
-    protected function getSetupListColumns()
-    {
-        /*
-         * Force all columns invisible
-         */
-        $columns = $this->defineListColumns();
-        foreach ($columns as $column) {
-            $column->invisible = true;
-        }
-
-        return array_merge($columns, $this->getVisibleColumns());
-    }
-
-    /**
-     * Returns an array of allowable records per page.
-     */
-    protected function getSetupPerPageOptions()
-    {
-        $perPageOptions = [20, 40, 80, 100, 120];
-        if (!in_array($this->recordsPerPage, $perPageOptions)) {
-            $perPageOptions[] = $this->recordsPerPage;
-        }
-
-        sort($perPageOptions);
-        return $perPageOptions;
     }
 
     /**
@@ -1266,6 +1436,65 @@ class Lists extends WidgetBase
     }
 
     /**
+     * Returns an array of allowable records per page.
+     */
+    protected function getSetupPerPageOptions()
+    {
+        $perPageOptions = [20, 40, 80, 100, 120];
+        if (!in_array($this->recordsPerPage, $perPageOptions)) {
+            $perPageOptions[] = $this->recordsPerPage;
+        }
+
+        sort($perPageOptions);
+        return $perPageOptions;
+    }
+
+    /**
+     * Returns all the list columns used for list set up.
+     */
+    protected function getSetupListColumns()
+    {
+        /*
+         * Force all columns invisible
+         */
+        $columns = $this->defineListColumns();
+        foreach ($columns as $column) {
+            $column->invisible = true;
+        }
+
+        return array_merge($columns, $this->getVisibleColumns());
+    }
+
+    //
+    // Tree
+    //
+
+    /**
+     * Validates the model and settings if showTree is used
+     * @return void
+     */
+    public function validateTree()
+    {
+        if (!$this->showTree) {
+            return;
+        }
+
+        $this->showSorting = $this->showPagination = false;
+
+        if (!$this->model->methodExists('getChildren')) {
+            throw new ApplicationException(
+                'To display list as a tree, the specified model must have a method "getChildren"'
+            );
+        }
+
+        if (!$this->model->methodExists('getChildCount')) {
+            throw new ApplicationException(
+                'To display list as a tree, the specified model must have a method "getChildCount"'
+            );
+        }
+    }
+
+    /**
      * Checks if a node (model) is expanded in the session.
      * @param  Model $node
      * @return boolean
@@ -1274,10 +1503,6 @@ class Lists extends WidgetBase
     {
         return $this->getSession('tree_node_status_' . $node->getKey(), $this->treeExpanded);
     }
-
-    //
-    // Sorting
-    //
 
     /**
      * Sets a node (model) to an expanded or collapsed state, stored in the
@@ -1290,242 +1515,57 @@ class Lists extends WidgetBase
         return $this->onRefresh();
     }
 
-    /**
-     * @inheritDoc
-     */
-    protected function loadAssets()
-    {
-        $this->addJs('js/october.list.js', 'core');
-    }
-
-    /**
-     * Process as number, proxy to text
-     */
-    protected function evalNumberTypeValue($record, $column, $value)
-    {
-        return $this->evalTextTypeValue($record, $column, $value);
-    }
-
-    /**
-     * Process as text, escape the value
-     */
-    protected function evalTextTypeValue($record, $column, $value)
-    {
-        if (is_array($value) && count($value) == count($value, COUNT_RECURSIVE)) {
-            $value = implode(', ', $value);
-        }
-
-        return htmlentities($value, ENT_QUOTES, 'UTF-8', false);
-    }
-
-    //
-    // List Setup
-    //
-
-    /**
-     * Common mistake, relation is not a valid list column.
-     * @deprecated Remove if year >= 2018
-     */
-    protected function evalRelationTypeValue($record, $column, $value)
-    {
-        traceLog(sprintf('Warning: List column type "relation" for class "%s" is not valid.', get_class($record)));
-        return $this->evalTextTypeValue($record, $column, $value);
-    }
-
-    /**
-     * Process as partial reference
-     */
-    protected function evalPartialTypeValue($record, $column, $value)
-    {
-        return $this->controller->makePartial($column->path ?: $column->columnName, [
-            'listColumn' => $column,
-            'listRecord' => $record,
-            'listValue'  => $value,
-            'column'     => $column,
-            'record'     => $record,
-            'value'      => $value
-        ]);
-    }
-
-    /**
-     * Process as boolean switch
-     */
-    protected function evalSwitchTypeValue($record, $column, $value)
-    {
-        $contents = '';
-
-        if ($value) {
-            $contents = Lang::get('backend::lang.list.column_switch_true');
-        }
-        else {
-            $contents = Lang::get('backend::lang.list.column_switch_false');
-        }
-
-        return $contents;
-    }
-
-    /**
-     * Process as a datetime value
-     */
-    protected function evalDatetimeTypeValue($record, $column, $value)
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $dateTime = $this->validateDateTimeValue($value, $column);
-
-        if ($column->format !== null) {
-            $value = $dateTime->format($column->format);
-        }
-        else {
-            $value = $dateTime->toDayDateTimeString();
-        }
-
-        $options = [
-            'defaultValue' => $value,
-            'format' => $column->format,
-            'formatAlias' => 'dateTimeLongMin'
-        ];
-
-        if (!empty($column->config['ignoreTimezone'])) {
-            $options['ignoreTimezone'] = true;
-        }
-
-        return Backend::dateTime($dateTime, $options);
-    }
-
-    //
-    // Tree
-    //
-
-    /**
-     * Validates a column type as a date
-     */
-    protected function validateDateTimeValue($value, $column)
-    {
-        $value = DateTimeHelper::makeCarbon($value, false);
-
-        if (!$value instanceof Carbon) {
-            throw new ApplicationException(Lang::get(
-                'backend::lang.list.invalid_column_datetime',
-                ['column' => $column->columnName]
-            ));
-        }
-
-        return $value;
-    }
-
-    /**
-     * Process as a time value
-     */
-    protected function evalTimeTypeValue($record, $column, $value)
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $dateTime = $this->validateDateTimeValue($value, $column);
-
-        $format = $column->format !== null ? $column->format : 'g:i A';
-
-        $value = $dateTime->format($format);
-
-        $options = [
-            'defaultValue' => $value,
-            'format' => $column->format,
-            'formatAlias' => 'time'
-        ];
-
-        if (!empty($column->config['ignoreTimezone'])) {
-            $options['ignoreTimezone'] = true;
-        }
-
-        return Backend::dateTime($dateTime, $options);
-    }
-
-    /**
-     * Process as a date value
-     */
-    protected function evalDateTypeValue($record, $column, $value)
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $dateTime = $this->validateDateTimeValue($value, $column);
-
-        if ($column->format !== null) {
-            $value = $dateTime->format($column->format);
-        }
-        else {
-            $value = $dateTime->toFormattedDateString();
-        }
-
-        $options = [
-            'defaultValue' => $value,
-            'format' => $column->format,
-            'formatAlias' => 'dateLongMin'
-        ];
-
-        if (!empty($column->config['ignoreTimezone'])) {
-            $options['ignoreTimezone'] = true;
-        }
-
-        return Backend::dateTime($dateTime, $options);
-    }
-
     //
     // Helpers
     //
 
     /**
-     * Process as diff for humans (1 min ago)
+     * Check if column refers to a relation of the model
+     * @param  ListColumn  $column List column object
+     * @param  boolean     $multi  If set, returns true only if the relation is a "multiple relation type"
+     * @return boolean
      */
-    protected function evalTimesinceTypeValue($record, $column, $value)
+    protected function isColumnRelated($column, $multi = false)
     {
-        if ($value === null) {
-            return null;
+        if (!isset($column->relation) || $this->isColumnPivot($column)) {
+            return false;
         }
 
-        $dateTime = $this->validateDateTimeValue($value, $column);
-
-        $value = DateTimeHelper::timeSince($dateTime);
-
-        $options = [
-            'defaultValue' => $value,
-            'timeSince' => true
-        ];
-
-        if (!empty($column->config['ignoreTimezone'])) {
-            $options['ignoreTimezone'] = true;
+        if (!$this->model->hasRelation($column->relation)) {
+            throw new ApplicationException(Lang::get(
+                'backend::lang.model.missing_relation',
+                ['class'=>get_class($this->model), 'relation'=>$column->relation]
+            ));
         }
 
-        return Backend::dateTime($dateTime, $options);
+        if (!$multi) {
+            return true;
+        }
+
+        $relationType = $this->model->getRelationType($column->relation);
+
+        return in_array($relationType, [
+            'hasMany',
+            'belongsToMany',
+            'morphToMany',
+            'morphedByMany',
+            'morphMany',
+            'attachMany',
+            'hasManyThrough'
+        ]);
     }
 
     /**
-     * Process as time as current tense (Today at 0:00)
+     * Checks if a column refers to a pivot model specifically.
+     * @param  ListColumn  $column List column object
+     * @return boolean
      */
-    protected function evalTimetenseTypeValue($record, $column, $value)
+    protected function isColumnPivot($column)
     {
-        if ($value === null) {
-            return null;
+        if (!isset($column->relation) || $column->relation != 'pivot') {
+            return false;
         }
 
-        $dateTime = $this->validateDateTimeValue($value, $column);
-
-        $value = DateTimeHelper::timeTense($dateTime);
-
-        $options = [
-            'defaultValue' => $value,
-            'timeTense' => true
-        ];
-
-        if (!empty($column->config['ignoreTimezone'])) {
-            $options['ignoreTimezone'] = true;
-        }
-
-        return Backend::dateTime($dateTime, $options);
+        return true;
     }
 }

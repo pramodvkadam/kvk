@@ -36,6 +36,13 @@ abstract class GeneratorCommand extends Command
     }
 
     /**
+     * Get the stub file for the generator.
+     *
+     * @return string
+     */
+    abstract protected function getStub();
+
+    /**
      * Execute the console command.
      *
      * @return bool|null
@@ -49,7 +56,7 @@ abstract class GeneratorCommand extends Command
         // First we will check to see if the class already exists. If it does, we don't want
         // to create the class and overwrite the user's code. So, we will bail out so the
         // code is untouched. Otherwise, we will continue generating this class' files.
-        if ($this->alreadyExists($this->getNameInput())) {
+        if ((! $this->hasOption('force') || ! $this->option('force')) && $this->alreadyExists($this->getNameInput())) {
             $this->error($this->type.' already exists!');
 
             return false;
@@ -89,16 +96,6 @@ abstract class GeneratorCommand extends Command
     }
 
     /**
-     * Get the root namespace for the class.
-     *
-     * @return string
-     */
-    protected function rootNamespace()
-    {
-        return $this->laravel->getNamespace();
-    }
-
-    /**
      * Get the default namespace for the class.
      *
      * @param  string  $rootNamespace
@@ -110,13 +107,14 @@ abstract class GeneratorCommand extends Command
     }
 
     /**
-     * Get the desired class name from the input.
+     * Determine if the class already exists.
      *
-     * @return string
+     * @param  string  $rawName
+     * @return bool
      */
-    protected function getNameInput()
+    protected function alreadyExists($rawName)
     {
-        return trim($this->argument('name'));
+        return $this->files->exists($this->getPath($this->qualifyClass($rawName)));
     }
 
     /**
@@ -130,17 +128,6 @@ abstract class GeneratorCommand extends Command
         $name = Str::replaceFirst($this->rootNamespace(), '', $name);
 
         return $this->laravel['path'].'/'.str_replace('\\', '/', $name).'.php';
-    }
-
-    /**
-     * Determine if the class already exists.
-     *
-     * @param  string  $rawName
-     * @return bool
-     */
-    protected function alreadyExists($rawName)
-    {
-        return $this->files->exists($this->getPath($this->qualifyClass($rawName)));
     }
 
     /**
@@ -172,11 +159,33 @@ abstract class GeneratorCommand extends Command
     }
 
     /**
-     * Get the stub file for the generator.
+     * Replace the namespace for the given stub.
      *
+     * @param  string  $stub
+     * @param  string  $name
+     * @return $this
+     */
+    protected function replaceNamespace(&$stub, $name)
+    {
+        $stub = str_replace(
+            ['DummyNamespace', 'DummyRootNamespace', 'NamespacedDummyUserModel'],
+            [$this->getNamespace($name), $this->rootNamespace(), config('auth.providers.users.model')],
+            $stub
+        );
+
+        return $this;
+    }
+
+    /**
+     * Get the full namespace for a given class, without the class name.
+     *
+     * @param  string  $name
      * @return string
      */
-    abstract protected function getStub();
+    protected function getNamespace($name)
+    {
+        return trim(implode('\\', array_slice(explode('\\', $name), 0, -1)), '\\');
+    }
 
     /**
      * Replace the class name for the given stub.
@@ -193,32 +202,23 @@ abstract class GeneratorCommand extends Command
     }
 
     /**
-     * Get the full namespace for a given class, without the class name.
+     * Get the desired class name from the input.
      *
-     * @param  string  $name
      * @return string
      */
-    protected function getNamespace($name)
+    protected function getNameInput()
     {
-        return trim(implode('\\', array_slice(explode('\\', $name), 0, -1)), '\\');
+        return trim($this->argument('name'));
     }
 
     /**
-     * Replace the namespace for the given stub.
+     * Get the root namespace for the class.
      *
-     * @param  string  $stub
-     * @param  string  $name
-     * @return $this
+     * @return string
      */
-    protected function replaceNamespace(&$stub, $name)
+    protected function rootNamespace()
     {
-        $stub = str_replace(
-            ['DummyNamespace', 'DummyRootNamespace', 'NamespacedDummyUserModel'],
-            [$this->getNamespace($name), $this->rootNamespace(), config('auth.providers.users.model')],
-            $stub
-        );
-
-        return $this;
+        return $this->laravel->getNamespace();
     }
 
     /**

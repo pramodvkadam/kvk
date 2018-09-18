@@ -54,11 +54,6 @@ class AssetCollection implements \IteratorAggregate, AssetCollectionInterface
         $this->values = array();
     }
 
-    public function add(AssetInterface $asset)
-    {
-        $this->assets[] = $asset;
-    }
-
     public function __clone()
     {
         $this->filters = clone $this->filters;
@@ -68,6 +63,11 @@ class AssetCollection implements \IteratorAggregate, AssetCollectionInterface
     public function all()
     {
         return $this->assets;
+    }
+
+    public function add(AssetInterface $asset)
+    {
+        $this->assets[] = $asset;
     }
 
     public function removeLeaf(AssetInterface $needle, $graceful = false)
@@ -222,11 +222,6 @@ class AssetCollection implements \IteratorAggregate, AssetCollectionInterface
         return $this->vars;
     }
 
-    public function getValues()
-    {
-        return $this->values;
-    }
-
     public function setValues(array $values)
     {
         $this->values = $values;
@@ -234,5 +229,10 @@ class AssetCollection implements \IteratorAggregate, AssetCollectionInterface
         foreach ($this as $asset) {
             $asset->setValues(array_intersect_key($values, array_flip($asset->getVars())));
         }
+    }
+
+    public function getValues()
+    {
+        return $this->values;
     }
 }

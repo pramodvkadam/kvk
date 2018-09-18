@@ -87,104 +87,52 @@ class OctoberInstall extends Command
         $this->displayOutro();
     }
 
-    protected function displayIntro()
+    /**
+     * Get the console command arguments.
+     */
+    protected function getArguments()
     {
-        $message = [
-            ".====================================================================.",
-            "                                                                      ",
-            " .d8888b.   .o8888b.   db  .d8888b.  d8888b. d88888b d8888b.  .d888b. ",
-            ".8P    Y8. d8P    Y8   88 .8P    Y8. 88  `8D 88'     88  `8D .8P , Y8.",
-            "88      88 8P      oooo88 88      88 88oooY' 88oooo  88oobY' 88  |  88",
-            "88      88 8b      ~~~~88 88      88 88~~~b. 88~~~~  88`8b   88  |/ 88",
-            "`8b    d8' Y8b    d8   88 `8b    d8' 88   8D 88.     88 `88. `8b | d8'",
-            " `Y8888P'   `Y8888P'   YP  `Y8888P'  Y8888P' Y88888P 88   YD  `Y888P' ",
-            "                                                                      ",
-            "`=========================== INSTALLATION ==========================='",
-            "",
-        ];
-
-        $this->line($message);
+        return [];
     }
 
-    protected function setupDatabaseConfig()
+    /**
+     * Get the console command options.
+     */
+    protected function getOptions()
     {
-        $type = $this->choice('Database type', ['MySQL', 'Postgres', 'SQLite', 'SQL Server']);
-
-        $typeMap = [
-            'SQLite' => 'sqlite',
-            'MySQL' => 'mysql',
-            'Postgres' => 'pgsql',
-            'SQL Server' => 'sqlsrv',
+        return [
+            ['force', null, InputOption::VALUE_NONE, 'Force the operation to run.'],
         ];
-
-        $driver = array_get($typeMap, $type, 'sqlite');
-
-        $method = 'setupDatabase'.Str::studly($driver);
-
-        $newConfig = $this->$method();
-
-        $this->writeToConfig('database', ['default' => $driver]);
-
-        foreach ($newConfig as $config => $value) {
-            $this->writeToConfig('database', ['connections.'.$driver.'.'.$config => $value]);
-        }
     }
 
     //
     // Misc
     //
 
-    protected function writeToConfig($file, $values)
-    {
-        $configFile = $this->getConfigFile($file);
-
-        foreach ($values as $key => $value) {
-            Config::set($file.'.'.$key, $value);
-        }
-
-        $this->configWriter->toFile($configFile, $values);
-    }
-
-    /**
-     * Get a config file and contents.
-     *
-     * @return array
-     */
-    protected function getConfigFile($name = 'app')
-    {
-        $env = $this->option('env') ? $this->option('env').'/' : '';
-
-        $name .= '.php';
-
-        $contents = File::get($path = $this->laravel['path.config']."/{$env}{$name}");
-
-        return $path;
-    }
-
-    //
-    // Encryption key
-    //
-
-    protected function setupAdminUser()
-    {
-        $this->line('Enter a new value, or press ENTER for the default');
-
-        SeedSetupAdmin::$firstName = $this->ask('First Name', SeedSetupAdmin::$firstName);
-        SeedSetupAdmin::$lastName = $this->ask('Last Name', SeedSetupAdmin::$lastName);
-        SeedSetupAdmin::$email = $this->ask('Email Address', SeedSetupAdmin::$email);
-        SeedSetupAdmin::$login = $this->ask('Admin Login', SeedSetupAdmin::$login);
-        SeedSetupAdmin::$password = $this->ask('Admin Password', SeedSetupAdmin::$password);
-
-        if (!$this->confirm('Is the information correct?', true)) {
-            $this->setupAdminUser();
-        }
-    }
-
     protected function setupCommonValues()
     {
         $url = $this->ask('Application URL', Config::get('app.url'));
         $this->writeToConfig('app', ['url' => $url]);
     }
+
+    protected function setupAdvancedValues()
+    {
+        $backendUri = $this->ask('Backend URL', Config::get('cms.backendUri'));
+        $this->writeToConfig('cms', ['backendUri' => $backendUri]);
+
+        $defaultMask = $this->ask('File Permission Mask', Config::get('cms.defaultMask.file') ?: '777');
+        $this->writeToConfig('cms', ['defaultMask.file' => $defaultMask]);
+
+        $defaultMask = $this->ask('Folder Permission Mask', Config::get('cms.defaultMask.folder') ?: '777');
+        $this->writeToConfig('cms', ['defaultMask.folder' => $defaultMask]);
+
+        $debug = (bool) $this->confirm('Enable Debug Mode?', true);
+        $this->writeToConfig('app', ['debug' => $debug]);
+    }
+
+    //
+    // Encryption key
+    //
 
     protected function setupEncryptionKey($force = false)
     {
@@ -213,9 +161,16 @@ class OctoberInstall extends Command
         $this->info(sprintf('Application key [%s] set successfully.', $key));
     }
 
-    //
-    // Database config
-    //
+    /**
+     * Generate a random key for the application.
+     *
+     * @param  string  $cipher
+     * @return string
+     */
+    protected function getRandomKey($cipher)
+    {
+        return Str::random($this->getKeyLength($cipher));
+    }
 
     /**
      * Returns the supported length of a key for a cipher.
@@ -228,96 +183,33 @@ class OctoberInstall extends Command
         return $cipher === 'AES-128-CBC' ? 16 : 32;
     }
 
-    /**
-     * Generate a random key for the application.
-     *
-     * @param  string  $cipher
-     * @return string
-     */
-    protected function getRandomKey($cipher)
+    //
+    // Database config
+    //
+
+    protected function setupDatabaseConfig()
     {
-        return Str::random($this->getKeyLength($cipher));
-    }
+        $type = $this->choice('Database type', ['MySQL', 'Postgres', 'SQLite', 'SQL Server']);
 
-    protected function setupAdvancedValues()
-    {
-        $backendUri = $this->ask('Backend URL', Config::get('cms.backendUri'));
-        $this->writeToConfig('cms', ['backendUri' => $backendUri]);
-
-        $defaultMask = $this->ask('File Permission Mask', Config::get('cms.defaultMask.file') ?: '777');
-        $this->writeToConfig('cms', ['defaultMask.file' => $defaultMask]);
-
-        $defaultMask = $this->ask('Folder Permission Mask', Config::get('cms.defaultMask.folder') ?: '777');
-        $this->writeToConfig('cms', ['defaultMask.folder' => $defaultMask]);
-
-        $debug = (bool) $this->confirm('Enable Debug Mode?', true);
-        $this->writeToConfig('app', ['debug' => $debug]);
-    }
-
-    protected function setupMigrateDatabase()
-    {
-        $this->line('Migrating application and plugins...');
-
-        try {
-            Db::purge();
-
-            UpdateManager::instance()
-                ->setNotesOutput($this->output)
-                ->update()
-            ;
-        }
-        catch (Exception $ex) {
-            $this->error($ex->getMessage());
-            $this->setupDatabaseConfig();
-            $this->setupMigrateDatabase();
-        }
-    }
-
-    protected function displayOutro()
-    {
-        $message = [
-            ".=========================================.",
-            "                ,@@@@@@@,                  ",
-            "        ,,,.   ,@@@@@@/@@,  .oo8888o.      ",
-            "     ,&%%&%&&%,@@@@@/@@@@@@,8888\88/8o     ",
-            "    ,%&\%&&%&&%,@@@\@@@/@@@88\88888/88'    ",
-            "    %&&%&%&/%&&%@@\@@/ /@@@88888\88888'    ",
-            "    %&&%/ %&%%&&@@\ V /@@' `88\8 `/88'     ",
-            "    `&%\ ` /%&'    |.|        \ '|8'       ",
-            "        |o|        | |         | |         ",
-            "        |.|        | |         | |         ",
-            "`========= INSTALLATION COMPLETE ========='",
-            "",
+        $typeMap = [
+            'SQLite' => 'sqlite',
+            'MySQL' => 'mysql',
+            'Postgres' => 'pgsql',
+            'SQL Server' => 'sqlsrv',
         ];
 
-        $this->line($message);
+        $driver = array_get($typeMap, $type, 'sqlite');
+
+        $method = 'setupDatabase'.Str::studly($driver);
+
+        $newConfig = $this->$method();
+
+        $this->writeToConfig('database', ['default' => $driver]);
+
+        foreach ($newConfig as $config => $value) {
+            $this->writeToConfig('database', ['connections.'.$driver.'.'.$config => $value]);
+        }
     }
-
-    //
-    // Migration
-    //
-
-    /**
-     * Get the console command arguments.
-     */
-    protected function getArguments()
-    {
-        return [];
-    }
-
-    /**
-     * Get the console command options.
-     */
-    protected function getOptions()
-    {
-        return [
-            ['force', null, InputOption::VALUE_NONE, 'Force the operation to run.'],
-        ];
-    }
-
-    //
-    // Helpers
-    //
 
     protected function setupDatabaseMysql()
     {
@@ -372,5 +264,113 @@ class OctoberInstall extends Command
         $result['username'] = $this->ask('SQL Login', Config::get('database.connections.sqlsrv.username'));
         $result['password'] = $this->ask('SQL Password', Config::get('database.connections.sqlsrv.password') ?: false) ?: '';
         return $result;
+    }
+
+    //
+    // Migration
+    //
+
+    protected function setupAdminUser()
+    {
+        $this->line('Enter a new value, or press ENTER for the default');
+
+        SeedSetupAdmin::$firstName = $this->ask('First Name', SeedSetupAdmin::$firstName);
+        SeedSetupAdmin::$lastName = $this->ask('Last Name', SeedSetupAdmin::$lastName);
+        SeedSetupAdmin::$email = $this->ask('Email Address', SeedSetupAdmin::$email);
+        SeedSetupAdmin::$login = $this->ask('Admin Login', SeedSetupAdmin::$login);
+        SeedSetupAdmin::$password = $this->ask('Admin Password', SeedSetupAdmin::$password);
+
+        if (!$this->confirm('Is the information correct?', true)) {
+            $this->setupAdminUser();
+        }
+    }
+
+    protected function setupMigrateDatabase()
+    {
+        $this->line('Migrating application and plugins...');
+
+        try {
+            Db::purge();
+
+            UpdateManager::instance()
+                ->setNotesOutput($this->output)
+                ->update()
+            ;
+        }
+        catch (Exception $ex) {
+            $this->error($ex->getMessage());
+            $this->setupDatabaseConfig();
+            $this->setupMigrateDatabase();
+        }
+    }
+
+    //
+    // Helpers
+    //
+
+    protected function displayIntro()
+    {
+        $message = [
+            ".====================================================================.",
+            "                                                                      ",
+            " .d8888b.   .o8888b.   db  .d8888b.  d8888b. d88888b d8888b.  .d888b. ",
+            ".8P    Y8. d8P    Y8   88 .8P    Y8. 88  `8D 88'     88  `8D .8P , Y8.",
+            "88      88 8P      oooo88 88      88 88oooY' 88oooo  88oobY' 88  |  88",
+            "88      88 8b      ~~~~88 88      88 88~~~b. 88~~~~  88`8b   88  |/ 88",
+            "`8b    d8' Y8b    d8   88 `8b    d8' 88   8D 88.     88 `88. `8b | d8'",
+            " `Y8888P'   `Y8888P'   YP  `Y8888P'  Y8888P' Y88888P 88   YD  `Y888P' ",
+            "                                                                      ",
+            "`=========================== INSTALLATION ==========================='",
+            "",
+        ];
+
+        $this->line($message);
+    }
+
+    protected function displayOutro()
+    {
+        $message = [
+            ".=========================================.",
+            "                ,@@@@@@@,                  ",
+            "        ,,,.   ,@@@@@@/@@,  .oo8888o.      ",
+            "     ,&%%&%&&%,@@@@@/@@@@@@,8888\88/8o     ",
+            "    ,%&\%&&%&&%,@@@\@@@/@@@88\88888/88'    ",
+            "    %&&%&%&/%&&%@@\@@/ /@@@88888\88888'    ",
+            "    %&&%/ %&%%&&@@\ V /@@' `88\8 `/88'     ",
+            "    `&%\ ` /%&'    |.|        \ '|8'       ",
+            "        |o|        | |         | |         ",
+            "        |.|        | |         | |         ",
+            "`========= INSTALLATION COMPLETE ========='",
+            "",
+        ];
+
+        $this->line($message);
+    }
+
+    protected function writeToConfig($file, $values)
+    {
+        $configFile = $this->getConfigFile($file);
+
+        foreach ($values as $key => $value) {
+            Config::set($file.'.'.$key, $value);
+        }
+
+        $this->configWriter->toFile($configFile, $values);
+    }
+
+    /**
+     * Get a config file and contents.
+     *
+     * @return array
+     */
+    protected function getConfigFile($name = 'app')
+    {
+        $env = $this->option('env') ? $this->option('env').'/' : '';
+
+        $name .= '.php';
+
+        $contents = File::get($path = $this->laravel['path.config']."/{$env}{$name}");
+
+        return $path;
     }
 }

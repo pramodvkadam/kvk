@@ -28,6 +28,17 @@ class ThemeExport extends Model
      * @var array The rules to be applied to the data.
      */
     public $rules = [];
+
+    /**
+     * @var array Guarded fields
+     */
+    protected $guarded = [];
+
+    /**
+     * @var array Fillable fields
+     */
+    protected $fillable = [];
+
     /**
      * @var array Make the model's attributes public so behaviors can modify them.
      */
@@ -43,32 +54,16 @@ class ThemeExport extends Model
             'content'  => true,
         ]
     ];
-    /**
-     * @var array Guarded fields
-     */
-    protected $guarded = [];
-    /**
-     * @var array Fillable fields
-     */
-    protected $fillable = [];
 
-    public static function download($name, $outputName = null)
+    public function getFoldersOptions()
     {
-        if (!preg_match('/^oc[0-9a-z]*$/i', $name)) {
-            throw new ApplicationException('File not found');
-        }
-
-        $zipPath = temp_path() . '/' . $name;
-        if (!file_exists($zipPath)) {
-            throw new ApplicationException('File not found');
-        }
-
-        $headers = Response::download($zipPath, $outputName)->headers->all();
-        $result = Response::make(File::get($zipPath), 200, $headers);
-
-        @File::delete($zipPath);
-
-        return $result;
+        return [
+            'assets'   => 'Assets',
+            'pages'    => 'Pages',
+            'layouts'  => 'Layouts',
+            'partials' => 'Partials',
+            'content'  => 'Content',
+        ];
     }
 
     public function setThemeAttribute($theme)
@@ -131,14 +126,22 @@ class ThemeExport extends Model
         return $zipName;
     }
 
-    public function getFoldersOptions()
+    public static function download($name, $outputName = null)
     {
-        return [
-            'assets'   => 'Assets',
-            'pages'    => 'Pages',
-            'layouts'  => 'Layouts',
-            'partials' => 'Partials',
-            'content'  => 'Content',
-        ];
+        if (!preg_match('/^oc[0-9a-z]*$/i', $name)) {
+            throw new ApplicationException('File not found');
+        }
+
+        $zipPath = temp_path() . '/' . $name;
+        if (!file_exists($zipPath)) {
+            throw new ApplicationException('File not found');
+        }
+
+        $headers = Response::download($zipPath, $outputName)->headers->all();
+        $result = Response::make(File::get($zipPath), 200, $headers);
+
+        @File::delete($zipPath);
+
+        return $result;
     }
 }

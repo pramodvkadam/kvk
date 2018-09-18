@@ -1,0 +1,21 @@
+1537296134a:1:{s:26:"current-events-sidebar.htm";a:7:{s:8:"fileName";s:26:"current-events-sidebar.htm";s:7:"content";s:363:"description = "Current events"
+
+[viewBag]
+==
+<h4 class="heading">Current Events</h4>
+            <p>
+              Success story- <br>
+              Spices products 
+              Biofertilizers production, 
+              Weekly Agro Advisory for 
+              Pune District
+            </p>
+            <div class="bg-image"><img src="{{'bg.png'|media}}"></div>";s:5:"mtime";i:1526235732;s:6:"markup";s:318:"<h4 class="heading">Current Events</h4>
+            <p>
+              Success story- <br>
+              Spices products 
+              Biofertilizers production, 
+              Weekly Agro Advisory for 
+              Pune District
+            </p>
+            <div class="bg-image"><img src="{{'bg.png'|media}}"></div>";s:4:"code";N;s:11:"description";s:14:"Current events";s:7:"viewBag";a:0:{}}}

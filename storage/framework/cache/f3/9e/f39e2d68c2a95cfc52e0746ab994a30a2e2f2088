@@ -1,0 +1,102 @@
+1537296134a:1:{s:11:"gallary.htm";a:12:{s:8:"fileName";s:11:"gallary.htm";s:7:"content";s:1817:"title = "gallary"
+url = "/gallary"
+layout = "default"
+description = "Gallary"
+meta_title = "Photo gallary of Krishi Vigyan Kendra"
+is_hidden = 0
+
+[photoAlbum]
+slug = "gallary"
+photoPage = "gallary"
+thumbMode = "auto"
+thumbWidth = 640
+thumbHeight = 480
+photosOnPage = 12
+==
+<?php
+function onStart()
+{
+        $this->addCss('assets/css/default.css');
+    $this->addCss('assets/css/component.css');
+    $this->addJs('assets/js/modernizr.custom.js');
+}
+?>
+==
+{% set album = photoAlbum.album %}
+
+
+<div class="album-photos row">
+    {% for photo in album.photos %}
+        <div class="photo col-xs-12 col-sm-6 col-md-4 col-lg-3">
+            <a href="{{ photo.url }}"><img
+                    data-src="{{ photo.thumb }}"
+                    src="{{ photo.thumb }}"
+                    alt="{{ photo.title }}"
+                    title="{{ photo.title }}"
+                    style="max-width: 100%" />
+            </a>
+            <a href="{{ photo.url }}"><strong>{{ photo.title }}</strong></a>
+        </div>
+    {% else %}
+        <div class="col-xs-12 no-data">Album doesn't have any photos yet</div>
+    {% endfor %}
+</div>
+
+{% if photoAlbum.lastPage > 1 %}
+<ul class="pagination">
+    {% if photoAlbum.currentPage > 1 %}
+    <li><a href="{{ this.page.baseFileName|page }}?page={{ photoAlbum.currentPage-1 }}">&larr; Prev</a></li>
+    {% endif %}
+
+    {% for page in 1..photoAlbum.lastPage %}
+    <li class="{{ photoAlbum.currentPage == page ? 'active' : null }}">
+        <a href="{{ this.page.baseFileName|page }}?page={{ page }}">{{ page }}</a>
+    </li>
+    {% endfor %}
+
+    {% if photoAlbum.lastPage > photoAlbum.currentPage %}
+    <li><a href="{{ this.page.baseFileName|page }}?page={{ photoAlbum.currentPage+1 }}">Next &rarr;</a></li>
+    {% endif %}
+</ul>
+{% endif %}";s:5:"mtime";i:1528340486;s:6:"markup";s:1357:"{% set album = photoAlbum.album %}
+
+
+<div class="album-photos row">
+    {% for photo in album.photos %}
+        <div class="photo col-xs-12 col-sm-6 col-md-4 col-lg-3">
+            <a href="{{ photo.url }}"><img
+                    data-src="{{ photo.thumb }}"
+                    src="{{ photo.thumb }}"
+                    alt="{{ photo.title }}"
+                    title="{{ photo.title }}"
+                    style="max-width: 100%" />
+            </a>
+            <a href="{{ photo.url }}"><strong>{{ photo.title }}</strong></a>
+        </div>
+    {% else %}
+        <div class="col-xs-12 no-data">Album doesn't have any photos yet</div>
+    {% endfor %}
+</div>
+
+{% if photoAlbum.lastPage > 1 %}
+<ul class="pagination">
+    {% if photoAlbum.currentPage > 1 %}
+    <li><a href="{{ this.page.baseFileName|page }}?page={{ photoAlbum.currentPage-1 }}">&larr; Prev</a></li>
+    {% endif %}
+
+    {% for page in 1..photoAlbum.lastPage %}
+    <li class="{{ photoAlbum.currentPage == page ? 'active' : null }}">
+        <a href="{{ this.page.baseFileName|page }}?page={{ page }}">{{ page }}</a>
+    </li>
+    {% endfor %}
+
+    {% if photoAlbum.lastPage > photoAlbum.currentPage %}
+    <li><a href="{{ this.page.baseFileName|page }}?page={{ photoAlbum.currentPage+1 }}">Next &rarr;</a></li>
+    {% endif %}
+</ul>
+{% endif %}";s:4:"code";s:174:"function onStart()
+{
+        $this->addCss('assets/css/default.css');
+    $this->addCss('assets/css/component.css');
+    $this->addJs('assets/js/modernizr.custom.js');
+}";s:5:"title";s:7:"gallary";s:3:"url";s:8:"/gallary";s:6:"layout";s:7:"default";s:11:"description";s:7:"Gallary";s:10:"meta_title";s:37:"Photo gallary of Krishi Vigyan Kendra";s:9:"is_hidden";s:1:"0";s:10:"photoAlbum";a:6:{s:4:"slug";s:7:"gallary";s:9:"photoPage";s:7:"gallary";s:9:"thumbMode";s:4:"auto";s:10:"thumbWidth";s:3:"640";s:11:"thumbHeight";s:3:"480";s:12:"photosOnPage";s:2:"12";}}}

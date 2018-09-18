@@ -8,9 +8,12 @@
  */
 class Less_Tree_Ruleset extends Less_Tree{
 
+	protected $lookups;
 	public $_variables;
 	public $_rulesets;
+
 	public $strictImports;
+
 	public $selectors;
 	public $rules;
 	public $root;
@@ -20,18 +23,11 @@ class Less_Tree_Ruleset extends Less_Tree{
 	public $type = 'Ruleset';
 	public $multiMedia;
 	public $allExtends;
+
 	public $ruleset_id;
 	public $originalRuleset;
-	public $first_oelements;
-	protected $lookups;
 
-	public function __construct($selectors, $rules, $strictImports = null){
-		$this->selectors = $selectors;
-		$this->rules = $rules;
-		$this->lookups = array();
-		$this->strictImports = $strictImports;
-		$this->SetRulesetIndex();
-	}
+	public $first_oelements;
 
 	public function SetRulesetIndex(){
 		$this->ruleset_id = Less_Parser::$next_id++;
@@ -44,6 +40,14 @@ class Less_Tree_Ruleset extends Less_Tree{
 				}
 			}
 		}
+	}
+
+	public function __construct($selectors, $rules, $strictImports = null){
+		$this->selectors = $selectors;
+		$this->rules = $rules;
+		$this->lookups = array();
+		$this->strictImports = $strictImports;
+		$this->SetRulesetIndex();
 	}
 
 	public function accept( $visitor ){
@@ -130,6 +134,60 @@ class Less_Tree_Ruleset extends Less_Tree{
 	}
 
 	/**
+	 * Compile Less_Tree_Mixin_Call objects
+	 *
+	 * @param Less_Tree_Ruleset $ruleset
+	 * @param integer $rsRuleCnt
+	 */
+	private function EvalMixinCalls( $ruleset, $env, &$rsRuleCnt ){
+		for($i=0; $i < $rsRuleCnt; $i++){
+			$rule = $ruleset->rules[$i];
+
+			if( $rule instanceof Less_Tree_Mixin_Call ){
+				$rule = $rule->compile($env);
+
+				$temp = array();
+				foreach($rule as $r){
+					if( ($r instanceof Less_Tree_Rule) && $r->variable ){
+						// do not pollute the scope if the variable is
+						// already there. consider returning false here
+						// but we need a way to "return" variable from mixins
+						if( !$ruleset->variable($r->name) ){
+							$temp[] = $r;
+						}
+					}else{
+						$temp[] = $r;
+					}
+				}
+				$temp_count = count($temp)-1;
+				array_splice($ruleset->rules, $i, 1, $temp);
+				$rsRuleCnt += $temp_count;
+				$i += $temp_count;
+				$ruleset->resetCache();
+
+			}elseif( $rule instanceof Less_Tree_RulesetCall ){
+
+				$rule = $rule->compile($env);
+				$rules = array();
+				foreach($rule->rules as $r){
+					if( ($r instanceof Less_Tree_Rule) && $r->variable ){
+						continue;
+					}
+					$rules[] = $r;
+				}
+
+				array_splice($ruleset->rules, $i, 1, $rules);
+				$temp_count = count($rules);
+				$rsRuleCnt += $temp_count - 1;
+				$i += $temp_count-1;
+				$ruleset->resetCache();
+			}
+
+		}
+	}
+
+
+	/**
 	 * Compile the selectors and create a new ruleset object for the compile() method
 	 *
 	 */
@@ -202,84 +260,6 @@ class Less_Tree_Ruleset extends Less_Tree{
 		}
 	}
 
-	function resetCache(){
-		$this->_rulesets = null;
-		$this->_variables = null;
-		$this->lookups = array();
-	}
-
-	/**
-	 * Compile Less_Tree_Mixin_Call objects
-	 *
-	 * @param Less_Tree_Ruleset $ruleset
-	 * @param integer $rsRuleCnt
-	 */
-	private function EvalMixinCalls( $ruleset, $env, &$rsRuleCnt ){
-		for($i=0; $i < $rsRuleCnt; $i++){
-			$rule = $ruleset->rules[$i];
-
-			if( $rule instanceof Less_Tree_Mixin_Call ){
-				$rule = $rule->compile($env);
-
-				$temp = array();
-				foreach($rule as $r){
-					if( ($r instanceof Less_Tree_Rule) && $r->variable ){
-						// do not pollute the scope if the variable is
-						// already there. consider returning false here
-						// but we need a way to "return" variable from mixins
-						if( !$ruleset->variable($r->name) ){
-							$temp[] = $r;
-						}
-					}else{
-						$temp[] = $r;
-					}
-				}
-				$temp_count = count($temp)-1;
-				array_splice($ruleset->rules, $i, 1, $temp);
-				$rsRuleCnt += $temp_count;
-				$i += $temp_count;
-				$ruleset->resetCache();
-
-			}elseif( $rule instanceof Less_Tree_RulesetCall ){
-
-				$rule = $rule->compile($env);
-				$rules = array();
-				foreach($rule->rules as $r){
-					if( ($r instanceof Less_Tree_Rule) && $r->variable ){
-						continue;
-					}
-					$rules[] = $r;
-				}
-
-				array_splice($ruleset->rules, $i, 1, $rules);
-				$temp_count = count($rules);
-				$rsRuleCnt += $temp_count - 1;
-				$i += $temp_count-1;
-				$ruleset->resetCache();
-			}
-
-		}
-	}
-
-	public function variable($name){
-
-		if( is_null($this->_variables) ){
-			$this->variables();
-		}
-		return isset($this->_variables[$name]) ? $this->_variables[$name] : null;
-	}
-
-	// lets you call a css selector with a guard
-
-	public function variables(){
-		$this->_variables = array();
-		foreach( $this->rules as $r){
-			if ($r instanceof Less_Tree_Rule && $r->variable === true) {
-				$this->_variables[$r->name] = $r;
-			}
-		}
-	}
-
 	function makeImportant(){
 
 		$important_rules = array();
@@ -298,6 +278,7 @@ class Less_Tree_Ruleset extends Less_Tree{
 		return !$args;
 	}
 
+	// lets you call a css selector with a guard
 	public function matchCondition( $args, $env ){
 		$lastSelector = end($this->selectors);
 
@@ -308,6 +289,29 @@ class Less_Tree_Ruleset extends Less_Tree{
 			return false;
 		}
 		return true;
+	}
+
+	function resetCache(){
+		$this->_rulesets = null;
+		$this->_variables = null;
+		$this->lookups = array();
+	}
+
+	public function variables(){
+		$this->_variables = array();
+		foreach( $this->rules as $r){
+			if ($r instanceof Less_Tree_Rule && $r->variable === true) {
+				$this->_variables[$r->name] = $r;
+			}
+		}
+	}
+
+	public function variable($name){
+
+		if( is_null($this->_variables) ){
+			$this->variables();
+		}
+		return isset($this->_variables[$name]) ? $this->_variables[$name] : null;
 	}
 
 	public function find( $selector, $self = null ){

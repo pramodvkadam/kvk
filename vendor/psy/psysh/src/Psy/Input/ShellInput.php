@@ -41,6 +41,35 @@ class ShellInput extends StringInput
     }
 
     /**
+     * {@inheritdoc}
+     *
+     * @throws \InvalidArgumentException if $definition has CodeArgument before the final argument position
+     */
+    public function bind(InputDefinition $definition)
+    {
+        $hasCodeArgument = false;
+
+        if ($definition->getArgumentCount() > 0) {
+            $args    = $definition->getArguments();
+            $lastArg = array_pop($args);
+            foreach ($args as $arg) {
+                if ($arg instanceof CodeArgument) {
+                    $msg = sprintf('Unexpected CodeArgument before the final position: %s', $arg->getName());
+                    throw new \InvalidArgumentException($msg);
+                }
+            }
+
+            if ($lastArg instanceof CodeArgument) {
+                $hasCodeArgument = true;
+            }
+        }
+
+        $this->hasCodeArgument = $hasCodeArgument;
+
+        return parent::bind($definition);
+    }
+
+    /**
      * Tokenizes a string.
      *
      * The version of this on StringInput is good, but doesn't handle code
@@ -83,35 +112,6 @@ class ShellInput extends StringInput
         }
 
         return $tokens;
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @throws \InvalidArgumentException if $definition has CodeArgument before the final argument position
-     */
-    public function bind(InputDefinition $definition)
-    {
-        $hasCodeArgument = false;
-
-        if ($definition->getArgumentCount() > 0) {
-            $args = $definition->getArguments();
-            $lastArg = array_pop($args);
-            foreach ($args as $arg) {
-                if ($arg instanceof CodeArgument) {
-                    $msg = sprintf('Unexpected CodeArgument before the final position: %s', $arg->getName());
-                    throw new \InvalidArgumentException($msg);
-                }
-            }
-
-            if ($lastArg instanceof CodeArgument) {
-                $hasCodeArgument = true;
-            }
-        }
-
-        $this->hasCodeArgument = $hasCodeArgument;
-
-        return parent::bind($definition);
     }
 
     /**
@@ -188,6 +188,53 @@ class ShellInput extends StringInput
     // Everything below this is copypasta from ArgvInput private methods
 
     /**
+     * Parses a short option.
+     *
+     * @param string $token The current token
+     */
+    private function parseShortOption($token)
+    {
+        $name = substr($token, 1);
+
+        if (strlen($name) > 1) {
+            if ($this->definition->hasShortcut($name[0]) && $this->definition->getOptionForShortcut($name[0])->acceptValue()) {
+                // an option with a value (with no space)
+                $this->addShortOption($name[0], substr($name, 1));
+            } else {
+                $this->parseShortOptionSet($name);
+            }
+        } else {
+            $this->addShortOption($name, null);
+        }
+    }
+
+    /**
+     * Parses a short option set.
+     *
+     * @param string $name The current token
+     *
+     * @throws \RuntimeException When option given doesn't exist
+     */
+    private function parseShortOptionSet($name)
+    {
+        $len = strlen($name);
+        for ($i = 0; $i < $len; $i++) {
+            if (!$this->definition->hasShortcut($name[$i])) {
+                throw new \RuntimeException(sprintf('The "-%s" option does not exist.', $name[$i]));
+            }
+
+            $option = $this->definition->getOptionForShortcut($name[$i]);
+            if ($option->acceptValue()) {
+                $this->addLongOption($option->getName(), $i === $len - 1 ? null : substr($name, $i + 1));
+
+                break;
+            } else {
+                $this->addLongOption($option->getName(), null);
+            }
+        }
+    }
+
+    /**
      * Parses a long option.
      *
      * @param string $token The current token
@@ -209,6 +256,23 @@ class ShellInput extends StringInput
         } else {
             $this->addLongOption($name, null);
         }
+    }
+
+    /**
+     * Adds a short option value.
+     *
+     * @param string $shortcut The short option key
+     * @param mixed  $value    The value for the option
+     *
+     * @throws \RuntimeException When option given doesn't exist
+     */
+    private function addShortOption($shortcut, $value)
+    {
+        if (!$this->definition->hasShortcut($shortcut)) {
+            throw new \RuntimeException(sprintf('The "-%s" option does not exist.', $shortcut));
+        }
+
+        $this->addLongOption($this->definition->getOptionForShortcut($shortcut)->getName(), $value);
     }
 
     /**
@@ -257,70 +321,6 @@ class ShellInput extends StringInput
             $this->options[$name][] = $value;
         } else {
             $this->options[$name] = $value;
-        }
-    }
-
-    /**
-     * Parses a short option.
-     *
-     * @param string $token The current token
-     */
-    private function parseShortOption($token)
-    {
-        $name = substr($token, 1);
-
-        if (strlen($name) > 1) {
-            if ($this->definition->hasShortcut($name[0]) && $this->definition->getOptionForShortcut($name[0])->acceptValue()) {
-                // an option with a value (with no space)
-                $this->addShortOption($name[0], substr($name, 1));
-            } else {
-                $this->parseShortOptionSet($name);
-            }
-        } else {
-            $this->addShortOption($name, null);
-        }
-    }
-
-    /**
-     * Adds a short option value.
-     *
-     * @param string $shortcut The short option key
-     * @param mixed  $value    The value for the option
-     *
-     * @throws \RuntimeException When option given doesn't exist
-     */
-    private function addShortOption($shortcut, $value)
-    {
-        if (!$this->definition->hasShortcut($shortcut)) {
-            throw new \RuntimeException(sprintf('The "-%s" option does not exist.', $shortcut));
-        }
-
-        $this->addLongOption($this->definition->getOptionForShortcut($shortcut)->getName(), $value);
-    }
-
-    /**
-     * Parses a short option set.
-     *
-     * @param string $name The current token
-     *
-     * @throws \RuntimeException When option given doesn't exist
-     */
-    private function parseShortOptionSet($name)
-    {
-        $len = strlen($name);
-        for ($i = 0; $i < $len; ++$i) {
-            if (!$this->definition->hasShortcut($name[$i])) {
-                throw new \RuntimeException(sprintf('The "-%s" option does not exist.', $name[$i]));
-            }
-
-            $option = $this->definition->getOptionForShortcut($name[$i]);
-            if ($option->acceptValue()) {
-                $this->addLongOption($option->getName(), $i === $len - 1 ? null : substr($name, $i + 1));
-
-                break;
-            } else {
-                $this->addLongOption($option->getName(), null);
-            }
         }
     }
 }

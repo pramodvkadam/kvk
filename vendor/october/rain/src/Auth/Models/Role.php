@@ -11,21 +11,24 @@ class Role extends Model
     use \October\Rain\Database\Traits\Validation;
 
     /**
+     * @var string The table associated with the model.
+     */
+    protected $table = 'roles';
+
+    /**
      * @var array Validation rules
      */
     public $rules = [
         'name' => 'required|between:4,16|unique:role',
     ];
+
     /**
      * @var array Relations
      */
     public $hasMany = [
         'users' => User::class
     ];
-    /**
-     * @var string The table associated with the model.
-     */
-    protected $table = 'roles';
+
     /**
      * @var array List of attribute names which are json encoded and decoded from the database.
      */
@@ -44,16 +47,6 @@ class Role extends Model
      * @var array The attributes that aren't mass assignable.
      */
     protected $guarded = [];
-
-    /**
-     * Returns if the user has access to any of the given permissions.
-     * @param array $permissions
-     * @return bool
-     */
-    public function hasAnyAccess(array $permissions)
-    {
-        return $this->hasAccess($permissions, false);
-    }
 
     /**
      * See if a role has access to the passed permission(s).
@@ -158,6 +151,16 @@ class Role extends Model
         }
 
         return true;
+    }
+
+    /**
+     * Returns if the user has access to any of the given permissions.
+     * @param array $permissions
+     * @return bool
+     */
+    public function hasAnyAccess(array $permissions)
+    {
+        return $this->hasAccess($permissions, false);
     }
 
     /**

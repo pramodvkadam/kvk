@@ -41,21 +41,29 @@ class Search extends WidgetBase
      */
     public $scope;
 
+    /**
+     * @var bool Search on enter key instead of every key stroke.
+     */
+    public $searchOnEnter = false;
+
     //
     // Object properties
     //
-    /**
-     * @var array List of CSS classes to apply to the list container element.
-     */
-    public $cssClasses = [];
+
     /**
      * @inheritDoc
      */
     protected $defaultAlias = 'search';
+
     /**
      * @var string Active search term pulled from session data.
      */
     protected $activeTerm;
+
+    /**
+     * @var array List of CSS classes to apply to the list container element.
+     */
+    public $cssClasses = [];
 
     /**
      * Initialize the widget, called by the constructor and free from its parameters.
@@ -68,6 +76,7 @@ class Search extends WidgetBase
             'growable',
             'scope',
             'mode',
+            'searchOnEnter',
         ]);
 
         /*
@@ -89,8 +98,7 @@ class Search extends WidgetBase
 
         if ($this->partial) {
             return $this->controller->makePartial($this->partial);
-        }
-        else {
+        } else {
             return $this->makePartial('search');
         }
     }
@@ -103,29 +111,7 @@ class Search extends WidgetBase
         $this->vars['cssClasses'] = implode(' ', $this->cssClasses);
         $this->vars['placeholder'] = Lang::get($this->prompt);
         $this->vars['value'] = $this->getActiveTerm();
-    }
-
-    /**
-     * Returns an active search term for this widget instance.
-     */
-    public function getActiveTerm()
-    {
-        return $this->activeTerm = $this->getSession('term', '');
-    }
-
-    /**
-     * Sets an active search term for this widget instance.
-     */
-    public function setActiveTerm($term)
-    {
-        if (strlen($term)) {
-            $this->putSession('term', $term);
-        }
-        else {
-            $this->resetSession();
-        }
-
-        $this->activeTerm = $term;
+        $this->vars['searchOnEnter'] = $this->searchOnEnter;
     }
 
     /**
@@ -146,6 +132,28 @@ class Search extends WidgetBase
         if ($result && is_array($result)) {
             return call_user_func_array('array_merge', $result);
         }
+    }
+
+    /**
+     * Returns an active search term for this widget instance.
+     */
+    public function getActiveTerm()
+    {
+        return $this->activeTerm = $this->getSession('term', '');
+    }
+
+    /**
+     * Sets an active search term for this widget instance.
+     */
+    public function setActiveTerm($term)
+    {
+        if (strlen($term)) {
+            $this->putSession('term', $term);
+        } else {
+            $this->resetSession();
+        }
+
+        $this->activeTerm = $term;
     }
 
     /**

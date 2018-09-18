@@ -77,23 +77,46 @@ trait Validation
     }
 
     /**
-     * Create a new native event for handling beforeValidate().
-     * @param Closure|string $callback
-     * @return void
+     * Returns the model data used for validation.
+     * @return array
      */
-    public static function validating($callback)
+    protected function getValidationAttributes()
     {
-        static::registerModelEvent('validating', $callback);
+        return $this->getAttributes();
     }
 
     /**
-     * Create a new native event for handling afterValidate().
-     * @param Closure|string $callback
-     * @return void
+     * Attachments validate differently to their simple values.
      */
-    public static function validated($callback)
+    protected function getRelationValidationValue($relationName)
     {
-        static::registerModelEvent('validated', $callback);
+        $relationType = $this->getRelationType($relationName);
+
+        if ($relationType === 'attachOne' || $relationType === 'attachMany') {
+            return $this->$relationName()->getValidationValue();
+        }
+        else {
+            return $this->getRelationValue($relationName);
+        }
+    }
+
+    /**
+     * Instantiates the validator used by the validation process, depending if the class
+     * is being used inside or outside of Laravel. Optional connection string to make
+     * the validator use a different database connection than the default connection.
+     * @return \Illuminate\Validation\Validator
+     */
+    protected static function makeValidator($data, $rules, $customMessages, $attributeNames, $connection = null)
+    {
+        $validator = Validator::make($data, $rules, $customMessages, $attributeNames);
+
+        if ($connection !== null) {
+           $verifier = App::make('validation.presence');
+           $verifier->setConnection($connection);
+           $validator->setPresenceVerifier($verifier);
+        }
+
+        return $validator;
     }
 
     /**
@@ -354,49 +377,6 @@ trait Validation
     }
 
     /**
-     * Returns the model data used for validation.
-     * @return array
-     */
-    protected function getValidationAttributes()
-    {
-        return $this->getAttributes();
-    }
-
-    /**
-     * Attachments validate differently to their simple values.
-     */
-    protected function getRelationValidationValue($relationName)
-    {
-        $relationType = $this->getRelationType($relationName);
-
-        if ($relationType == 'attachOne') {
-            return $this->$relationName()->getValidationValue();
-        }
-        else {
-            return $this->getRelationValue($relationName);
-        }
-    }
-
-    /**
-     * Instantiates the validator used by the validation process, depending if the class
-     * is being used inside or outside of Laravel. Optional connection string to make
-     * the validator use a different database connection than the default connection.
-     * @return \Illuminate\Validation\Validator
-     */
-    protected static function makeValidator($data, $rules, $customMessages, $attributeNames, $connection = null)
-    {
-        $validator = Validator::make($data, $rules, $customMessages, $attributeNames);
-
-        if ($connection !== null) {
-           $verifier = App::make('validation.presence');
-           $verifier->setConnection($connection);
-           $validator->setPresenceVerifier($verifier);
-        }
-
-        return $validator;
-    }
-
-    /**
      * Determines if an attribute is required based on the validation rules.
      * @param  string  $attribute
      * @return boolean
@@ -437,5 +417,25 @@ trait Validation
     public function errors()
     {
         return $this->validationErrors;
+    }
+
+    /**
+     * Create a new native event for handling beforeValidate().
+     * @param Closure|string $callback
+     * @return void
+     */
+    public static function validating($callback)
+    {
+        static::registerModelEvent('validating', $callback);
+    }
+
+    /**
+     * Create a new native event for handling afterValidate().
+     * @param Closure|string $callback
+     * @return void
+     */
+    public static function validated($callback)
+    {
+        static::registerModelEvent('validated', $callback);
     }
 }

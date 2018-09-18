@@ -20,11 +20,113 @@ use PHPUnit\Framework\TestCase;
 abstract class Twig_Test_IntegrationTestCase extends TestCase
 {
     /**
+     * @return string
+     */
+    abstract protected function getFixturesDir();
+
+    /**
+     * @return Twig_RuntimeLoaderInterface[]
+     */
+    protected function getRuntimeLoaders()
+    {
+        return array();
+    }
+
+    /**
+     * @return Twig_ExtensionInterface[]
+     */
+    protected function getExtensions()
+    {
+        return array();
+    }
+
+    /**
+     * @return Twig_Filter[]
+     */
+    protected function getTwigFilters()
+    {
+        return array();
+    }
+
+    /**
+     * @return Twig_Function[]
+     */
+    protected function getTwigFunctions()
+    {
+        return array();
+    }
+
+    /**
+     * @return Twig_Test[]
+     */
+    protected function getTwigTests()
+    {
+        return array();
+    }
+
+    /**
      * @dataProvider getTests
      */
     public function testIntegration($file, $message, $condition, $templates, $exception, $outputs)
     {
         $this->doIntegrationTest($file, $message, $condition, $templates, $exception, $outputs);
+    }
+
+    /**
+     * @dataProvider getLegacyTests
+     * @group legacy
+     */
+    public function testLegacyIntegration($file, $message, $condition, $templates, $exception, $outputs)
+    {
+        $this->doIntegrationTest($file, $message, $condition, $templates, $exception, $outputs);
+    }
+
+    public function getTests($name, $legacyTests = false)
+    {
+        $fixturesDir = realpath($this->getFixturesDir());
+        $tests = array();
+
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($fixturesDir), RecursiveIteratorIterator::LEAVES_ONLY) as $file) {
+            if (!preg_match('/\.test$/', $file)) {
+                continue;
+            }
+
+            if ($legacyTests xor false !== strpos($file->getRealpath(), '.legacy.test')) {
+                continue;
+            }
+
+            $test = file_get_contents($file->getRealpath());
+
+            if (preg_match('/--TEST--\s*(.*?)\s*(?:--CONDITION--\s*(.*))?\s*((?:--TEMPLATE(?:\(.*?\))?--(?:.*?))+)\s*(?:--DATA--\s*(.*))?\s*--EXCEPTION--\s*(.*)/sx', $test, $match)) {
+                $message = $match[1];
+                $condition = $match[2];
+                $templates = self::parseTemplates($match[3]);
+                $exception = $match[5];
+                $outputs = array(array(null, $match[4], null, ''));
+            } elseif (preg_match('/--TEST--\s*(.*?)\s*(?:--CONDITION--\s*(.*))?\s*((?:--TEMPLATE(?:\(.*?\))?--(?:.*?))+)--DATA--.*?--EXPECT--.*/s', $test, $match)) {
+                $message = $match[1];
+                $condition = $match[2];
+                $templates = self::parseTemplates($match[3]);
+                $exception = false;
+                preg_match_all('/--DATA--(.*?)(?:--CONFIG--(.*?))?--EXPECT--(.*?)(?=\-\-DATA\-\-|$)/s', $test, $outputs, PREG_SET_ORDER);
+            } else {
+                throw new InvalidArgumentException(sprintf('Test "%s" is not valid.', str_replace($fixturesDir.'/', '', $file)));
+            }
+
+            $tests[] = array(str_replace($fixturesDir.'/', '', $file), $message, $condition, $templates, $exception, $outputs);
+        }
+
+        if ($legacyTests && empty($tests)) {
+            // add a dummy test to avoid a PHPUnit message
+            return array(array('not', '-', '', array(), '', array()));
+        }
+
+        return $tests;
+    }
+
+    public function getLegacyTests()
+    {
+        return $this->getTests('testLegacyIntegration', true);
     }
 
     protected function doIntegrationTest($file, $message, $condition, $templates, $exception, $outputs)
@@ -122,108 +224,6 @@ abstract class Twig_Test_IntegrationTestCase extends TestCase
             $this->assertEquals($expected, $output, $message.' (in '.$file.')');
         }
     }
-
-    /**
-     * @return Twig_RuntimeLoaderInterface[]
-     */
-    protected function getRuntimeLoaders()
-    {
-        return array();
-    }
-
-    /**
-     * @return Twig_ExtensionInterface[]
-     */
-    protected function getExtensions()
-    {
-        return array();
-    }
-
-    /**
-     * @return Twig_Filter[]
-     */
-    protected function getTwigFilters()
-    {
-        return array();
-    }
-
-    /**
-     * @return Twig_Test[]
-     */
-    protected function getTwigTests()
-    {
-        return array();
-    }
-
-    /**
-     * @return Twig_Function[]
-     */
-    protected function getTwigFunctions()
-    {
-        return array();
-    }
-
-    /**
-     * @dataProvider getLegacyTests
-     * @group legacy
-     */
-    public function testLegacyIntegration($file, $message, $condition, $templates, $exception, $outputs)
-    {
-        $this->doIntegrationTest($file, $message, $condition, $templates, $exception, $outputs);
-    }
-
-    public function getLegacyTests()
-    {
-        return $this->getTests('testLegacyIntegration', true);
-    }
-
-    public function getTests($name, $legacyTests = false)
-    {
-        $fixturesDir = realpath($this->getFixturesDir());
-        $tests = array();
-
-        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($fixturesDir), RecursiveIteratorIterator::LEAVES_ONLY) as $file) {
-            if (!preg_match('/\.test$/', $file)) {
-                continue;
-            }
-
-            if ($legacyTests xor false !== strpos($file->getRealpath(), '.legacy.test')) {
-                continue;
-            }
-
-            $test = file_get_contents($file->getRealpath());
-
-            if (preg_match('/--TEST--\s*(.*?)\s*(?:--CONDITION--\s*(.*))?\s*((?:--TEMPLATE(?:\(.*?\))?--(?:.*?))+)\s*(?:--DATA--\s*(.*))?\s*--EXCEPTION--\s*(.*)/sx', $test, $match)) {
-                $message = $match[1];
-                $condition = $match[2];
-                $templates = self::parseTemplates($match[3]);
-                $exception = $match[5];
-                $outputs = array(array(null, $match[4], null, ''));
-            } elseif (preg_match('/--TEST--\s*(.*?)\s*(?:--CONDITION--\s*(.*))?\s*((?:--TEMPLATE(?:\(.*?\))?--(?:.*?))+)--DATA--.*?--EXPECT--.*/s', $test, $match)) {
-                $message = $match[1];
-                $condition = $match[2];
-                $templates = self::parseTemplates($match[3]);
-                $exception = false;
-                preg_match_all('/--DATA--(.*?)(?:--CONFIG--(.*?))?--EXPECT--(.*?)(?=\-\-DATA\-\-|$)/s', $test, $outputs, PREG_SET_ORDER);
-            } else {
-                throw new InvalidArgumentException(sprintf('Test "%s" is not valid.', str_replace($fixturesDir.'/', '', $file)));
-            }
-
-            $tests[] = array(str_replace($fixturesDir.'/', '', $file), $message, $condition, $templates, $exception, $outputs);
-        }
-
-        if ($legacyTests && empty($tests)) {
-            // add a dummy test to avoid a PHPUnit message
-            return array(array('not', '-', '', array(), '', array()));
-        }
-
-        return $tests;
-    }
-
-    /**
-     * @return string
-     */
-    abstract protected function getFixturesDir();
 
     protected static function parseTemplates($test)
     {

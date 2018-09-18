@@ -34,13 +34,13 @@ class AuthManager extends RainAuthManager
     /**
      * {@inheritDoc}
      */
-    public function register(array $credentials, $activate = false)
+    public function register(array $credentials, $activate = false, $autoLogin = true)
     {
         if ($guest = $this->findGuestUserByCredentials($credentials)) {
             return $this->convertGuestToUser($guest, $credentials, $activate);
         }
 
-        return parent::register($credentials, $activate);
+        return parent::register($credentials, $activate, $autoLogin);
     }
 
     //
@@ -67,35 +67,6 @@ class AuthManager extends RainAuthManager
     }
 
     /**
-     * Converts a guest user to a registered user.
-     *
-     * @param Models\User $user
-     * @param array $credentials
-     * @param bool $activate
-     * @return Models\User
-     */
-    public function convertGuestToUser($user, $credentials, $activate = false)
-    {
-        $user->fill($credentials);
-        $user->convertToRegistered(false);
-
-        // Remove user from guest group
-        if ($group = UserGroupModel::getGuestGroup()) {
-            $user->groups()->remove($group);
-        }
-
-        if ($activate) {
-            $user->attemptActivation($user->getActivationCode());
-        }
-
-        // Prevents revalidation of the password field
-        // on subsequent saves to this model object
-        $user->password = null;
-
-        return $this->user = $user;
-    }
-
-    /**
      * Registers a guest user by giving the required credentials.
      *
      * @param array $credentials
@@ -118,6 +89,35 @@ class AuthManager extends RainAuthManager
         // Add user to guest group
         if ($newUser && $group = UserGroupModel::getGuestGroup()) {
             $user->groups()->add($group);
+        }
+
+        // Prevents revalidation of the password field
+        // on subsequent saves to this model object
+        $user->password = null;
+
+        return $this->user = $user;
+    }
+
+    /**
+     * Converts a guest user to a registered user.
+     *
+     * @param Models\User $user
+     * @param array $credentials
+     * @param bool $activate
+     * @return Models\User
+     */
+    public function convertGuestToUser($user, $credentials, $activate = false)
+    {
+        $user->fill($credentials);
+        $user->convertToRegistered(false);
+
+        // Remove user from guest group
+        if ($group = UserGroupModel::getGuestGroup()) {
+            $user->groups()->remove($group);
+        }
+
+        if ($activate) {
+            $user->attemptActivation($user->getActivationCode());
         }
 
         // Prevents revalidation of the password field

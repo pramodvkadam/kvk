@@ -94,6 +94,19 @@ class MemcachedStore extends TaggableStore implements LockProvider, Store
     }
 
     /**
+     * Store an item in the cache for a given number of minutes.
+     *
+     * @param  string  $key
+     * @param  mixed   $value
+     * @param  float|int  $minutes
+     * @return void
+     */
+    public function put($key, $value, $minutes)
+    {
+        $this->memcached->set($this->prefix.$key, $value, $this->toTimestamp($minutes));
+    }
+
+    /**
      * Store multiple items in the cache for a given number of minutes.
      *
      * @param  array  $values
@@ -109,17 +122,6 @@ class MemcachedStore extends TaggableStore implements LockProvider, Store
         }
 
         $this->memcached->setMulti($prefixedValues, $this->toTimestamp($minutes));
-    }
-
-    /**
-     * Get the UNIX timestamp for the given number of minutes.
-     *
-     * @param  int  $minutes
-     * @return int
-     */
-    protected function toTimestamp($minutes)
-    {
-        return $minutes > 0 ? $this->availableAt($minutes * 60) : 0;
     }
 
     /**
@@ -172,19 +174,6 @@ class MemcachedStore extends TaggableStore implements LockProvider, Store
     }
 
     /**
-     * Store an item in the cache for a given number of minutes.
-     *
-     * @param  string  $key
-     * @param  mixed   $value
-     * @param  float|int  $minutes
-     * @return void
-     */
-    public function put($key, $value, $minutes)
-    {
-        $this->memcached->set($this->prefix.$key, $value, $this->toTimestamp($minutes));
-    }
-
-    /**
      * Get a lock instance.
      *
      * @param  string  $name
@@ -215,6 +204,17 @@ class MemcachedStore extends TaggableStore implements LockProvider, Store
     public function flush()
     {
         return $this->memcached->flush();
+    }
+
+    /**
+     * Get the UNIX timestamp for the given number of minutes.
+     *
+     * @param  int  $minutes
+     * @return int
+     */
+    protected function toTimestamp($minutes)
+    {
+        return $minutes > 0 ? $this->availableAt($minutes * 60) : 0;
     }
 
     /**

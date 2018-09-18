@@ -305,7 +305,7 @@ class CompassFilter extends BaseSassFilter
             }
 
             $configFile = tempnam($tempDir, 'assetic_compass');
-            file_put_contents($configFile, implode("\n", $config) . "\n");
+            file_put_contents($configFile, implode("\n", $config)."\n");
             $pb->add('--config')->add($configFile);
         }
 
@@ -325,7 +325,7 @@ class CompassFilter extends BaseSassFilter
         unlink($tempName); // FIXME: don't use tempnam() here
 
         // input
-        $input = $tempName . '.' . $type;
+        $input = $tempName.'.'.$type;
 
         // work-around for https://github.com/chriseppstein/compass/issues/748
         if (defined('PHP_WINDOWS_VERSION_MAJOR')) {
@@ -336,7 +336,7 @@ class CompassFilter extends BaseSassFilter
         file_put_contents($input, $asset->getContent());
 
         // output
-        $output = $tempName . '.css';
+        $output = $tempName.'.css';
 
         if ($this->homeEnv) {
             // it's not really usefull but... https://github.com/chriseppstein/compass/issues/376
@@ -365,6 +365,10 @@ class CompassFilter extends BaseSassFilter
         }
     }
 
+    public function filterDump(AssetInterface $asset)
+    {
+    }
+
     private function formatArrayToRuby($array)
     {
         $output = array();
@@ -374,18 +378,14 @@ class CompassFilter extends BaseSassFilter
             foreach ($array as $name => $value) {
                 $output[] = sprintf('    :%s => "%s"', $name, addcslashes($value, '\\'));
             }
-            $output = "{\n" . implode(",\n", $output) . "\n}";
+            $output = "{\n".implode(",\n", $output)."\n}";
         } else {
             foreach ($array as $name => $value) {
                 $output[] = sprintf('    "%s"', addcslashes($value, '\\'));
             }
-            $output = "[\n" . implode(",\n", $output) . "\n]";
+            $output = "[\n".implode(",\n", $output)."\n]";
         }
 
         return $output;
-    }
-
-    public function filterDump(AssetInterface $asset)
-    {
     }
 }

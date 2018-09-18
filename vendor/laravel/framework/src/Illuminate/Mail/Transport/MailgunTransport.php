@@ -69,32 +69,6 @@ class MailgunTransport extends Transport
     }
 
     /**
-     * Get the "to" payload field for the API request.
-     *
-     * @param  \Swift_Mime_SimpleMessage  $message
-     * @return string
-     */
-    protected function getTo(Swift_Mime_SimpleMessage $message)
-    {
-        return collect($this->allContacts($message))->map(function ($display, $address) {
-            return $display ? $display." <{$address}>" : $address;
-        })->values()->implode(',');
-    }
-
-    /**
-     * Get all of the contacts for the message.
-     *
-     * @param  \Swift_Mime_SimpleMessage  $message
-     * @return array
-     */
-    protected function allContacts(Swift_Mime_SimpleMessage $message)
-    {
-        return array_merge(
-            (array) $message->getTo(), (array) $message->getCc(), (array) $message->getBcc()
-        );
-    }
-
-    /**
      * Get the HTTP payload for sending the Mailgun message.
      *
      * @param  \Swift_Mime_SimpleMessage  $message
@@ -120,6 +94,32 @@ class MailgunTransport extends Transport
                 ],
             ],
         ];
+    }
+
+    /**
+     * Get the "to" payload field for the API request.
+     *
+     * @param  \Swift_Mime_SimpleMessage  $message
+     * @return string
+     */
+    protected function getTo(Swift_Mime_SimpleMessage $message)
+    {
+        return collect($this->allContacts($message))->map(function ($display, $address) {
+            return $display ? $display." <{$address}>" : $address;
+        })->values()->implode(',');
+    }
+
+    /**
+     * Get all of the contacts for the message.
+     *
+     * @param  \Swift_Mime_SimpleMessage  $message
+     * @return array
+     */
+    protected function allContacts(Swift_Mime_SimpleMessage $message)
+    {
+        return array_merge(
+            (array) $message->getTo(), (array) $message->getCc(), (array) $message->getBcc()
+        );
     }
 
     /**

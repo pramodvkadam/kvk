@@ -2,7 +2,6 @@
 namespace Composer\Installers;
 
 use Composer\DependencyResolver\Pool;
-use Composer\Package\PackageInterface;
 
 class CakePHPInstaller extends BaseInstaller
 {
@@ -28,6 +27,17 @@ class CakePHPInstaller extends BaseInstaller
         $vars['name'] = implode('/', $nameParts);
 
         return $vars;
+    }
+
+    /**
+     * Change the default plugin location when cakephp >= 3.0
+     */
+    public function getLocations()
+    {
+        if ($this->matchesCakeVersion('>=', '3.0.0')) {
+            $this->locations['plugin'] =  $this->composer->getConfig()->get('vendor-dir') . '/{$vendor}/{$name}/';
+        }
+        return $this->locations;
     }
 
     /**
@@ -68,16 +78,5 @@ class CakePHPInstaller extends BaseInstaller
             }
         }
         return false;
-    }
-
-    /**
-     * Change the default plugin location when cakephp >= 3.0
-     */
-    public function getLocations()
-    {
-        if ($this->matchesCakeVersion('>=', '3.0.0')) {
-            $this->locations['plugin'] =  $this->composer->getConfig()->get('vendor-dir') . '/{$vendor}/{$name}/';
-        }
-        return $this->locations;
     }
 }

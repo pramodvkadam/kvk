@@ -45,24 +45,6 @@ class IndexDatabaseTableOperations extends IndexOperationsBehaviorBase
         return $result;
     }
 
-    protected function getTabTitle($tableName)
-    {
-        if (!strlen($tableName)) {
-            return Lang::get('rainlab.builder::lang.database.tab_new_table');
-        }
-
-        return $tableName;
-    }
-
-    protected function getTabId($tableName)
-    {
-        if (!strlen($tableName)) {
-            return 'databaseTable-'.uniqid(time());
-        }
-
-        return 'databaseTable-'.$tableName;
-    }
-
     public function onDatabaseTableValidateAndShowPopup()
     {
         $tableName = Input::get('table_name');
@@ -90,51 +72,6 @@ class IndexDatabaseTableOperations extends IndexOperationsBehaviorBase
         ]);
     }
 
-    protected function loadOrCreateBaseModel($tableName, $options = [])
-    {
-        $model = new DatabaseTableModel();
-
-        if (!$tableName) {
-            $model->name = $this->getPluginCode()->toDatabasePrefix().'_';
-
-            return $model;
-        }
-
-        $model->load($tableName);
-        return $model;
-    }
-
-    protected function processColumnData($postData)
-    {
-        if (!array_key_exists('columns', $postData)) {
-            return $postData;
-        }
-
-        $booleanColumns = ['unsigned', 'allow_null', 'auto_increment', 'primary_key'];
-        foreach ($postData['columns'] as &$row) {
-            foreach ($row as $column=>$value) {
-                if (in_array($column, $booleanColumns) && $value == 'false') {
-                    $row[$column] = false;
-                }
-            }
-        }
-
-        return $postData;
-    }
-
-    protected function makeMigrationFormWidget($migration)
-    {
-        $widgetConfig = $this->makeConfig($this->migrationFormConfigFile);
-
-        $widgetConfig->model = $migration;
-        $widgetConfig->alias = 'form_migration_'.uniqid();
-
-        $form = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
-        $form->context = FormController::CONTEXT_CREATE;
-
-        return $form;
-    }
-
     public function onDatabaseTableMigrationApply()
     {
         $pluginCode = new PluginCode(Request::input('plugin_code'));
@@ -154,7 +91,7 @@ class IndexDatabaseTableOperations extends IndexOperationsBehaviorBase
 
         try {
             $model->save();
-        }
+        } 
         catch (Exception $ex) {
             throw new ApplicationException($ex->getMessage());
         }
@@ -194,5 +131,68 @@ class IndexDatabaseTableOperations extends IndexOperationsBehaviorBase
             'table' => $model->name,
             'pluginCode' => $pluginCode
         ]);
+    }
+
+    protected function getTabTitle($tableName)
+    {
+        if (!strlen($tableName)) {
+            return Lang::get('rainlab.builder::lang.database.tab_new_table');
+        }
+
+        return $tableName;
+    }
+
+    protected function getTabId($tableName)
+    {
+        if (!strlen($tableName)) {
+            return 'databaseTable-'.uniqid(time());
+        }
+
+        return 'databaseTable-'.$tableName;
+    }
+
+    protected function loadOrCreateBaseModel($tableName, $options = [])
+    {
+        $model = new DatabaseTableModel();
+
+        if (!$tableName) {
+            $model->name = $this->getPluginCode()->toDatabasePrefix().'_';
+
+            return $model;
+        }
+
+        $model->load($tableName);
+        return $model;
+    }
+
+    protected function makeMigrationFormWidget($migration)
+    {
+        $widgetConfig = $this->makeConfig($this->migrationFormConfigFile);
+
+        $widgetConfig->model = $migration;
+        $widgetConfig->alias = 'form_migration_'.uniqid();
+
+        $form = $this->makeWidget('Backend\Widgets\Form', $widgetConfig);
+        $form->context = FormController::CONTEXT_CREATE;
+
+        return $form;
+    }
+
+    protected function processColumnData($postData)
+    {
+        if (!array_key_exists('columns', $postData)) {
+            return $postData;
+        }
+
+        $booleanColumns = ['unsigned', 'allow_null', 'auto_increment', 'primary_key'];
+        foreach ($postData['columns'] as &$row) {
+            foreach ($row as $column=>$value) {
+                if (in_array($column, $booleanColumns) && $value == 'false') {
+                    $row[$column] = false;
+                }
+            }
+        }
+
+        return $postData;
     }
 }

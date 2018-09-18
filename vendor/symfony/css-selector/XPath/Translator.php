@@ -62,24 +62,6 @@ class Translator implements TranslatorInterface
     }
 
     /**
-     * Registers an extension.
-     *
-     * @return $this
-     */
-    public function registerExtension(Extension\ExtensionInterface $extension)
-    {
-        $this->extensions[$extension->getName()] = $extension;
-
-        $this->nodeTranslators = array_merge($this->nodeTranslators, $extension->getNodeTranslators());
-        $this->combinationTranslators = array_merge($this->combinationTranslators, $extension->getCombinationTranslators());
-        $this->functionTranslators = array_merge($this->functionTranslators, $extension->getFunctionTranslators());
-        $this->pseudoClassTranslators = array_merge($this->pseudoClassTranslators, $extension->getPseudoClassTranslators());
-        $this->attributeMatchingTranslators = array_merge($this->attributeMatchingTranslators, $extension->getAttributeMatchingTranslators());
-
-        return $this;
-    }
-
-    /**
      * @param string $element
      *
      * @return string
@@ -130,24 +112,6 @@ class Translator implements TranslatorInterface
     }
 
     /**
-     * @param string $css
-     *
-     * @return SelectorNode[]
-     */
-    private function parseSelectors($css)
-    {
-        foreach ($this->shortcutParsers as $shortcut) {
-            $tokens = $shortcut->parse($css);
-
-            if (!empty($tokens)) {
-                return $tokens;
-            }
-        }
-
-        return $this->mainParser->parse($css);
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function selectorToXPath(SelectorNode $selector, $prefix = 'descendant-or-self::')
@@ -156,17 +120,21 @@ class Translator implements TranslatorInterface
     }
 
     /**
-     * @return XPathExpr
+     * Registers an extension.
      *
-     * @throws ExpressionErrorException
+     * @return $this
      */
-    public function nodeToXPath(NodeInterface $node)
+    public function registerExtension(Extension\ExtensionInterface $extension)
     {
-        if (!isset($this->nodeTranslators[$node->getNodeName()])) {
-            throw new ExpressionErrorException(sprintf('Node "%s" not supported.', $node->getNodeName()));
-        }
+        $this->extensions[$extension->getName()] = $extension;
 
-        return call_user_func($this->nodeTranslators[$node->getNodeName()], $node, $this);
+        $this->nodeTranslators = array_merge($this->nodeTranslators, $extension->getNodeTranslators());
+        $this->combinationTranslators = array_merge($this->combinationTranslators, $extension->getCombinationTranslators());
+        $this->functionTranslators = array_merge($this->functionTranslators, $extension->getFunctionTranslators());
+        $this->pseudoClassTranslators = array_merge($this->pseudoClassTranslators, $extension->getPseudoClassTranslators());
+        $this->attributeMatchingTranslators = array_merge($this->attributeMatchingTranslators, $extension->getAttributeMatchingTranslators());
+
+        return $this;
     }
 
     /**
@@ -195,6 +163,20 @@ class Translator implements TranslatorInterface
         $this->shortcutParsers[] = $shortcut;
 
         return $this;
+    }
+
+    /**
+     * @return XPathExpr
+     *
+     * @throws ExpressionErrorException
+     */
+    public function nodeToXPath(NodeInterface $node)
+    {
+        if (!isset($this->nodeTranslators[$node->getNodeName()])) {
+            throw new ExpressionErrorException(sprintf('Node "%s" not supported.', $node->getNodeName()));
+        }
+
+        return call_user_func($this->nodeTranslators[$node->getNodeName()], $node, $this);
     }
 
     /**
@@ -263,5 +245,23 @@ class Translator implements TranslatorInterface
         }
 
         return call_user_func($this->attributeMatchingTranslators[$operator], $xpath, $attribute, $value);
+    }
+
+    /**
+     * @param string $css
+     *
+     * @return SelectorNode[]
+     */
+    private function parseSelectors($css)
+    {
+        foreach ($this->shortcutParsers as $shortcut) {
+            $tokens = $shortcut->parse($css);
+
+            if (!empty($tokens)) {
+                return $tokens;
+            }
+        }
+
+        return $this->mainParser->parse($css);
     }
 }

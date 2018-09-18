@@ -68,6 +68,22 @@ class Sequence extends AbstractAsset
     }
 
     /**
+     * @return integer
+     */
+    public function getInitialValue()
+    {
+        return $this->initialValue;
+    }
+
+    /**
+     * @return integer|null
+     */
+    public function getCache()
+    {
+        return $this->cache;
+    }
+
+    /**
      * @param integer $allocationSize
      *
      * @return \Doctrine\DBAL\Schema\Sequence
@@ -80,14 +96,6 @@ class Sequence extends AbstractAsset
     }
 
     /**
-     * @return integer
-     */
-    public function getInitialValue()
-    {
-        return $this->initialValue;
-    }
-
-    /**
      * @param integer $initialValue
      *
      * @return \Doctrine\DBAL\Schema\Sequence
@@ -97,14 +105,6 @@ class Sequence extends AbstractAsset
         $this->initialValue = is_numeric($initialValue) ? $initialValue : 1;
 
         return $this;
-    }
-
-    /**
-     * @return integer|null
-     */
-    public function getCache()
-    {
-        return $this->cache;
     }
 
     /**

@@ -82,17 +82,6 @@ class MigrationCreator
     }
 
     /**
-     * Get the class name of a migration name.
-     *
-     * @param  string  $name
-     * @return string
-     */
-    protected function getClassName($name)
-    {
-        return Str::studly($name);
-    }
-
-    /**
      * Get the migration stub file.
      *
      * @param  string  $table
@@ -108,43 +97,9 @@ class MigrationCreator
         // We also have stubs for creating new tables and modifying existing tables
         // to save the developer some typing when they are creating a new tables
         // or modifying existing tables. We'll grab the appropriate stub here.
-        else {
-            $stub = $create ? 'create.stub' : 'update.stub';
+        $stub = $create ? 'create.stub' : 'update.stub';
 
-            return $this->files->get($this->stubPath()."/{$stub}");
-        }
-    }
-
-    /**
-     * Get the path to the stubs.
-     *
-     * @return string
-     */
-    public function stubPath()
-    {
-        return __DIR__.'/stubs';
-    }
-
-    /**
-     * Get the full path to the migration.
-     *
-     * @param  string  $name
-     * @param  string  $path
-     * @return string
-     */
-    protected function getPath($name, $path)
-    {
-        return $path.'/'.$this->getDatePrefix().'_'.$name.'.php';
-    }
-
-    /**
-     * Get the date prefix for the migration.
-     *
-     * @return string
-     */
-    protected function getDatePrefix()
-    {
-        return date('Y_m_d_His');
+        return $this->files->get($this->stubPath()."/{$stub}");
     }
 
     /**
@@ -170,6 +125,29 @@ class MigrationCreator
     }
 
     /**
+     * Get the class name of a migration name.
+     *
+     * @param  string  $name
+     * @return string
+     */
+    protected function getClassName($name)
+    {
+        return Str::studly($name);
+    }
+
+    /**
+     * Get the full path to the migration.
+     *
+     * @param  string  $name
+     * @param  string  $path
+     * @return string
+     */
+    protected function getPath($name, $path)
+    {
+        return $path.'/'.$this->getDatePrefix().'_'.$name.'.php';
+    }
+
+    /**
      * Fire the registered post create hooks.
      *
      * @return void
@@ -190,6 +168,26 @@ class MigrationCreator
     public function afterCreate(Closure $callback)
     {
         $this->postCreate[] = $callback;
+    }
+
+    /**
+     * Get the date prefix for the migration.
+     *
+     * @return string
+     */
+    protected function getDatePrefix()
+    {
+        return date('Y_m_d_His');
+    }
+
+    /**
+     * Get the path to the stubs.
+     *
+     * @return string
+     */
+    public function stubPath()
+    {
+        return __DIR__.'/stubs';
     }
 
     /**

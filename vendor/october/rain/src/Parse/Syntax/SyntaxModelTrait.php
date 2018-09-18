@@ -34,90 +34,6 @@ trait SyntaxModelTrait
     }
 
     /**
-     * Get value of the model syntax_fields column.
-     * @return int
-     */
-    public function getSyntaxFields()
-    {
-        return $this->getAttribute($this->getSyntaxFieldsColumnName());
-    }
-
-    /**
-     * Get fields column name.
-     * @return string
-     */
-    public function getSyntaxFieldsColumnName()
-    {
-        return defined('static::SYNTAX_FIELDS') ? static::SYNTAX_FIELDS : 'syntax_fields';
-    }
-
-    /**
-     * Prepare the syntax fields for use in a Form builder. The array
-     * name is added to each field.
-     * @return array
-     */
-    public function getFormSyntaxFields()
-    {
-        $fields = $this->getSyntaxFields();
-        if (!is_array($fields))
-            return [];
-
-        $newFields = [];
-        foreach ($fields as $field => $params) {
-
-            if ($params['type'] != 'fileupload') {
-                $newField = $this->getSyntaxDataColumnName().'['.$field.']';
-            }
-            else {
-                $newField = $field;
-            }
-
-            if ($params['type'] == 'repeater') {
-                $params['form']['fields'] = array_get($params, 'fields', []);
-                unset($params['fields']);
-            }
-
-            $newFields[$newField] = $params;
-        }
-
-        return $newFields;
-    }
-
-    /**
-     * Get data column name.
-     * @return string
-     */
-    public function getSyntaxDataColumnName()
-    {
-        return defined('static::SYNTAX_DATA') ? static::SYNTAX_DATA : 'syntax_data';
-    }
-
-    /**
-     * Processes supplied content and extracts the field definitions
-     * and default data. It is mixed with the current data and applied
-     * to the fields and data attributes.
-     * @param string $content
-     * @return array
-     */
-    public function makeSyntaxFields($content)
-    {
-        $parser = Parser::parse($content);
-        $fields = $parser->toEditor() ?: [];
-
-        $this->setAttribute($this->getSyntaxFieldsColumnName(), $fields);
-
-        /*
-         * Remove fields no longer present and add default values
-         */
-        $currentFields = array_intersect_key((array) $this->getFormSyntaxData(), $parser->getFieldValues());
-        $currentFields = $currentFields + $parser->getFieldValues();
-
-        $this->setAttribute($this->getSyntaxDataColumnName(), $currentFields);
-
-        return $fields;
-    }
-
-    /**
      * Prepare the syntax field data for saving.
      */
     public function getFormSyntaxData()
@@ -154,15 +70,6 @@ trait SyntaxModelTrait
     }
 
     /**
-     * Get value of the model syntax_data column.
-     * @return int
-     */
-    public function getSyntaxData()
-    {
-        return $this->getAttribute($this->getSyntaxDataColumnName());
-    }
-
-    /**
      * Helper to get the perfect sized image.
      */
     protected function getThumbForImage($image, $params = [])
@@ -183,9 +90,102 @@ trait SyntaxModelTrait
         return $path;
     }
 
+    /**
+     * Prepare the syntax fields for use in a Form builder. The array
+     * name is added to each field.
+     * @return array
+     */
+    public function getFormSyntaxFields()
+    {
+        $fields = $this->getSyntaxFields();
+        if (!is_array($fields))
+            return [];
+
+        $newFields = [];
+        foreach ($fields as $field => $params) {
+
+            if ($params['type'] != 'fileupload') {
+                $newField = $this->getSyntaxDataColumnName().'['.$field.']';
+            }
+            else {
+                $newField = $field;
+            }
+
+            if ($params['type'] == 'repeater') {
+                $params['form']['fields'] = array_get($params, 'fields', []);
+                unset($params['fields']);
+            }
+
+            $newFields[$newField] = $params;
+        }
+
+        return $newFields;
+    }
+
+    /**
+     * Processes supplied content and extracts the field definitions
+     * and default data. It is mixed with the current data and applied
+     * to the fields and data attributes.
+     * @param string $content
+     * @return array
+     */
+    public function makeSyntaxFields($content)
+    {
+        $parser = Parser::parse($content);
+        $fields = $parser->toEditor() ?: [];
+
+        $this->setAttribute($this->getSyntaxFieldsColumnName(), $fields);
+
+        /*
+         * Remove fields no longer present and add default values
+         */
+        $currentFields = array_intersect_key((array) $this->getFormSyntaxData(), $parser->getFieldValues());
+        $currentFields = $currentFields + $parser->getFieldValues();
+
+        $this->setAttribute($this->getSyntaxDataColumnName(), $currentFields);
+
+        return $fields;
+    }
+
     public function getSyntaxParser($content)
     {
         return Parser::parse($content);
+    }
+
+    /**
+     * Get data column name.
+     * @return string
+     */
+    public function getSyntaxDataColumnName()
+    {
+        return defined('static::SYNTAX_DATA') ? static::SYNTAX_DATA : 'syntax_data';
+    }
+
+    /**
+     * Get value of the model syntax_data column.
+     * @return int
+     */
+    public function getSyntaxData()
+    {
+        return $this->getAttribute($this->getSyntaxDataColumnName());
+    }
+
+    /**
+     * Get fields column name.
+     * @return string
+     */
+    public function getSyntaxFieldsColumnName()
+    {
+        return defined('static::SYNTAX_FIELDS') ? static::SYNTAX_FIELDS : 'syntax_fields';
+    }
+
+    /**
+     * Get value of the model syntax_fields column.
+     * @return int
+     */
+    public function getSyntaxFields()
+    {
+        return $this->getAttribute($this->getSyntaxFieldsColumnName());
     }
 
 }

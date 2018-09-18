@@ -76,13 +76,17 @@ class ClearCommand extends Command
     }
 
     /**
-     * Get the tags passed to the command.
+     * Flush the real-time facades stored in the cache directory.
      *
-     * @return array
+     * @return void
      */
-    protected function tags()
+    public function flushFacades()
     {
-        return array_filter(explode(',', $this->option('tags')));
+        foreach ($this->files->files(storage_path('framework/cache')) as $file) {
+            if (preg_match('/facade-.*\.php$/', $file)) {
+                $this->files->delete($file);
+            }
+        }
     }
 
     /**
@@ -98,17 +102,13 @@ class ClearCommand extends Command
     }
 
     /**
-     * Flush the real-time facades stored in the cache directory.
+     * Get the tags passed to the command.
      *
-     * @return void
+     * @return array
      */
-    public function flushFacades()
+    protected function tags()
     {
-        foreach ($this->files->files(storage_path('framework/cache')) as $file) {
-            if (preg_match('/facade-.*\.php$/', $file)) {
-                $this->files->delete($file);
-            }
-        }
+        return array_filter(explode(',', $this->option('tags')));
     }
 
     /**

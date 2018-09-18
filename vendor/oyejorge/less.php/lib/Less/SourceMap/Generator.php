@@ -97,21 +97,6 @@ class Less_SourceMap_Generator extends Less_Configurable {
 	}
 
 	/**
-	 * fix windows paths
-	 * @param  string $path
-	 * @return string
-	 */
-	public function fixWindowsPath($path, $addEndSlash = false){
-		$slash = ($addEndSlash) ? '/' : '';
-		if( !empty($path) ){
-			$path = str_replace('\\', '/', $path);
-			$path = rtrim($path,'/') . $slash;
-		}
-
-		return $path;
-	}
-
-	/**
 	 * Generates the CSS
 	 *
 	 * @return string
@@ -148,6 +133,76 @@ class Less_SourceMap_Generator extends Less_Configurable {
 
 		return $output->toString();
 	}
+
+	/**
+	 * Saves the source map to a file
+	 *
+	 * @param string $file The absolute path to a file
+	 * @param string $content The content to write
+	 * @throws Exception If the file could not be saved
+	 */
+	protected function saveMap($file, $content){
+		$dir = dirname($file);
+		// directory does not exist
+		if( !is_dir($dir) ){
+			// FIXME: create the dir automatically?
+			throw new Exception(sprintf('The directory "%s" does not exist. Cannot save the source map.', $dir));
+		}
+		// FIXME: proper saving, with dir write check!
+		if(file_put_contents($file, $content) === false){
+			throw new Exception(sprintf('Cannot save the source map to "%s"', $file));
+		}
+		return true;
+	}
+
+	/**
+	 * Normalizes the filename
+	 *
+	 * @param string $filename
+	 * @return string
+	 */
+	protected function normalizeFilename($filename){
+
+		$filename = $this->fixWindowsPath($filename);
+
+		$rootpath = $this->getOption('sourceMapRootpath');
+		$basePath = $this->getOption('sourceMapBasepath');
+
+		// "Trim" the 'sourceMapBasepath' from the output filename.
+		if (strpos($filename, $basePath) === 0) {
+			$filename = substr($filename, strlen($basePath));
+		}
+
+		// Remove extra leading path separators.
+		if(strpos($filename, '\\') === 0 || strpos($filename, '/') === 0){
+			$filename = substr($filename, 1);
+		}
+
+		return $rootpath . $filename;
+	}
+
+	/**
+	 * Adds a mapping
+	 *
+	 * @param integer $generatedLine The line number in generated file
+	 * @param integer $generatedColumn The column number in generated file
+	 * @param integer $originalLine The line number in original file
+	 * @param integer $originalColumn The column number in original file
+	 * @param string $sourceFile The original source file
+	 */
+	public function addMapping($generatedLine, $generatedColumn, $originalLine, $originalColumn, $fileInfo ){
+
+		$this->mappings[] = array(
+			'generated_line' => $generatedLine,
+			'generated_column' => $generatedColumn,
+			'original_line' => $originalLine,
+			'original_column' => $originalColumn,
+			'source_file' => $fileInfo['currentUri']
+		);
+
+		$this->sources[$fileInfo['currentUri']] = $fileInfo['filename'];
+	}
+
 
 	/**
 	 * Generates the JSON source map
@@ -204,6 +259,22 @@ class Less_SourceMap_Generator extends Less_Configurable {
 		}
 
 		return json_encode($sourceMap);
+	}
+
+	/**
+	 * Returns the sources contents
+	 *
+	 * @return array|null
+	 */
+	protected function getSourcesContent(){
+		if(empty($this->sources)){
+			return;
+		}
+		$content = array();
+		foreach($this->sources as $sourceFile){
+			$content[] = file_get_contents($sourceFile);
+		}
+		return $content;
 	}
 
 	/**
@@ -277,88 +348,18 @@ class Less_SourceMap_Generator extends Less_Configurable {
 	}
 
 	/**
-	 * Normalizes the filename
-	 *
-	 * @param string $filename
-	 * @return string
+	 * fix windows paths
+	 * @param  string $path
+	 * @return string      
 	 */
-	protected function normalizeFilename($filename){
-
-		$filename = $this->fixWindowsPath($filename);
-
-		$rootpath = $this->getOption('sourceMapRootpath');
-		$basePath = $this->getOption('sourceMapBasepath');
-
-		// "Trim" the 'sourceMapBasepath' from the output filename.
-		if (strpos($filename, $basePath) === 0) {
-			$filename = substr($filename, strlen($basePath));
+	public function fixWindowsPath($path, $addEndSlash = false){
+		$slash = ($addEndSlash) ? '/' : '';
+		if( !empty($path) ){
+			$path = str_replace('\\', '/', $path);
+			$path = rtrim($path,'/') . $slash;
 		}
 
-		// Remove extra leading path separators.
-		if(strpos($filename, '\\') === 0 || strpos($filename, '/') === 0){
-			$filename = substr($filename, 1);
-		}
-
-		return $rootpath . $filename;
-	}
-
-	/**
-	 * Returns the sources contents
-	 *
-	 * @return array|null
-	 */
-	protected function getSourcesContent(){
-		if(empty($this->sources)){
-			return;
-		}
-		$content = array();
-		foreach($this->sources as $sourceFile){
-			$content[] = file_get_contents($sourceFile);
-		}
-		return $content;
-	}
-
-	/**
-	 * Saves the source map to a file
-	 *
-	 * @param string $file The absolute path to a file
-	 * @param string $content The content to write
-	 * @throws Exception If the file could not be saved
-	 */
-	protected function saveMap($file, $content){
-		$dir = dirname($file);
-		// directory does not exist
-		if( !is_dir($dir) ){
-			// FIXME: create the dir automatically?
-			throw new Exception(sprintf('The directory "%s" does not exist. Cannot save the source map.', $dir));
-		}
-		// FIXME: proper saving, with dir write check!
-		if(file_put_contents($file, $content) === false){
-			throw new Exception(sprintf('Cannot save the source map to "%s"', $file));
-		}
-		return true;
-	}
-
-	/**
-	 * Adds a mapping
-	 *
-	 * @param integer $generatedLine The line number in generated file
-	 * @param integer $generatedColumn The column number in generated file
-	 * @param integer $originalLine The line number in original file
-	 * @param integer $originalColumn The column number in original file
-	 * @param string $sourceFile The original source file
-	 */
-	public function addMapping($generatedLine, $generatedColumn, $originalLine, $originalColumn, $fileInfo ){
-
-		$this->mappings[] = array(
-			'generated_line' => $generatedLine,
-			'generated_column' => $generatedColumn,
-			'original_line' => $originalLine,
-			'original_column' => $originalColumn,
-			'source_file' => $fileInfo['currentUri']
-		);
-
-		$this->sources[$fileInfo['currentUri']] = $fileInfo['filename'];
+		return $path;
 	}
 
 }

@@ -17,6 +17,11 @@ use Exception;
 class CmsException extends ApplicationException
 {
     /**
+     * @var \Cms\Classes\CmsCompoundObject A reference to a CMS object used for masking errors.
+     */
+    protected $compoundObject;
+
+    /**
      * @var array Collection of error codes for each error distinction.
      */
     protected static $errorCodes = [
@@ -25,10 +30,6 @@ class CmsException extends ApplicationException
         300 => 'PHP Content',
         400 => 'Twig Template'
     ];
-    /**
-     * @var \Cms\Classes\CmsCompoundObject A reference to a CMS object used for masking errors.
-     */
-    protected $compoundObject;
 
     /**
      * Creates the CMS exception object.
@@ -53,24 +54,6 @@ class CmsException extends ApplicationException
         }
 
         parent::__construct($message, $code, $previous);
-    }
-
-    /**
-     * Masks this exception with the details of the supplied. The error code for
-     * this exception object will determine how the supplied exception is used.
-     * Error 100: A general exception. Inherits \System\Classes\ExceptionBase::applyMask()
-     * Error 200: Mask the exception as INI content.
-     * Error 300: Mask the exception as PHP content.
-     * Error 400: Mask the exception as Twig content.
-     * @param \Exception $exception The exception to modify.
-     * @return void
-     */
-    public function applyMask(Exception $exception)
-    {
-        if ($this->code == 100 || $this->processCompoundObject($exception) === false) {
-            parent::applyMask($exception);
-            return;
-        }
     }
 
     /**
@@ -186,7 +169,7 @@ class CmsException extends ApplicationException
             $trace = $exception->getTrace();
             if (isset($trace[1]['class'])) {
                 $class = $trace[1]['class'];
-                if (!is_subclass_of($class, 'Cms\Classes\CodeBase')) {
+                if (!is_subclass_of($class, CodeBase::class)) {
                     return false;
                 }
             }
@@ -231,5 +214,23 @@ class CmsException extends ApplicationException
         $this->line--;
 
         return true;
+    }
+
+    /**
+     * Masks this exception with the details of the supplied. The error code for
+     * this exception object will determine how the supplied exception is used.
+     * Error 100: A general exception. Inherits \System\Classes\ExceptionBase::applyMask()
+     * Error 200: Mask the exception as INI content.
+     * Error 300: Mask the exception as PHP content.
+     * Error 400: Mask the exception as Twig content.
+     * @param \Exception $exception The exception to modify.
+     * @return void
+     */
+    public function applyMask(Exception $exception)
+    {
+        if ($this->code == 100 || $this->processCompoundObject($exception) === false) {
+            parent::applyMask($exception);
+            return;
+        }
     }
 }

@@ -128,6 +128,16 @@ class SchemaDiff
 
     /**
      * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform
+     *
+     * @return array
+     */
+    public function toSql(AbstractPlatform $platform)
+    {
+        return $this->_toSql($platform, false);
+    }
+
+    /**
+     * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform
      * @param boolean                                   $saveMode
      *
      * @return array
@@ -190,15 +200,5 @@ class SchemaDiff
         }
 
         return $sql;
-    }
-
-    /**
-     * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform
-     *
-     * @return array
-     */
-    public function toSql(AbstractPlatform $platform)
-    {
-        return $this->_toSql($platform, false);
     }
 }

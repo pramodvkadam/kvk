@@ -1,0 +1,83 @@
+1537296134a:1:{s:7:"nav.htm";a:6:{s:8:"fileName";s:7:"nav.htm";s:7:"content";s:1651:"[viewBag]
+==
+{# Custom navigation implementation that only shows 2 levels deep #}
+
+{% import _self as nav %}
+
+{% macro render_menu(items) %}
+    {% import _self as nav %}
+
+    {% for item in items %}
+        <li class="nav-item {{ item.isActive ? 'active' : '' }} {{ item.isChildActive ? 'active' : '' }} {{ item.items ? 'dropdown' : '' }}">
+
+            {% if item.items %}
+            <a href="{{ item.url }}" class="nav-link {{ item.items ? 'dropdown-toggle' : '' }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{ item.title }}</a>
+                			  <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownPortfolio">
+{% for subItem in item.items %}
+<a href="{{ subItem.url }}" class="dropdown-item">{{ subItem.title }}</a>
+ {% endfor %}
+</div>
+{% else %}
+            <a href="{{ item.url }}" class="nav-link {{ item.items ? 'dropdown-toggle' : '' }}">{{ item.title }}</a>
+
+            {% endif %}
+        </li>
+    {% endfor %}
+{% endmacro %}
+
+<div class="container">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-green">
+<div class="container">
+        <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+    {% if mainMenu.menuItems %}
+          <ul class="navbar-nav">
+            {{ nav.render_menu(mainMenu.menuItems) }}
+        </ul>
+    {% endif %}
+    </div>
+    </div>
+    </nav>
+</div>";s:5:"mtime";i:1526235730;s:6:"markup";s:1638:"{# Custom navigation implementation that only shows 2 levels deep #}
+
+{% import _self as nav %}
+
+{% macro render_menu(items) %}
+    {% import _self as nav %}
+
+    {% for item in items %}
+        <li class="nav-item {{ item.isActive ? 'active' : '' }} {{ item.isChildActive ? 'active' : '' }} {{ item.items ? 'dropdown' : '' }}">
+
+            {% if item.items %}
+            <a href="{{ item.url }}" class="nav-link {{ item.items ? 'dropdown-toggle' : '' }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{ item.title }}</a>
+                			  <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownPortfolio">
+{% for subItem in item.items %}
+<a href="{{ subItem.url }}" class="dropdown-item">{{ subItem.title }}</a>
+ {% endfor %}
+</div>
+{% else %}
+            <a href="{{ item.url }}" class="nav-link {{ item.items ? 'dropdown-toggle' : '' }}">{{ item.title }}</a>
+
+            {% endif %}
+        </li>
+    {% endfor %}
+{% endmacro %}
+
+<div class="container">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-green">
+<div class="container">
+        <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+    {% if mainMenu.menuItems %}
+          <ul class="navbar-nav">
+            {{ nav.render_menu(mainMenu.menuItems) }}
+        </ul>
+    {% endif %}
+    </div>
+    </div>
+    </nav>
+</div>";s:4:"code";N;s:7:"viewBag";a:0:{}}}

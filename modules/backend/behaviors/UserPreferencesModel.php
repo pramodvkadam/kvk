@@ -49,6 +49,14 @@ class UserPreferencesModel extends SettingsModel
     }
 
     /**
+     * Checks if the model has been set up previously, intended as a static method
+     */
+    public function isConfigured()
+    {
+        return $this->getSettingsRecord() !== null;
+    }
+
+    /**
      * Returns the raw Model record that stores the settings.
      * @return Model
      */
@@ -61,24 +69,6 @@ class UserPreferencesModel extends SettingsModel
             ->first();
 
         return $record ?: null;
-    }
-
-    /**
-     * Returns a cache key for this record.
-     */
-    protected function getCacheKey()
-    {
-        $item = UserPreference::forUser();
-        $userId = $item->userContext ? $item->userContext->id : 0;
-        return $this->recordCode.'-userpreference-'.$userId;
-    }
-
-    /**
-     * Checks if the model has been set up previously, intended as a static method
-     */
-    public function isConfigured()
-    {
-        return $this->getSettingsRecord() !== null;
     }
 
     /**
@@ -113,5 +103,15 @@ class UserPreferencesModel extends SettingsModel
         }
 
         return parent::isKeyAllowed($key);
+    }
+
+    /**
+     * Returns a cache key for this record.
+     */
+    protected function getCacheKey()
+    {
+        $item = UserPreference::forUser();
+        $userId = $item->userContext ? $item->userContext->id : 0;
+        return $this->recordCode.'-userpreference-'.$userId;
     }
 }

@@ -62,37 +62,6 @@ class ChannelManager extends Manager implements DispatcherContract, FactoryContr
     }
 
     /**
-     * Get the default channel driver name.
-     *
-     * @return string
-     */
-    public function deliversVia()
-    {
-        return $this->getDefaultDriver();
-    }
-
-    /**
-     * Get the default channel driver name.
-     *
-     * @return string
-     */
-    public function getDefaultDriver()
-    {
-        return $this->defaultChannel;
-    }
-
-    /**
-     * Set the default channel driver name.
-     *
-     * @param  string  $channel
-     * @return void
-     */
-    public function deliverVia($channel)
-    {
-        $this->defaultChannel = $channel;
-    }
-
-    /**
      * Create an instance of the database driver.
      *
      * @return \Illuminate\Notifications\Channels\DatabaseChannel
@@ -167,5 +136,36 @@ class ChannelManager extends Manager implements DispatcherContract, FactoryContr
 
             throw $e;
         }
+    }
+
+    /**
+     * Get the default channel driver name.
+     *
+     * @return string
+     */
+    public function getDefaultDriver()
+    {
+        return $this->defaultChannel;
+    }
+
+    /**
+     * Get the default channel driver name.
+     *
+     * @return string
+     */
+    public function deliversVia()
+    {
+        return $this->getDefaultDriver();
+    }
+
+    /**
+     * Set the default channel driver name.
+     *
+     * @param  string  $channel
+     * @return void
+     */
+    public function deliverVia($channel)
+    {
+        $this->defaultChannel = $channel;
     }
 }

@@ -46,6 +46,17 @@ class MemoryCache
     }
 
     /**
+     * Check if the given query is cached.
+     *
+     * @param  QueryBuilder  $query
+     * @return bool
+     */
+    public function has(QueryBuilder $query)
+    {
+        return $this->enabled && isset($this->cache[$this->hash($query)]);
+    }
+
+    /**
      * Get the cached results for the given query.
      *
      * @param  QueryBuilder  $query
@@ -58,36 +69,6 @@ class MemoryCache
         }
 
         return null;
-    }
-
-    /**
-     * Check if the given query is cached.
-     *
-     * @param  QueryBuilder  $query
-     * @return bool
-     */
-    public function has(QueryBuilder $query)
-    {
-        return $this->enabled && isset($this->cache[$this->hash($query)]);
-    }
-
-    /**
-     * Calculate a hash key for the given query.
-     *
-     * @param  QueryBuilder  $query
-     * @return string
-     */
-    protected function hash(QueryBuilder $query)
-    {
-        // First we will cast all bindings to string, so we can ensure the same
-        // hash format regardless of the binding type provided by the user.
-        $bindings = array_map(function($binding) {
-            return (string) $binding;
-        }, $query->getBindings());
-
-        $name = $query->getConnection()->getName();
-
-        return md5($name . $query->toSql() . serialize($bindings));
     }
 
     /**
@@ -135,5 +116,24 @@ class MemoryCache
     {
         $this->cache = [];
         $this->tableMap = [];
+    }
+
+    /**
+     * Calculate a hash key for the given query.
+     *
+     * @param  QueryBuilder  $query
+     * @return string
+     */
+    protected function hash(QueryBuilder $query)
+    {
+        // First we will cast all bindings to string, so we can ensure the same
+        // hash format regardless of the binding type provided by the user.
+        $bindings = array_map(function($binding) {
+            return (string) $binding;
+        }, $query->getBindings());
+
+        $name = $query->getConnection()->getName();
+
+        return md5($name . $query->toSql() . serialize($bindings));
     }
 }

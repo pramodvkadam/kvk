@@ -67,6 +67,16 @@ class MarkdownEditor extends FormWidgetBase
         $this->vars['value'] = $this->getLoadValue();
     }
 
+    /**
+     * @inheritDoc
+     */
+    protected function loadAssets()
+    {
+        $this->addCss('css/markdowneditor.css', 'core');
+        $this->addJs('js/markdowneditor.js', 'core');
+        $this->addJs('/modules/backend/formwidgets/codeeditor/assets/js/build-min.js', 'core');
+    }
+
     public function onRefresh()
     {
         $value = post($this->getFieldName());
@@ -77,15 +87,5 @@ class MarkdownEditor extends FormWidgetBase
         return [
             'preview' => $previewHtml
         ];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function loadAssets()
-    {
-        $this->addCss('css/markdowneditor.css', 'core');
-        $this->addJs('js/markdowneditor.js', 'core');
-        $this->addJs('/modules/backend/formwidgets/codeeditor/assets/js/build-min.js', 'core');
     }
 }

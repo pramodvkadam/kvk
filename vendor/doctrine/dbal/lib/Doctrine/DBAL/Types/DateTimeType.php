@@ -31,6 +31,14 @@ class DateTimeType extends Type
     /**
      * {@inheritdoc}
      */
+    public function getName()
+    {
+        return Type::DATETIME;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getSQLDeclaration(array $fieldDeclaration, AbstractPlatform $platform)
     {
         return $platform->getDateTimeTypeDeclarationSQL($fieldDeclaration);
@@ -65,13 +73,5 @@ class DateTimeType extends Type
         }
 
         return $val;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getName()
-    {
-        return Type::DATETIME;
     }
 }

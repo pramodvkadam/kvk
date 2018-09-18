@@ -45,6 +45,20 @@ trait Nullable
     }
 
     /**
+     * Checks if the supplied value is empty, excluding zero.
+     * @param  string $value Value to check
+     * @return bool
+     */
+    public function checkNullableValue($value)
+    {
+        if ($value === 0 || $value === '0' || $value === false) {
+            return false;
+        }
+
+        return empty($value);
+    }
+
+    /**
      * Nullify empty fields
      * @return void
      */
@@ -60,19 +74,5 @@ trait Nullable
                 }
             }
         }
-    }
-
-    /**
-     * Checks if the supplied value is empty, excluding zero.
-     * @param  string $value Value to check
-     * @return bool
-     */
-    public function checkNullableValue($value)
-    {
-        if ($value === 0 || $value === '0' || $value === false) {
-            return false;
-        }
-
-        return empty($value);
     }
 }
