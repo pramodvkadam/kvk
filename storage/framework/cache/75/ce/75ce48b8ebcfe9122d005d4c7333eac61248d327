@@ -1,4 +1,4 @@
-1537293368a:1:{s:19:"blog/categories.htm";a:5:{s:8:"fileName";s:19:"blog/categories.htm";s:7:"content";s:552:"{% set categories = blogCategories.categories %}
+1537296134a:1:{s:19:"blog/categories.htm";a:5:{s:8:"fileName";s:19:"blog/categories.htm";s:7:"content";s:552:"{% set categories = blogCategories.categories %}
 {% set currentCategorySlug = blogCategories.currentCategorySlug %}
 
 <div class="list-group">

@@ -1,4 +1,4 @@
-1537293368a:1:{s:12:"sidemenu.htm";a:5:{s:8:"fileName";s:12:"sidemenu.htm";s:7:"content";s:600:"{# Renders a menu with any child static pages #}
+1537296134a:1:{s:12:"sidemenu.htm";a:5:{s:8:"fileName";s:12:"sidemenu.htm";s:7:"content";s:600:"{# Renders a menu with any child static pages #}
 
 {% set parentOrSelf = page.parent ?: page %}
 {% set childPages = parentOrSelf.children %}
