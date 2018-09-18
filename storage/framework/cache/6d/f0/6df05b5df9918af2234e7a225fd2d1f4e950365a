@@ -1,0 +1,17 @@
+1537293368a:1:{s:11:"scripts.htm";a:6:{s:8:"fileName";s:11:"scripts.htm";s:7:"content";s:253:"[viewBag]
+==
+<script src="{{ [
+    'assets/javascript/jquery.js',
+    'assets/vendor/bootstrap/js/bootstrap.bundle.min.js',
+    'assets/vendor/slick/slick.min.js',
+    'assets/javascript/app.js'
+]|theme }}"></script>
+{% framework extras %}
+{% scripts %}";s:5:"mtime";i:1526235728;s:6:"markup";s:240:"<script src="{{ [
+    'assets/javascript/jquery.js',
+    'assets/vendor/bootstrap/js/bootstrap.bundle.min.js',
+    'assets/vendor/slick/slick.min.js',
+    'assets/javascript/app.js'
+]|theme }}"></script>
+{% framework extras %}
+{% scripts %}";s:4:"code";N;s:7:"viewBag";a:0:{}}}

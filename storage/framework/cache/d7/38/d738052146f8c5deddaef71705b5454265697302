@@ -1,0 +1,97 @@
+1537293368a:1:{s:11:"contact.htm";a:11:{s:8:"fileName";s:11:"contact.htm";s:7:"content";s:1573:"title = "Contact"
+url = "/contact"
+layout = "default"
+description = "Contact page"
+meta_title = "Get in touch with House of Chairs"
+is_hidden = 0
+==
+<?php
+function onStart()
+{
+    $this['bannerImage'] = $this->themeUrl('assets/images/contact-us-banner.jpg');
+}
+
+function onSubmit()
+{
+    $rules = [
+        'name'     => 'required|min:2|max:64',
+        'phone'    => 'required',
+        'email'    => 'required|email|min:2|max:64',
+        'comments' => 'required|min:5',
+    ];
+
+    $validation = Validator::make(post(), $rules);
+    if ($validation->fails()) {
+        throw new ValidationException($validation);
+    }
+
+    if (!$group = Backend\Models\UserGroup::whereCode('support-contact')->first()) {
+        throw new ApplicationException('Please create an admin group with code: support-contact');
+    }
+
+    $contacts = $group->users->lists('full_name', 'email');
+    Mail::sendTo($contacts, 'contact::form', post(), function($message) {
+        $message->replyTo(post('email'), post('name'));
+    });
+
+    $this['success'] = true;
+}
+?>
+==
+<div class="alignC">
+            <p class="my-4"><img src="{{'icon1.png'|media}}"></p>
+              <b>POSTAL ADDRESS: </b>
+<p>Krishi Vigyan Kendra, <br>
+Pune- Nashik Highway, <br>
+Krishi Vidhyalay Narayangaon,<br>
+Tal- Junnar Dist- Pune 410 504 </p>
+
+<p class="my-4"><img src="{{'icon2.png'|media}}"></p>
+<b>Office Number</b> <p>(020) 7028779777 </p>
+<p class="my-4"><img src="{{'icon3.png'|media}}"></p>
+<b>Email</b> <p>gmnkvk@rediffmail.com</p>
+  
+            </div>";s:5:"mtime";i:1526384572;s:6:"markup";s:483:"<div class="alignC">
+            <p class="my-4"><img src="{{'icon1.png'|media}}"></p>
+              <b>POSTAL ADDRESS: </b>
+<p>Krishi Vigyan Kendra, <br>
+Pune- Nashik Highway, <br>
+Krishi Vidhyalay Narayangaon,<br>
+Tal- Junnar Dist- Pune 410 504 </p>
+
+<p class="my-4"><img src="{{'icon2.png'|media}}"></p>
+<b>Office Number</b> <p>(020) 7028779777 </p>
+<p class="my-4"><img src="{{'icon3.png'|media}}"></p>
+<b>Email</b> <p>gmnkvk@rediffmail.com</p>
+  
+            </div>";s:4:"code";s:920:"
+function onStart()
+{
+    $this['bannerImage'] = $this->themeUrl('assets/images/contact-us-banner.jpg');
+}
+
+function onSubmit()
+{
+    $rules = [
+        'name'     => 'required|min:2|max:64',
+        'phone'    => 'required',
+        'email'    => 'required|email|min:2|max:64',
+        'comments' => 'required|min:5',
+    ];
+
+    $validation = Validator::make(post(), $rules);
+    if ($validation->fails()) {
+        throw new ValidationException($validation);
+    }
+
+    if (!$group = Backend\Models\UserGroup::whereCode('support-contact')->first()) {
+        throw new ApplicationException('Please create an admin group with code: support-contact');
+    }
+
+    $contacts = $group->users->lists('full_name', 'email');
+    Mail::sendTo($contacts, 'contact::form', post(), function($message) {
+        $message->replyTo(post('email'), post('name'));
+    });
+
+    $this['success'] = true;
+}";s:5:"title";s:7:"Contact";s:3:"url";s:8:"/contact";s:6:"layout";s:7:"default";s:11:"description";s:12:"Contact page";s:10:"meta_title";s:33:"Get in touch with House of Chairs";s:9:"is_hidden";s:1:"0";}}

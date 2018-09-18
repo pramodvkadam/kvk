@@ -1,0 +1,71 @@
+1537293368a:1:{s:16:"video-slider.htm";a:7:{s:8:"fileName";s:16:"video-slider.htm";s:7:"content";s:1053:"[viewBag]
+
+[Playlist]
+playlist = 1
+display_playlist_name = 1
+sort_by = "order"
+sort_direction = "asc"
+==
+<h4 class="heading">Video Gallary</h4>
+              <div class="image-section">
+                      <div class="fade1">
+
+
+<div id="carouselNews" class="slider-carousel carousel slide" data-ride="carousel">
+      
+        
+        <div class="carousel-inner" role="listbox">
+          <!-- Slides -->
+                  {% set count = 0 %}
+    {% for row in Playlist.videos | batch(2) %}
+
+        {% for video in row %}
+<div class="slider-carousel-item carousel-item {{count==0?'active':''}}">
+            <div class="">
+               <iframe width="100%" height="200" src="https://www.youtube.com/embed/{{ video.yt_watch }}" allowfullscreen></iframe>
+            </div>
+          </div>
+                            	{% set count = count + 1 %}
+
+          {% endfor %}
+          
+
+    {% endfor %}
+    
+        </div>
+      </div>
+
+</div>
+                </div>
+              <a href="videos">Read More &#x25B6;</a>";s:5:"mtime";i:1528342856;s:6:"markup";s:948:"<h4 class="heading">Video Gallary</h4>
+              <div class="image-section">
+                      <div class="fade1">
+
+
+<div id="carouselNews" class="slider-carousel carousel slide" data-ride="carousel">
+      
+        
+        <div class="carousel-inner" role="listbox">
+          <!-- Slides -->
+                  {% set count = 0 %}
+    {% for row in Playlist.videos | batch(2) %}
+
+        {% for video in row %}
+<div class="slider-carousel-item carousel-item {{count==0?'active':''}}">
+            <div class="">
+               <iframe width="100%" height="200" src="https://www.youtube.com/embed/{{ video.yt_watch }}" allowfullscreen></iframe>
+            </div>
+          </div>
+                            	{% set count = count + 1 %}
+
+          {% endfor %}
+          
+
+    {% endfor %}
+    
+        </div>
+      </div>
+
+</div>
+                </div>
+              <a href="videos">Read More &#x25B6;</a>";s:4:"code";N;s:7:"viewBag";a:0:{}s:8:"Playlist";a:4:{s:8:"playlist";s:1:"1";s:21:"display_playlist_name";s:1:"1";s:7:"sort_by";s:5:"order";s:14:"sort_direction";s:3:"asc";}}}

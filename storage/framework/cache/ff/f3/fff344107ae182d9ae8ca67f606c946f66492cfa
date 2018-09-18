@@ -1,0 +1,10 @@
+1537293368a:1:{s:14:"activities.htm";a:7:{s:8:"fileName";s:14:"activities.htm";s:7:"content";s:185:"[viewBag]
+title = "Activities"
+url = "/activities"
+layout = "chair"
+is_hidden = 0
+navigation_hidden = 0
+tagline = "Activities"
+banner = "/banner1.jpg"
+==
+<p>Activities page</p>";s:5:"mtime";i:1526384572;s:6:"markup";s:22:"<p>Activities page</p>";s:4:"code";N;s:7:"viewBag";a:7:{s:5:"title";s:10:"Activities";s:3:"url";s:11:"/activities";s:6:"layout";s:5:"chair";s:9:"is_hidden";s:1:"0";s:17:"navigation_hidden";s:1:"0";s:7:"tagline";s:10:"Activities";s:6:"banner";s:12:"/banner1.jpg";}s:12:"parsedMarkup";s:22:"<p>Activities page</p>";}}

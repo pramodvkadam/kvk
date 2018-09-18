@@ -1,0 +1,72 @@
+1537293368a:1:{s:15:"news-slider.htm";a:7:{s:8:"fileName";s:15:"news-slider.htm";s:7:"content";s:1147:"[viewBag]
+snippetCode = "news-slider"
+
+[photoAlbum]
+slug = "news"
+photoPage = "news"
+thumbMode = "auto"
+thumbWidth = 640
+thumbHeight = 480
+photosOnPage = 5
+==
+<h4 class="heading">News</h4>
+              <div class="image-section">
+                      <div class="fade1">
+{% set album = photoAlbum.album %}
+
+<div id="carouselNews" class="slider-carousel carousel slide" data-ride="carousel">
+      
+        
+        <div class="carousel-inner" role="listbox">
+          <!-- Slides -->
+                  {% set count = 0 %}
+
+{% for photo in album.photos %}
+<div class="slider-carousel-item carousel-item {{count==0?'active':''}}">
+            <div class="">
+<img
+                    data-src="{{ photo.thumb }}"
+                    src="{{ photo.thumb }}"
+                    alt="{{ photo.title }}"
+                    title="{{ photo.title }}"
+                    style="max-width: 100%" />            </div>
+          </div>
+                            	{% set count = count + 1 %}
+
+          {% endfor %}
+        </div>
+      </div>
+
+</div>
+                </div>
+              <a href="#">Read More &#x25B6;</a>";s:5:"mtime";i:1528341780;s:6:"markup";s:988:"<h4 class="heading">News</h4>
+              <div class="image-section">
+                      <div class="fade1">
+{% set album = photoAlbum.album %}
+
+<div id="carouselNews" class="slider-carousel carousel slide" data-ride="carousel">
+      
+        
+        <div class="carousel-inner" role="listbox">
+          <!-- Slides -->
+                  {% set count = 0 %}
+
+{% for photo in album.photos %}
+<div class="slider-carousel-item carousel-item {{count==0?'active':''}}">
+            <div class="">
+<img
+                    data-src="{{ photo.thumb }}"
+                    src="{{ photo.thumb }}"
+                    alt="{{ photo.title }}"
+                    title="{{ photo.title }}"
+                    style="max-width: 100%" />            </div>
+          </div>
+                            	{% set count = count + 1 %}
+
+          {% endfor %}
+        </div>
+      </div>
+
+</div>
+                </div>
+              <a href="#">Read More &#x25B6;</a>";s:4:"code";N;s:7:"viewBag";a:1:{s:11:"snippetCode";s:11:"news-slider";}s:10:"photoAlbum";a:6:{s:4:"slug";s:4:"news";s:9:"photoPage";s:4:"news";s:9:"thumbMode";s:4:"auto";s:10:"thumbWidth";s:3:"640";s:11:"thumbHeight";s:3:"480";s:12:"photosOnPage";s:1:"5";}}}

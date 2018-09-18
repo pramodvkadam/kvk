@@ -1,0 +1,85 @@
+1537293368a:1:{s:18:"home-slideshow.htm";a:8:{s:8:"fileName";s:18:"home-slideshow.htm";s:7:"content";s:1691:"description = "Home page slide show"
+
+[viewBag]
+snippetCode = "slideshow"
+
+[slider]
+slide_show_id = 1
+==
+{% if slider.slides.slideShows != 'no_slider' %}
+<header>
+      <div id="carouselIndicators{{slider.slides.slideShows.id}}" class="carousel slide" data-ride="carousel">
+        <ol class="carousel-indicators">
+        {% set count = 0 %}
+                  	{% for slide in slider.slides.slideShows.slide_show_content %}
+
+          <li data-target="#carouselIndicators{{slider.slides.slideShows.id}}" data-slide-to="{{count}}"></li>
+                            	{% set count = count + 1 %}
+
+                    {% endfor %}
+
+        </ol>
+        
+        <div class="carousel-inner" role="listbox">
+          <!-- Slides -->
+                  {% set count = 0 %}
+
+          	{% for slide in slider.slides.slideShows.slide_show_content %}
+          <div class="carousel-item {{count==0?'active':''}}">
+            <div class="">
+              <img src="{{slide.slide_image|media}}">
+            </div>
+          </div>
+                            	{% set count = count + 1 %}
+
+          {% endfor %}
+        </div>
+        <a class="carousel-control-prev" href="#carouselIndicators{{slider.slides.slideShows.id}}" role="button" data-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="sr-only">Previous</span>
+        </a>
+        <a class="carousel-control-next" href="#carouselIndicators{{slider.slides.slideShows.id}}" role="button" data-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="sr-only">Next</span>
+        </a>
+      </div>
+</header>
+{% endif %}";s:5:"mtime";i:1526235728;s:6:"markup";s:1586:"{% if slider.slides.slideShows != 'no_slider' %}
+<header>
+      <div id="carouselIndicators{{slider.slides.slideShows.id}}" class="carousel slide" data-ride="carousel">
+        <ol class="carousel-indicators">
+        {% set count = 0 %}
+                  	{% for slide in slider.slides.slideShows.slide_show_content %}
+
+          <li data-target="#carouselIndicators{{slider.slides.slideShows.id}}" data-slide-to="{{count}}"></li>
+                            	{% set count = count + 1 %}
+
+                    {% endfor %}
+
+        </ol>
+        
+        <div class="carousel-inner" role="listbox">
+          <!-- Slides -->
+                  {% set count = 0 %}
+
+          	{% for slide in slider.slides.slideShows.slide_show_content %}
+          <div class="carousel-item {{count==0?'active':''}}">
+            <div class="">
+              <img src="{{slide.slide_image|media}}">
+            </div>
+          </div>
+                            	{% set count = count + 1 %}
+
+          {% endfor %}
+        </div>
+        <a class="carousel-control-prev" href="#carouselIndicators{{slider.slides.slideShows.id}}" role="button" data-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="sr-only">Previous</span>
+        </a>
+        <a class="carousel-control-next" href="#carouselIndicators{{slider.slides.slideShows.id}}" role="button" data-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="sr-only">Next</span>
+        </a>
+      </div>
+</header>
+{% endif %}";s:4:"code";N;s:11:"description";s:20:"Home page slide show";s:7:"viewBag";a:1:{s:11:"snippetCode";s:9:"slideshow";}s:6:"slider";a:1:{s:13:"slide_show_id";s:1:"1";}}}

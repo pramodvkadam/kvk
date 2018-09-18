@@ -1,0 +1,335 @@
+1537293368a:1:{s:16:"publications.htm";a:7:{s:8:"fileName";s:16:"publications.htm";s:7:"content";s:4348:"[viewBag]
+title = "Publications"
+url = "/publications"
+layout = "default"
+is_hidden = 0
+navigation_hidden = 0
+==
+<p>
+	<br>
+</p>
+
+<table style="width: 100%;">
+	<tbody>
+		<tr>
+			<td style="width: 35.3381%;"><strong>Agronomy</strong>
+				<br>Groundnut Production Technology
+				<br><a href="http://staging.weblogicx.com/kvkcms/storage/app/media/publications/1.pdf" rel="noopener noreferrer" target="_blank">Four Fold Rice Cultivation</a>
+				<br>Soybean Production Technology
+				<br>Chickpea production technology
+				<br>
+				<br>
+			</td>
+			<td style="width: 21.3388%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success"></td>
+			<td style="width: 20.9083%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success"></td>
+			<td style="width: 22.3355%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success"></td>
+		</tr>
+		<tr>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td style="width: 35.3381%;"><strong>Horticulture</strong>
+				<br>Banana Production Technology
+				<br>Onion Production Technology
+				<br>Protected Cultivation
+				<br>Pomegranate Production Technology</td>
+			<td style="width: 21.3388%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td style="width: 20.9083%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td style="width: 22.3355%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td><strong>Soil Science</strong>
+				<br>Use of Urea Briquette in Paddy
+				<br>Soil and Water Testing
+				<br>Use of Biofertilizers
+				<br>Fertigation in Banana</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td><strong>Home Science</strong>
+				<br>Income Generation Activities
+				<br><a href="http://staging.weblogicx.com/kvkcms/storage/app/media/publications/Soybean%20Processing.pdf" rel="noopener noreferrer" target="_blank">Soybean Processing</a>
+				<br>Spice Processing</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td><strong>Other</strong>
+				<br>Azola production Technology
+				<br>Agriclinics Agribusiness Centre</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+	</tbody>
+</table>";s:5:"mtime";i:1533380076;s:6:"markup";s:4235:"<p>
+	<br>
+</p>
+
+<table style="width: 100%;">
+	<tbody>
+		<tr>
+			<td style="width: 35.3381%;"><strong>Agronomy</strong>
+				<br>Groundnut Production Technology
+				<br><a href="http://staging.weblogicx.com/kvkcms/storage/app/media/publications/1.pdf" rel="noopener noreferrer" target="_blank">Four Fold Rice Cultivation</a>
+				<br>Soybean Production Technology
+				<br>Chickpea production technology
+				<br>
+				<br>
+			</td>
+			<td style="width: 21.3388%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success"></td>
+			<td style="width: 20.9083%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success"></td>
+			<td style="width: 22.3355%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success"></td>
+		</tr>
+		<tr>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td style="width: 35.3381%;"><strong>Horticulture</strong>
+				<br>Banana Production Technology
+				<br>Onion Production Technology
+				<br>Protected Cultivation
+				<br>Pomegranate Production Technology</td>
+			<td style="width: 21.3388%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td style="width: 20.9083%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td style="width: 22.3355%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td><strong>Soil Science</strong>
+				<br>Use of Urea Briquette in Paddy
+				<br>Soil and Water Testing
+				<br>Use of Biofertilizers
+				<br>Fertigation in Banana</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td><strong>Home Science</strong>
+				<br>Income Generation Activities
+				<br><a href="http://staging.weblogicx.com/kvkcms/storage/app/media/publications/Soybean%20Processing.pdf" rel="noopener noreferrer" target="_blank">Soybean Processing</a>
+				<br>Spice Processing</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td><strong>Other</strong>
+				<br>Azola production Technology
+				<br>Agriclinics Agribusiness Centre</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+	</tbody>
+</table>";s:4:"code";N;s:7:"viewBag";a:5:{s:5:"title";s:12:"Publications";s:3:"url";s:13:"/publications";s:6:"layout";s:7:"default";s:9:"is_hidden";s:1:"0";s:17:"navigation_hidden";s:1:"0";}s:12:"parsedMarkup";s:4235:"<p>
+	<br>
+</p>
+
+<table style="width: 100%;">
+	<tbody>
+		<tr>
+			<td style="width: 35.3381%;"><strong>Agronomy</strong>
+				<br>Groundnut Production Technology
+				<br><a href="http://staging.weblogicx.com/kvkcms/storage/app/media/publications/1.pdf" rel="noopener noreferrer" target="_blank">Four Fold Rice Cultivation</a>
+				<br>Soybean Production Technology
+				<br>Chickpea production technology
+				<br>
+				<br>
+			</td>
+			<td style="width: 21.3388%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success"></td>
+			<td style="width: 20.9083%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success"></td>
+			<td style="width: 22.3355%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success"></td>
+		</tr>
+		<tr>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td style="width: 35.3381%;"><strong>Horticulture</strong>
+				<br>Banana Production Technology
+				<br>Onion Production Technology
+				<br>Protected Cultivation
+				<br>Pomegranate Production Technology</td>
+			<td style="width: 21.3388%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td style="width: 20.9083%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td style="width: 22.3355%;"><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+			<td>
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td><strong>Soil Science</strong>
+				<br>Use of Urea Briquette in Paddy
+				<br>Soil and Water Testing
+				<br>Use of Biofertilizers
+				<br>Fertigation in Banana</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td><strong>Home Science</strong>
+				<br>Income Generation Activities
+				<br><a href="http://staging.weblogicx.com/kvkcms/storage/app/media/publications/Soybean%20Processing.pdf" rel="noopener noreferrer" target="_blank">Soybean Processing</a>
+				<br>Spice Processing</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+		<tr>
+			<td><strong>Other</strong>
+				<br>Azola production Technology
+				<br>Agriclinics Agribusiness Centre</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+			<td><img src="/kvkcms/storage/app/media/uploaded-files/10.jpg" style="width: 150px; height: 200px;" class="fr-fic fr-dib" data-result="success">
+				<br>
+			</td>
+		</tr>
+	</tbody>
+</table>";}}

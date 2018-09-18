@@ -1,0 +1,12 @@
+1537293368a:1:{s:10:"videos.htm";a:10:{s:8:"fileName";s:10:"videos.htm";s:7:"content";s:187:"title = "videos"
+url = "/videos"
+layout = "default"
+is_hidden = 0
+
+[Playlist]
+playlist = 1
+display_playlist_name = 1
+sort_by = "order"
+sort_direction = "asc"
+==
+{% component 'Playlist' %}";s:5:"mtime";i:1528342762;s:6:"markup";s:26:"{% component 'Playlist' %}";s:4:"code";N;s:5:"title";s:6:"videos";s:3:"url";s:7:"/videos";s:6:"layout";s:7:"default";s:9:"is_hidden";s:1:"0";s:8:"Playlist";a:4:{s:8:"playlist";s:1:"1";s:21:"display_playlist_name";s:1:"1";s:7:"sort_by";s:5:"order";s:14:"sort_direction";s:3:"asc";}}}
